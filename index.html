@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZX Adventure Builder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <h1>ZX Adventure Builder</h1>
+            <div class="toolbar">
+                <button id="add-screen-btn">Add Screen Node</button>
+                <button id="add-decision-btn">Add Decision Node</button>
+                <button id="save-btn">Save Project</button>
+                <button id="load-btn">Load Project</button>
+                <input type="file" id="load-input" style="display: none;" accept=".json">
+                <button id="export-tap-btn">Export .TAP</button>
+                <button id="export-btn">Export to BASIC</button>
+            </div>
+        </header>
+
+        <main>
+            <div id="editor-container">
+                <canvas id="node-canvas"></canvas>
+            </div>
+
+            <aside id="property-panel">
+                <h2>Properties</h2>
+                <div id="properties-content">
+                    <p>Select a node to edit properties.</p>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,102 @@
+:root {
+    --bg-color: #202020;
+    --panel-bg: #333;
+    --text-color: #eee;
+    --accent-color: #00d022; /* Sinclair Green-ish */
+    --node-bg: #444;
+    --node-border: #666;
+    --connection-color: #aaa;
+}
+
+body {
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace; /* Retro feel */
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+header {
+    background-color: var(--panel-bg);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent-color);
+}
+
+.toolbar button {
+    background-color: var(--node-bg);
+    color: var(--text-color);
+    border: 1px solid var(--node-border);
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.toolbar button:hover {
+    background-color: #555;
+    border-color: var(--accent-color);
+}
+
+main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+#editor-container {
+    flex: 1;
+    position: relative;
+    background-color: #1a1a1a;
+    background-image: radial-gradient(#333 1px, transparent 1px);
+    background-size: 20px 20px;
+    overflow: hidden;
+}
+
+#property-panel {
+    width: 300px;
+    background-color: var(--panel-bg);
+    border-left: 1px solid #444;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+#property-panel h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    background-color: #222;
+    border: 1px solid #555;
+    color: var(--text-color);
+    padding: 5px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+canvas {
+    display: block;
+}
