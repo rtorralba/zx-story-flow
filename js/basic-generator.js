@@ -67,28 +67,34 @@ export function generateBasic(nodes, connections) {
             basicCode += `${currentLine} PRINT "${safeQuestion}"\n`;
             currentLine += 10;
 
+            // Print Options
+            node.outputs.forEach((opt, idx) => {
+                const safeLabel = opt.label.replace(/"/g, "'");
+                basicCode += `${currentLine} PRINT "${idx + 1}. ${safeLabel}"\n`;
+                currentLine += 10;
+            });
+
             basicCode += `${currentLine} INPUT A$\n`;
             currentLine += 10;
 
-            // Find connections
-            const yesConn = connections.find(c => c.fromNodeId === node.id && c.fromPortIndex === 0);
-            const noConn = connections.find(c => c.fromNodeId === node.id && c.fromPortIndex === 1);
+            // Generate IFs
+            node.outputs.forEach((opt, idx) => {
+                const conn = connections.find(c => c.fromNodeId === node.id && c.fromPortIndex === idx);
+                if (conn) {
+                    const targetLine = nodeLines.get(conn.toNodeId);
 
-            // Handle Yes
-            if (yesConn) {
-                const targetLine = nodeLines.get(yesConn.toNodeId);
-                basicCode += `${currentLine} IF A$="y" OR A$="Y" THEN GOTO ${targetLine}\n`;
-                currentLine += 10;
-            }
+                    // Allow input as "1", "2" OR full label text (basic sanitization)
+                    // ZX strings are case sensitive usually, let's allow simplified check
+                    // IF A$ = "1" OR A$ = "OptionText" THEN GOTO ...
+                    // Converting input to simplified form in BASIC is hard without more code.
+                    // Just checking index is safest/easiest usage.
+                    const safeLabel = opt.label.replace(/"/g, "'");
+                    basicCode += `${currentLine} IF A$="${idx + 1}" OR A$="${safeLabel}" THEN GOTO ${targetLine}\n`;
+                    currentLine += 10;
+                }
+            });
 
-            // Handle No
-            if (noConn) {
-                const targetLine = nodeLines.get(noConn.toNodeId);
-                basicCode += `${currentLine} IF A$="n" OR A$="N" THEN GOTO ${targetLine}\n`;
-                currentLine += 10;
-            }
-
-            // Loop back if invalid input
+            // Fallback / Loop
             basicCode += `${currentLine} GOTO ${nodeLines.get(node.id)}\n`;
         }
     });

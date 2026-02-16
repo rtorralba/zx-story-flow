@@ -203,6 +203,91 @@ document.addEventListener('DOMContentLoaded', () => {
                 editor.draw();
             });
             propertyContent.appendChild(questionInput);
+
+            // Options Container
+            const optsHeader = document.createElement('h4');
+            optsHeader.textContent = "Options";
+            optsHeader.style.marginTop = "15px";
+            propertyContent.appendChild(optsHeader);
+
+            const renderOptions = () => {
+                // Remove old options UI if exists
+                const oldContainer = document.getElementById('options-container');
+                if (oldContainer) oldContainer.remove();
+
+                const container = document.createElement('div');
+                container.id = 'options-container';
+
+                node.outputs.forEach((opt, idx) => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.marginBottom = '5px';
+
+                    const inp = document.createElement('input');
+                    inp.value = opt.label;
+                    inp.style.flex = "1";
+                    inp.style.marginRight = "5px";
+                    inp.addEventListener('input', (e) => {
+                        opt.label = e.target.value;
+                        editor.draw();
+                    });
+
+                    const del = document.createElement('button');
+                    del.textContent = "X";
+                    del.style.backgroundColor = "#d00000";
+                    del.style.color = "white";
+                    del.style.border = "none";
+                    del.addEventListener('click', () => {
+                        // Remove option
+                        // Also need to remove connections that used this port index!
+                        // And shift connections for higher indices down?
+                        // This connection management is tricky.
+                        // Simplest: Just remove, let editor clean up invalid connections on next draw/action?
+                        // NodeEditor connection filtering:
+                        // this.connections = this.connections.filter(c => c.fromNodeId !== node.id && c.toNodeId !== node.id);
+                        // We need to filter specific port index.
+
+                        // Let's ask Node to remove it
+                        node.removeOption(idx);
+
+                        // Cleanup connections in Editor
+                        // 1. Remove connections from the deleted index
+                        // 2. Decrement index for connections > idx
+                        editor.connections = editor.connections.filter(c => {
+                            if (c.fromNodeId === node.id && c.fromPortIndex === idx) return false;
+                            return true;
+                        });
+                        editor.connections.forEach(c => {
+                            if (c.fromNodeId === node.id && c.fromPortIndex > idx) {
+                                c.fromPortIndex--;
+                            }
+                        });
+
+                        editor.draw();
+                        renderOptions(); // Re-render UI
+                    });
+
+                    row.appendChild(inp);
+                    row.appendChild(del);
+                    container.appendChild(row);
+                });
+
+                // Add Option Button
+                const addBtn = document.createElement('button');
+                addBtn.textContent = "+ Add Option";
+                addBtn.style.width = "100%";
+                addBtn.style.marginTop = "5px";
+                addBtn.addEventListener('click', () => {
+                    node.addOption(`Option ${node.outputs.length + 1}`);
+                    editor.draw();
+                    renderOptions();
+                });
+                container.appendChild(addBtn);
+
+                propertyContent.appendChild(container);
+            };
+
+            renderOptions();
         }
 
         const deleteBtn = document.createElement('button');

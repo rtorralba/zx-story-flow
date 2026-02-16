@@ -81,10 +81,11 @@ export class NodeEditor {
                 const port = { x: node.x + node.width, y: node.y + node.height / 2 };
                 if (Math.hypot(x - port.x, y - port.y) < 10) return { node, index: 0 };
             } else if (node instanceof DecisionNode) {
-                const port1 = { x: node.x + node.width, y: node.y + 40 };
-                const port2 = { x: node.x + node.width, y: node.y + 80 };
-                if (Math.hypot(x - port1.x, y - port1.y) < 10) return { node, index: 0 };
-                if (Math.hypot(x - port2.x, y - port2.y) < 10) return { node, index: 1 };
+                // Dynamic ports
+                for (let i = 0; i < node.outputs.length; i++) {
+                    const port = node.getOutputPort(i);
+                    if (Math.hypot(x - port.x, y - port.y) < 10) return { node, index: i };
+                }
             }
         }
         return null;
@@ -221,17 +222,24 @@ export class NodeEditor {
 
             // Draw Ports
             if (node instanceof ScreenNode) {
-                const port = { x: node.x + node.width, y: node.y + node.height / 2 };
+                const port = node.getOutputPort(0);
                 this.drawPort(port, "#00d022");
             } else if (node instanceof DecisionNode) {
-                const port1 = { x: node.x + node.width, y: node.y + 40 };
-                const port2 = { x: node.x + node.width, y: node.y + 80 };
-                this.drawPort(port1, "#00d022"); // Yes
-                this.drawPort(port2, "#d00000"); // No
+                node.outputs.forEach((opt, index) => {
+                    const port = node.getOutputPort(index);
+                    this.drawPort(port, "#00d022");
 
-                this.ctx.fillStyle = "#fff";
-                this.ctx.fillText("Y", port1.x - 15, port1.y + 3);
-                this.ctx.fillText("N", port2.x - 15, port2.y + 3);
+                    // Draw Label
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.font = "10px Courier New";
+                    this.ctx.textAlign = "right";
+
+                    let label = opt.label;
+                    if (label.length > 15) label = label.substring(0, 12) + "...";
+
+                    this.ctx.fillText(label, port.x - 12, port.y + 3);
+                    this.ctx.textAlign = "left"; // Reset
+                });
             }
         });
 
@@ -243,11 +251,24 @@ export class NodeEditor {
 
             let startX, startY;
             if (fromNode instanceof ScreenNode) {
-                startX = fromNode.x + fromNode.width;
-                startY = fromNode.y + fromNode.height / 2;
+                const port = fromNode.getOutputPort(0);
+                startX = port.x;
+                startY = port.y;
+            } else if (fromNode instanceof DecisionNode) {
+                const port = fromNode.getOutputPort(conn.fromPortIndex);
+                if (port) {
+                    startX = port.x;
+                    startY = port.y;
+                } else {
+                    // Port might no longer exist if option was deleted
+                    // Valid failsafe: center of node
+                    startX = fromNode.x + fromNode.width;
+                    startY = fromNode.y + fromNode.height / 2;
+                }
             } else {
+                // Fallback
                 startX = fromNode.x + fromNode.width;
-                startY = fromNode.y + (conn.fromPortIndex === 0 ? 40 : 80);
+                startY = fromNode.y + ((conn.fromPortIndex === 0 ? 40 : 80));
             }
 
             const endX = toNode.x;
@@ -261,11 +282,13 @@ export class NodeEditor {
             let startX, startY;
             const fromNode = this.dragState.fromNode;
             if (fromNode instanceof ScreenNode) {
-                startX = fromNode.x + fromNode.width;
-                startY = fromNode.y + fromNode.height / 2;
-            } else {
-                startX = fromNode.x + fromNode.width;
-                startY = fromNode.y + (this.dragState.fromPortIndex === 0 ? 40 : 80);
+                const port = fromNode.getOutputPort(0);
+                startX = port.x;
+                startY = port.y;
+            } else if (fromNode instanceof DecisionNode) {
+                const port = fromNode.getOutputPort(this.dragState.fromPortIndex);
+                startX = port.x;
+                startY = port.y;
             }
             this.drawConnection(startX, startY, this.dragState.currentX, this.dragState.currentY, true);
         }
