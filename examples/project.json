@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "node_1771351278565",
+      "x": 100,
+      "y": 100,
+      "type": "Screen",
+      "title": "Introduccion",
+      "text": "Intro",
+      "outputs": [
+        {
+          "label": "Ventana",
+          "target": null
+        },
+        {
+          "label": "Puerta",
+          "target": null
+        },
+        {
+          "label": "Chimenea",
+          "target": null
+        }
+      ]
+    },
+    {
+      "id": "node_1771351340276",
+      "x": 508,
+      "y": 117,
+      "type": "Screen",
+      "title": "Ventana",
+      "text": "Ventana texto",
+      "outputs": [
+        {
+          "label": "Next",
+          "target": null
+        }
+      ]
+    },
+    {
+      "id": "node_1771351376749",
+      "x": 518,
+      "y": 270,
+      "type": "Screen",
+      "title": "Puerta",
+      "text": "Puerta texto",
+      "outputs": [
+        {
+          "label": "Next",
+          "target": null
+        }
+      ]
+    },
+    {
+      "id": "node_1771351411062",
+      "x": 517,
+      "y": 427,
+      "type": "Screen",
+      "title": "Chimenea",
+      "text": "Chimenea texto",
+      "outputs": [
+        {
+          "label": "Next",
+          "target": null
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "fromNodeId": "node_1771351278565",
+      "fromPortIndex": 0,
+      "toNodeId": "node_1771351340276"
+    },
+    {
+      "fromNodeId": "node_1771351278565",
+      "fromPortIndex": 1,
+      "toNodeId": "node_1771351376749"
+    },
+    {
+      "fromNodeId": "node_1771351278565",
+      "fromPortIndex": 2,
+      "toNodeId": "node_1771351411062"
+    },
+    {
+      "fromNodeId": "node_1771351411062",
+      "fromPortIndex": 0,
+      "toNodeId": "node_1771351278565"
+    }
+  ]
+}

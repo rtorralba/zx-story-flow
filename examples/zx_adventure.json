@@ -1,0 +1,147 @@
+{
+    "nodes": [
+        {
+            "id": "n1",
+            "x": 100,
+            "y": 200,
+            "type": "Screen",
+            "title": "The Loader",
+            "text": "It is 1984. You sit in front of the TV. The screeches of loading data fill the room: 'BEEEP... screech... BEEP'.\n\nSuddenly, the flashing border stops changing colors.",
+            "outputs": [
+                {
+                    "label": "Touch the volume",
+                    "target": null
+                },
+                {
+                    "label": "Wait patiently",
+                    "target": null
+                }
+            ]
+        },
+        {
+            "id": "n2",
+            "x": 450,
+            "y": 100,
+            "type": "Screen",
+            "title": "Azimuth",
+            "text": "You grab your tiny yellow screwdriver.\nYou turn the azimuth screw on the Datasette 0.01mm to the right.\n\nThe sound changes texture. Is it better?",
+            "outputs": [
+                {
+                    "label": "Yes! It sounds crisp!",
+                    "target": null
+                },
+                {
+                    "label": "Oops, now it's silent",
+                    "target": null
+                }
+            ]
+        },
+        {
+            "id": "n3",
+            "x": 450,
+            "y": 300,
+            "type": "Screen",
+            "title": "Patience",
+            "text": "You wait.\n5 minutes pass.\n10 minutes pass.\nYour tea gets cold.\n\nFinally, the message appears: 'R Tape loading error, 0:1'.",
+            "outputs": [
+                {
+                    "label": "Rewind and retry",
+                    "target": null
+                },
+                {
+                    "label": "Smash the keyboard",
+                    "target": null
+                }
+            ]
+        },
+        {
+            "id": "n4",
+            "x": 800,
+            "y": 50,
+            "type": "Screen",
+            "title": "Success!",
+            "text": "A miracle! The title screen appears pixel by pixel.\n\n'JET SET WILLY'\n\nInput Type: KEMPSTON.\nYou play until the power supply melts the carpet.",
+            "outputs": [
+                {
+                    "label": "Play another game",
+                    "target": null
+                }
+            ]
+        },
+        {
+            "id": "n5",
+            "x": 800,
+            "y": 200,
+            "type": "Screen",
+            "title": "Silence",
+            "text": "You turned the screw too far. The head is misaligned.\nYou broke the datasette.\n\nNow you have to listen to your parents talk about politics instead of playing.",
+            "outputs": [
+                {
+                    "label": "Go to sleep",
+                    "target": null
+                }
+            ]
+        },
+        {
+            "id": "n6",
+            "x": 800,
+            "y": 350,
+            "type": "Screen",
+            "title": "Rage",
+            "text": "You hit the rubber keys in frustration.\nA keycap flies off and hits the cat.\nThe cat scratches you.\n\nGAME OVER.",
+            "outputs": [
+                {
+                    "label": "Try again",
+                    "target": null
+                }
+            ]
+        }
+    ],
+    "connections": [
+        {
+            "fromNodeId": "n1",
+            "fromPortIndex": 0,
+            "toNodeId": "n2"
+        },
+        {
+            "fromNodeId": "n1",
+            "fromPortIndex": 1,
+            "toNodeId": "n3"
+        },
+        {
+            "fromNodeId": "n2",
+            "fromPortIndex": 0,
+            "toNodeId": "n4"
+        },
+        {
+            "fromNodeId": "n2",
+            "fromPortIndex": 1,
+            "toNodeId": "n5"
+        },
+        {
+            "fromNodeId": "n3",
+            "fromPortIndex": 0,
+            "toNodeId": "n1"
+        },
+        {
+            "fromNodeId": "n3",
+            "fromPortIndex": 1,
+            "toNodeId": "n6"
+        },
+        {
+            "fromNodeId": "n4",
+            "fromPortIndex": 0,
+            "toNodeId": "n1"
+        },
+        {
+            "fromNodeId": "n5",
+            "fromPortIndex": 0,
+            "toNodeId": "n1"
+        },
+        {
+            "fromNodeId": "n6",
+            "fromPortIndex": 0,
+            "toNodeId": "n1"
+        }
+    ]
+}

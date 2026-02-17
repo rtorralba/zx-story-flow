@@ -190,22 +190,17 @@ export class NodeEditor {
             this.ctx.fill();
             this.ctx.stroke();
 
-            // Draw Node Type
-            this.ctx.fillStyle = "#aaa";
-            this.ctx.font = "bold 12px Courier New";
-            this.ctx.fillText("SCREEN", node.x + 10, node.y + 20);
-
             // Draw Node Title
             this.ctx.fillStyle = "#fff";
             this.ctx.font = "bold 14px Courier New";
-            this.ctx.fillText(node.title, node.x + 10, node.y + 38);
+            this.ctx.fillText(node.title, node.x + 10, node.y + 25);
 
             // Draw Node Specific Content
             this.ctx.font = "12px Courier New";
             this.ctx.fillStyle = "#ccc";
             let content = node.text || "Empty screen text";
             if (content.length > 20) content = content.substring(0, 17) + "...";
-            this.ctx.fillText(content, node.x + 10, node.y + 58);
+            this.ctx.fillText(content, node.x + 10, node.y + 45);
 
             // Draw Ports and Options
             if (node instanceof ScreenNode) {

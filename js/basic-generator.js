@@ -37,7 +37,15 @@ export function generateBasic(nodes, connections) {
         currentLine += 10;
 
         // Print text
-        const safeText = (node.text || "").replace(/"/g, "'");
+        // Sanitization:
+        // 1. Replace double quotes with single quotes to avoid breaking the string literal.
+        // 2. Replace newlines with ZX Spectrum PRINT separation: " ' " (quote, apostrophe for newline, quote)
+        // Note: We need to be careful not to create empty strings like "" ' "" if not needed, but BASIC usually tolerates it or we can trim.
+
+        let safeText = (node.text || "").replace(/"/g, "'");
+        // Replace newlines with Quote-Apostrophe-Quote to break lines in BASIC
+        safeText = safeText.replace(/\n/g, "\" ' \"");
+
         basicCode += `${currentLine} PRINT "${safeText}"\n`;
         currentLine += 10;
 
@@ -60,7 +68,8 @@ export function generateBasic(nodes, connections) {
         } else {
             // Multiple options: Show menu and Input
             node.outputs.forEach((opt, idx) => {
-                const safeLabel = opt.label.replace(/"/g, "'");
+                // Remove newlines from labels entirely, they are single line inputs
+                const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
                 basicCode += `${currentLine} PRINT "${idx + 1}. ${safeLabel}"\n`;
                 currentLine += 10;
             });
@@ -73,7 +82,7 @@ export function generateBasic(nodes, connections) {
                 const conn = connections.find(c => c.fromNodeId === node.id && c.fromPortIndex === idx);
                 if (conn) {
                     const targetLine = nodeLines.get(conn.toNodeId);
-                    const safeLabel = opt.label.replace(/"/g, "'");
+                    const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
                     basicCode += `${currentLine} IF A$="${idx + 1}" OR A$="${safeLabel}" THEN GOTO ${targetLine}\n`;
                     currentLine += 10;
                 }
