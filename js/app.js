@@ -25,6 +25,18 @@ document.addEventListener('DOMContentLoaded', () => {
         editor.addNode('screen');
     });
 
+    // Fullscreen button
+    document.getElementById('fullscreen-btn').addEventListener('click', () => {
+        const app = document.getElementById('app');
+        if (!document.fullscreenElement) {
+            app.requestFullscreen().catch(err => {
+                console.error('Error attempting to enable fullscreen:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
             const basicCode = generateBasic(editor.nodes);
