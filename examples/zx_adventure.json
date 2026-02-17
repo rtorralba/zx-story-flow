@@ -5,15 +5,15 @@
             "x": 100,
             "y": 200,
             "type": "Screen",
-            "title": "The Loader",
-            "text": "It is 1984. You sit in front of the TV. The screeches of loading data fill the room: 'BEEEP... screech... BEEP'.\n\nSuddenly, the flashing border stops changing colors.",
+            "title": "La Carga",
+            "text": "Es 1984. Estas sentado frente al televisor. Los chirridos de la cinta llenan la habitacion: 'BIIIP... screech... BIIP'.\n\nDe repente, el borde deja de parpadear colores.",
             "outputs": [
                 {
-                    "label": "Touch the volume",
+                    "label": "Tocar el volumen",
                     "target": null
                 },
                 {
-                    "label": "Wait patiently",
+                    "label": "Esperar con paciencia",
                     "target": null
                 }
             ]
@@ -23,15 +23,15 @@
             "x": 450,
             "y": 100,
             "type": "Screen",
-            "title": "Azimuth",
-            "text": "You grab your tiny yellow screwdriver.\nYou turn the azimuth screw on the Datasette 0.01mm to the right.\n\nThe sound changes texture. Is it better?",
+            "title": "Azimut",
+            "text": "Coges tu diminuto destornillador amarillo.\nGiras el tornillo de azimut del Datasette 0.01mm a la derecha.\n\nEl sonido cambia. ¿Ha mejorado?",
             "outputs": [
                 {
-                    "label": "Yes! It sounds crisp!",
+                    "label": "Si! Suena perfecto!",
                     "target": null
                 },
                 {
-                    "label": "Oops, now it's silent",
+                    "label": "Ups, ahora no suena",
                     "target": null
                 }
             ]
@@ -41,15 +41,15 @@
             "x": 450,
             "y": 300,
             "type": "Screen",
-            "title": "Patience",
-            "text": "You wait.\n5 minutes pass.\n10 minutes pass.\nYour tea gets cold.\n\nFinally, the message appears: 'R Tape loading error, 0:1'.",
+            "title": "Paciencia",
+            "text": "Esperas.\nPasan 5 minutos.\nPasan 10 minutos.\nTu te se enfria.\n\nFinalmente aparece el mensaje: 'R Tape loading error, 0:1'.",
             "outputs": [
                 {
-                    "label": "Rewind and retry",
+                    "label": "Rebobinar y reintentar",
                     "target": null
                 },
                 {
-                    "label": "Smash the keyboard",
+                    "label": "Destrozar el teclado",
                     "target": null
                 }
             ]
@@ -59,11 +59,11 @@
             "x": 800,
             "y": 50,
             "type": "Screen",
-            "title": "Success!",
-            "text": "A miracle! The title screen appears pixel by pixel.\n\n'JET SET WILLY'\n\nInput Type: KEMPSTON.\nYou play until the power supply melts the carpet.",
+            "title": "Exito!",
+            "text": "Un milagro! La pantalla de titulo aparece pixel a pixel.\n\n'JET SET WILLY'\n\nInput Type: KEMPSTON.\nJuegas hasta que la fuente derrite la alfombra.",
             "outputs": [
                 {
-                    "label": "Play another game",
+                    "label": "Jugar otro juego",
                     "target": null
                 }
             ]
@@ -73,11 +73,11 @@
             "x": 800,
             "y": 200,
             "type": "Screen",
-            "title": "Silence",
-            "text": "You turned the screw too far. The head is misaligned.\nYou broke the datasette.\n\nNow you have to listen to your parents talk about politics instead of playing.",
+            "title": "Silencio",
+            "text": "Giraste el tornillo demasiado. El cabezal esta desalineado.\nRompiste el datasette.\n\nAhora tienes que escuchar a tus padres hablar de politica en vez de jugar.",
             "outputs": [
                 {
-                    "label": "Go to sleep",
+                    "label": "Irse a dormir",
                     "target": null
                 }
             ]
@@ -87,11 +87,11 @@
             "x": 800,
             "y": 350,
             "type": "Screen",
-            "title": "Rage",
-            "text": "You hit the rubber keys in frustration.\nA keycap flies off and hits the cat.\nThe cat scratches you.\n\nGAME OVER.",
+            "title": "Rabia",
+            "text": "Golpeas las teclas de goma con frustracion.\nUna tecla sale volando y golpea al gato.\nEl gato te arana.\n\nGAME OVER.",
             "outputs": [
                 {
-                    "label": "Try again",
+                    "label": "Intentar de nuevo",
                     "target": null
                 }
             ]

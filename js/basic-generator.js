@@ -67,6 +67,10 @@ export function generateBasic(nodes, connections) {
             }
         } else {
             // Multiple options: Show menu and Input
+            // Add blank line before options
+            basicCode += `${currentLine} PRINT\n`;
+            currentLine += 10;
+
             node.outputs.forEach((opt, idx) => {
                 // Remove newlines from labels entirely, they are single line inputs
                 const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
