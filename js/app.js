@@ -7,11 +7,18 @@ import { createTap } from './bas2tap.js';
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('node-canvas');
     const propertyContent = document.getElementById('properties-content');
+    let projectName = 'Untitled';
 
     // Initialize Editor
     const editor = new NodeEditor(canvas, (selectedNode) => {
         updatePropertyPanel(selectedNode);
     });
+
+    // Function to update project name in header
+    const updateProjectName = (name) => {
+        projectName = name || 'Untitled';
+        document.querySelector('h1').textContent = `ZX Adventure Builder - ${projectName}`;
+    };
 
     // Toolbar Buttons
     document.getElementById('add-screen-btn').addEventListener('click', () => {
@@ -66,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Save clicked");
         try {
             const projectData = {
+                name: projectName,
                 nodes: editor.nodes.map(n => {
                     return {
                         id: n.id,
@@ -115,6 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 editor.nodes = [];
                 editor.connections = [];
                 editor.selectNode(null);
+
+                // Restore project name
+                updateProjectName(data.name || 'Untitled');
 
                 // Restore Nodes
                 if (data.nodes) {
@@ -197,12 +208,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const inputEl = document.createElement('textarea');
             inputEl.value = value || '';
-            inputEl.rows = 4;
+            inputEl.rows = 8; // Increased from 4
             inputEl.addEventListener('input', (e) => onChange(e.target.value));
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = '✎ Edit in Window';
+            editBtn.style.marginTop = '5px';
+            editBtn.style.width = '100%';
+            editBtn.addEventListener('click', () => {
+                openTextEditor(value, onChange);
+            });
 
             group.appendChild(labelEl);
             group.appendChild(inputEl);
+            group.appendChild(editBtn);
             return group;
+        };
+
+        const openTextEditor = (currentText, onChange) => {
+            // Create modal
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            modal.style.display = 'flex';
+            modal.style.justifyContent = 'center';
+            modal.style.alignItems = 'center';
+            modal.style.zIndex = '10000';
+
+            const modalContent = document.createElement('div');
+            modalContent.style.backgroundColor = 'var(--panel-bg)';
+            modalContent.style.padding = '20px';
+            modalContent.style.borderRadius = '8px';
+            modalContent.style.width = '80%';
+            modalContent.style.maxWidth = '600px';
+            modalContent.style.maxHeight = '80%';
+            modalContent.style.display = 'flex';
+            modalContent.style.flexDirection = 'column';
+
+            const title = document.createElement('h3');
+            title.textContent = 'Edit Screen Text';
+            title.style.marginTop = '0';
+
+            const textarea = document.createElement('textarea');
+            textarea.value = currentText || '';
+            textarea.style.flex = '1';
+            textarea.style.minHeight = '300px';
+            textarea.style.fontFamily = 'Courier New, monospace';
+            textarea.style.fontSize = '14px';
+            textarea.style.backgroundColor = '#222';
+            textarea.style.color = 'var(--text-color)';
+            textarea.style.border = '1px solid #555';
+            textarea.style.padding = '10px';
+            textarea.style.resize = 'vertical';
+
+            const btnContainer = document.createElement('div');
+            btnContainer.style.marginTop = '15px';
+            btnContainer.style.display = 'flex';
+            btnContainer.style.gap = '10px';
+            btnContainer.style.justifyContent = 'flex-end';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.style.padding = '8px 16px';
+            saveBtn.addEventListener('click', () => {
+                onChange(textarea.value);
+                document.body.removeChild(modal);
+            });
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.style.padding = '8px 16px';
+            cancelBtn.addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            btnContainer.appendChild(cancelBtn);
+            btnContainer.appendChild(saveBtn);
+            modalContent.appendChild(title);
+            modalContent.appendChild(textarea);
+            modalContent.appendChild(btnContainer);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            textarea.focus();
         };
 
         const titleInput = createInput('Node Title', node.title, (val) => {
