@@ -36,16 +36,57 @@ export function generateBasic(nodes, connections) {
         basicCode += `${currentLine} CLS\n`;
         currentLine += 10;
 
-        // Print text
-        // Sanitization:
-        // 1. Replace double quotes with single quotes to avoid breaking the string literal.
-        // 2. Replace newlines with ZX Spectrum PRINT separation: " ' " (quote, apostrophe for newline, quote)
-        // Note: We need to be careful not to create empty strings like "" ' "" if not needed, but BASIC usually tolerates it or we can trim.
+        // Print text with word-aware wrapping for ZX Spectrum 32-char screen
+        // 1. Replace quotes
+        // 2. Word-wrap at 32 characters
+        // 3. Use BASIC newline separator (' in PRINT)
 
-        let safeText = (node.text || "").replace(/"/g, "'");
-        // Replace newlines with Quote-Apostrophe-Quote to break lines in BASIC
-        safeText = safeText.replace(/\n/g, "\" ' \"");
+        const wrapText = (text, maxWidth = 32) => {
+            // First replace quotes
+            text = text.replace(/"/g, "'");
 
+            // Split by explicit newlines first
+            const paragraphs = text.split('\n');
+            const wrappedLines = [];
+
+            paragraphs.forEach(para => {
+                if (para.length === 0) {
+                    wrappedLines.push(''); // Preserve empty lines
+                    return;
+                }
+
+                const words = para.split(' ');
+                let currentLine = '';
+
+                words.forEach(word => {
+                    // If adding this word would exceed maxWidth
+                    if (currentLine.length + word.length + 1 > maxWidth) {
+                        // If current line is not empty, push it
+                        if (currentLine.length > 0) {
+                            wrappedLines.push(currentLine.trim());
+                            currentLine = word;
+                        } else {
+                            // Word itself is longer than maxWidth, just add it
+                            wrappedLines.push(word);
+                            currentLine = '';
+                        }
+                    } else {
+                        // Add word to current line
+                        currentLine += (currentLine.length > 0 ? ' ' : '') + word;
+                    }
+                });
+
+                // Push remaining line
+                if (currentLine.length > 0) {
+                    wrappedLines.push(currentLine.trim());
+                }
+            });
+
+            // Join with BASIC newline separator
+            return wrappedLines.join('" \' "');
+        };
+
+        const safeText = wrapText(node.text || "");
         basicCode += `${currentLine} PRINT "${safeText}"\n`;
         currentLine += 10;
 

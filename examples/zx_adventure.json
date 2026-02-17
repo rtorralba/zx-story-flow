@@ -24,7 +24,7 @@
             "y": 100,
             "type": "Screen",
             "title": "Azimut",
-            "text": "Coges tu diminuto destornillador amarillo.\nGiras el tornillo de azimut del Datasette 0.01mm a la derecha.\n\nEl sonido cambia. ¿Ha mejorado?",
+            "text": "Coges tu diminuto destornillador amarillo.\nGiras el tornillo de azimut del Datasette 0.01mm a la derecha.\n\nEl sonido cambia. Ha mejorado?",
             "outputs": [
                 {
                     "label": "Si! Suena perfecto!",
