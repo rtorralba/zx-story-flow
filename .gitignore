@@ -1,0 +1,7 @@
+node_modules
+dist
+.vscode
+.gemini
+*.tap
+adventure.txt
+*.zip
