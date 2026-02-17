@@ -1,4 +1,4 @@
-import { ScreenNode, DecisionNode } from './nodes.js';
+import { ScreenNode } from './nodes.js';
 
 export function generateBasic(nodes, connections) {
     if (nodes.length === 0) return "10 REM No nodes defined";
@@ -32,42 +32,33 @@ export function generateBasic(nodes, connections) {
         basicCode += `${currentLine} REM --- ${node.title} ---\n`;
         currentLine += 10;
 
-        if (node instanceof ScreenNode) {
-            // CLS if needed, but maybe just print? Let's CLS for every screen for now.
-            basicCode += `${currentLine} CLS\n`;
-            currentLine += 10;
+        // Common Screen Logic
+        basicCode += `${currentLine} CLS\n`;
+        currentLine += 10;
 
-            // Print text, handling rudimentary wrapping or just let Spectrum handle it (it wraps automatically)
-            // Sanitize quotes
-            const safeText = (node.text || "").replace(/"/g, "'");
-            basicCode += `${currentLine} PRINT "${safeText}"\n`;
-            currentLine += 10;
+        // Print text
+        const safeText = (node.text || "").replace(/"/g, "'");
+        basicCode += `${currentLine} PRINT "${safeText}"\n`;
+        currentLine += 10;
 
+        // Check if options exist
+        if (node.outputs.length <= 1) {
+            // Simple flow: Press any key to continue
             basicCode += `${currentLine} PRINT "Press any key to continue..."\n`;
             currentLine += 10;
 
             basicCode += `${currentLine} PAUSE 0\n`;
             currentLine += 10;
 
-            // Find connection
             const conn = connections.find(c => c.fromNodeId === node.id);
             if (conn) {
                 const targetLine = nodeLines.get(conn.toNodeId);
                 basicCode += `${currentLine} GOTO ${targetLine}\n`;
             } else {
-                basicCode += `${currentLine} REM End of branch\n`;
-                basicCode += `${currentLine + 10} STOP\n`;
+                basicCode += `${currentLine} STOP\n`;
             }
-
-        } else if (node instanceof DecisionNode) {
-            basicCode += `${currentLine} CLS\n`;
-            currentLine += 10;
-
-            const safeQuestion = (node.question || "").replace(/"/g, "'");
-            basicCode += `${currentLine} PRINT "${safeQuestion}"\n`;
-            currentLine += 10;
-
-            // Print Options
+        } else {
+            // Multiple options: Show menu and Input
             node.outputs.forEach((opt, idx) => {
                 const safeLabel = opt.label.replace(/"/g, "'");
                 basicCode += `${currentLine} PRINT "${idx + 1}. ${safeLabel}"\n`;
@@ -82,19 +73,13 @@ export function generateBasic(nodes, connections) {
                 const conn = connections.find(c => c.fromNodeId === node.id && c.fromPortIndex === idx);
                 if (conn) {
                     const targetLine = nodeLines.get(conn.toNodeId);
-
-                    // Allow input as "1", "2" OR full label text (basic sanitization)
-                    // ZX strings are case sensitive usually, let's allow simplified check
-                    // IF A$ = "1" OR A$ = "OptionText" THEN GOTO ...
-                    // Converting input to simplified form in BASIC is hard without more code.
-                    // Just checking index is safest/easiest usage.
                     const safeLabel = opt.label.replace(/"/g, "'");
                     basicCode += `${currentLine} IF A$="${idx + 1}" OR A$="${safeLabel}" THEN GOTO ${targetLine}\n`;
                     currentLine += 10;
                 }
             });
 
-            // Fallback / Loop
+            // Loop back if invalid input
             basicCode += `${currentLine} GOTO ${nodeLines.get(node.id)}\n`;
         }
     });

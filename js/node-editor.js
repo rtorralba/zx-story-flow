@@ -1,4 +1,4 @@
-import { ScreenNode, DecisionNode } from './nodes.js';
+import { ScreenNode } from './nodes.js';
 
 export class NodeEditor {
     constructor(canvas, propertyPanelCallback) {
@@ -31,12 +31,8 @@ export class NodeEditor {
 
     addNode(type, x = 100, y = 100) {
         const id = 'node_' + Date.now();
-        let newNode;
-        if (type === 'screen') {
-            newNode = new ScreenNode(id, x, y);
-        } else if (type === 'decision') {
-            newNode = new DecisionNode(id, x, y);
-        }
+        // type ignored now effectively, or we can just assume screen
+        const newNode = new ScreenNode(id, x, y);
 
         if (newNode) {
             this.nodes.push(newNode);
@@ -67,8 +63,7 @@ export class NodeEditor {
         // Reverse iterate to check top-most nodes first
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
-            if (x >= node.x && x <= node.x + node.width &&
-                y >= node.y && y <= node.y + node.height) {
+            if (node.isHit(x, y)) {
                 return node;
             }
         }
@@ -78,9 +73,6 @@ export class NodeEditor {
     getPortAt(x, y) {
         for (const node of this.nodes) {
             if (node instanceof ScreenNode) {
-                const port = { x: node.x + node.width, y: node.y + node.height / 2 };
-                if (Math.hypot(x - port.x, y - port.y) < 10) return { node, index: 0 };
-            } else if (node instanceof DecisionNode) {
                 // Dynamic ports
                 for (let i = 0; i < node.outputs.length; i++) {
                     const port = node.getOutputPort(i);
@@ -201,7 +193,7 @@ export class NodeEditor {
             // Draw Node Type
             this.ctx.fillStyle = "#aaa";
             this.ctx.font = "bold 12px Courier New";
-            this.ctx.fillText(node.type.toUpperCase(), node.x + 10, node.y + 20);
+            this.ctx.fillText("SCREEN", node.x + 10, node.y + 20);
 
             // Draw Node Title
             this.ctx.fillStyle = "#fff";
@@ -211,20 +203,12 @@ export class NodeEditor {
             // Draw Node Specific Content
             this.ctx.font = "12px Courier New";
             this.ctx.fillStyle = "#ccc";
-            let content = "";
-            if (node instanceof ScreenNode) {
-                content = node.text || "Empty screen text";
-            } else if (node instanceof DecisionNode) {
-                content = node.question || "Empty question";
-            }
+            let content = node.text || "Empty screen text";
             if (content.length > 20) content = content.substring(0, 17) + "...";
             this.ctx.fillText(content, node.x + 10, node.y + 58);
 
-            // Draw Ports
+            // Draw Ports and Options
             if (node instanceof ScreenNode) {
-                const port = node.getOutputPort(0);
-                this.drawPort(port, "#00d022");
-            } else if (node instanceof DecisionNode) {
                 node.outputs.forEach((opt, index) => {
                     const port = node.getOutputPort(index);
                     this.drawPort(port, "#00d022");
@@ -250,25 +234,15 @@ export class NodeEditor {
             if (!fromNode || !toNode) return;
 
             let startX, startY;
-            if (fromNode instanceof ScreenNode) {
-                const port = fromNode.getOutputPort(0);
+            // Assuming ScreenNode always
+            const port = fromNode.getOutputPort(conn.fromPortIndex);
+            if (port) {
                 startX = port.x;
                 startY = port.y;
-            } else if (fromNode instanceof DecisionNode) {
-                const port = fromNode.getOutputPort(conn.fromPortIndex);
-                if (port) {
-                    startX = port.x;
-                    startY = port.y;
-                } else {
-                    // Port might no longer exist if option was deleted
-                    // Valid failsafe: center of node
-                    startX = fromNode.x + fromNode.width;
-                    startY = fromNode.y + fromNode.height / 2;
-                }
             } else {
-                // Fallback
+                // Port might no longer exist if option was deleted
                 startX = fromNode.x + fromNode.width;
-                startY = fromNode.y + ((conn.fromPortIndex === 0 ? 40 : 80));
+                startY = fromNode.y + fromNode.height / 2;
             }
 
             const endX = toNode.x;
@@ -281,15 +255,11 @@ export class NodeEditor {
         if (this.dragState && this.dragState.type === 'connection') {
             let startX, startY;
             const fromNode = this.dragState.fromNode;
-            if (fromNode instanceof ScreenNode) {
-                const port = fromNode.getOutputPort(0);
-                startX = port.x;
-                startY = port.y;
-            } else if (fromNode instanceof DecisionNode) {
-                const port = fromNode.getOutputPort(this.dragState.fromPortIndex);
-                startX = port.x;
-                startY = port.y;
-            }
+            // Assuming ScreenNode
+            const port = fromNode.getOutputPort(this.dragState.fromPortIndex);
+            startX = port.x;
+            startY = port.y;
+
             this.drawConnection(startX, startY, this.dragState.currentX, this.dragState.currentY, true);
         }
 
