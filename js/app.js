@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
-            const basicCode = generateBasic(editor.nodes, editor.connections);
+            const basicCode = generateBasic(editor.nodes);
             const tapData = createTap(basicCode, "adventure");
 
             const blob = new Blob([tapData], { type: 'application/x-tap' });
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
-        const basicCode = generateBasic(editor.nodes, editor.connections);
+        const basicCode = generateBasic(editor.nodes);
 
         // Create a blob and download
         const blob = new Blob([basicCode], { type: 'text/plain' });
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('export-mucho-btn').addEventListener('click', () => {
-        const muchoCode = generateMucho(editor.nodes, editor.connections);
+        const muchoCode = generateMucho(editor.nodes);
         const blob = new Blob([muchoCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -84,8 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         text: n.text,
                         outputs: n.outputs
                     };
-                }),
-                connections: editor.connections
+                })
             };
 
             const json = JSON.stringify(projectData, null, 2);
@@ -121,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Clear existing
                 editor.nodes = [];
-                editor.connections = [];
                 editor.selectNode(null);
 
                 // Restore project name
@@ -158,11 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         editor.nodes.push(newNode);
                     });
-                }
-
-                // Restore Connections
-                if (data.connections) {
-                    editor.connections = data.connections;
                 }
 
                 editor.draw();
@@ -345,17 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 del.addEventListener('click', () => {
                     // Let's ask Node to remove it
                     node.removeOption(idx);
-
-                    // Cleanup connections in Editor
-                    editor.connections = editor.connections.filter(c => {
-                        if (c.fromNodeId === node.id && c.fromPortIndex === idx) return false;
-                        return true;
-                    });
-                    editor.connections.forEach(c => {
-                        if (c.fromNodeId === node.id && c.fromPortIndex > idx) {
-                            c.fromPortIndex--;
-                        }
-                    });
 
                     editor.draw();
                     renderOptions(); // Re-render UI

@@ -1,6 +1,6 @@
 import { ScreenNode } from './nodes.js';
 
-export function generateBasic(nodes, connections) {
+export function generateBasic(nodes) {
     if (nodes.length === 0) return "10 REM No nodes defined";
 
     let basicCode = "";
@@ -99,9 +99,10 @@ export function generateBasic(nodes, connections) {
             basicCode += `${currentLine} PAUSE 0\n`;
             currentLine += 10;
 
-            const conn = connections.find(c => c.fromNodeId === node.id);
-            if (conn) {
-                const targetLine = nodeLines.get(conn.toNodeId);
+            // Get target from first output
+            const target = node.outputs[0]?.target;
+            if (target) {
+                const targetLine = nodeLines.get(target);
                 basicCode += `${currentLine} GOTO ${targetLine}\n`;
             } else {
                 basicCode += `${currentLine} STOP\n`;
@@ -124,9 +125,8 @@ export function generateBasic(nodes, connections) {
 
             // Generate IFs
             node.outputs.forEach((opt, idx) => {
-                const conn = connections.find(c => c.fromNodeId === node.id && c.fromPortIndex === idx);
-                if (conn) {
-                    const targetLine = nodeLines.get(conn.toNodeId);
+                if (opt.target) {
+                    const targetLine = nodeLines.get(opt.target);
                     const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
                     basicCode += `${currentLine} IF A$="${idx + 1}" OR A$="${safeLabel}" THEN GOTO ${targetLine}\n`;
                     currentLine += 10;

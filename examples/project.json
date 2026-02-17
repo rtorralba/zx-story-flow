@@ -11,15 +11,15 @@
       "outputs": [
         {
           "label": "Ventana",
-          "target": null
+          "target": "node_1771351340276"
         },
         {
           "label": "Puerta",
-          "target": null
+          "target": "node_1771351376749"
         },
         {
           "label": "Chimenea",
-          "target": null
+          "target": "node_1771351411062"
         }
       ]
     },
@@ -61,31 +61,9 @@
       "outputs": [
         {
           "label": "Next",
-          "target": null
+          "target": "node_1771351278565"
         }
       ]
-    }
-  ],
-  "connections": [
-    {
-      "fromNodeId": "node_1771351278565",
-      "fromPortIndex": 0,
-      "toNodeId": "node_1771351340276"
-    },
-    {
-      "fromNodeId": "node_1771351278565",
-      "fromPortIndex": 1,
-      "toNodeId": "node_1771351376749"
-    },
-    {
-      "fromNodeId": "node_1771351278565",
-      "fromPortIndex": 2,
-      "toNodeId": "node_1771351411062"
-    },
-    {
-      "fromNodeId": "node_1771351411062",
-      "fromPortIndex": 0,
-      "toNodeId": "node_1771351278565"
     }
   ]
 }

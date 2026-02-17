@@ -5,7 +5,6 @@ export class NodeEditor {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.nodes = [];
-        this.connections = []; // { fromNodeId, fromPortIndex, toNodeId }
         this.camera = { x: 0, y: 0, zoom: 1 };
         this.propertyPanelCallback = propertyPanelCallback;
 
@@ -44,8 +43,17 @@ export class NodeEditor {
 
     removeNode(node) {
         if (!node) return;
+
+        // Clear any outputs that point to this node
+        this.nodes.forEach(n => {
+            n.outputs.forEach(output => {
+                if (output.target === node.id) {
+                    output.target = null;
+                }
+            });
+        });
+
         this.nodes = this.nodes.filter(n => n !== node);
-        this.connections = this.connections.filter(c => c.fromNodeId !== node.id && c.toNodeId !== node.id);
         if (this.selectedNode === node) {
             this.selectNode(null);
         }
@@ -154,17 +162,13 @@ export class NodeEditor {
 
             const targetNode = this.getNodeAt(x, y);
             if (targetNode && targetNode !== this.dragState.fromNode) {
-                // Create connection
-                // Remove existing connection from this port if any (optional, usually one output per port)
-                this.connections = this.connections.filter(c =>
-                    !(c.fromNodeId === this.dragState.fromNode.id && c.fromPortIndex === this.dragState.fromPortIndex)
-                );
+                // Set connection target directly in output
+                const fromNode = this.dragState.fromNode;
+                const portIndex = this.dragState.fromPortIndex;
 
-                this.connections.push({
-                    fromNodeId: this.dragState.fromNode.id,
-                    fromPortIndex: this.dragState.fromPortIndex,
-                    toNodeId: targetNode.id
-                });
+                if (fromNode.outputs[portIndex]) {
+                    fromNode.outputs[portIndex].target = targetNode.id;
+                }
             }
         }
         this.dragState = null;
@@ -246,27 +250,23 @@ export class NodeEditor {
         });
 
         // Draw Connections
-        this.connections.forEach(conn => {
-            const fromNode = this.nodes.find(n => n.id === conn.fromNodeId);
-            const toNode = this.nodes.find(n => n.id === conn.toNodeId);
-            if (!fromNode || !toNode) return;
+        this.nodes.forEach(fromNode => {
+            if (fromNode instanceof ScreenNode) {
+                fromNode.outputs.forEach((output, index) => {
+                    if (!output.target) return;
 
-            let startX, startY;
-            // Assuming ScreenNode always
-            const port = fromNode.getOutputPort(conn.fromPortIndex);
-            if (port) {
-                startX = port.x;
-                startY = port.y;
-            } else {
-                // Port might no longer exist if option was deleted
-                startX = fromNode.x + fromNode.width;
-                startY = fromNode.y + fromNode.height / 2;
+                    const toNode = this.nodes.find(n => n.id === output.target);
+                    if (!toNode) return;
+
+                    const port = fromNode.getOutputPort(index);
+                    const startX = port.x;
+                    const startY = port.y;
+                    const endX = toNode.x;
+                    const endY = toNode.y + toNode.height / 2;
+
+                    this.drawConnection(startX, startY, endX, endY);
+                });
             }
-
-            const endX = toNode.x;
-            const endY = toNode.y + toNode.height / 2;
-
-            this.drawConnection(startX, startY, endX, endY);
         });
 
         // Draw Dragging Connection

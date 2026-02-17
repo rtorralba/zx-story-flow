@@ -1,6 +1,6 @@
 import { ScreenNode } from './nodes.js';
 
-export function generateMucho(nodes, connections) {
+export function generateMucho(nodes) {
     if (nodes.length === 0) return "";
 
     let muchoCode = "";
@@ -13,19 +13,12 @@ export function generateMucho(nodes, connections) {
         let description = node.text || "";
         description = description.trim();
 
-        muchoCode += `$Q ${label}\n${description}\n`;
-
-        // We need to order them by port index to match the visual order (top to bottom) is likely expected
-        const nodeConnections = connections
-            .filter(c => c.fromNodeId === node.id)
-            .sort((a, b) => a.fromPortIndex - b.fromPortIndex);
+        muchoCode += `$Q ${label} ${sanitizeText(description)}\n`;
 
         // Iterate all options
-        node.outputs.forEach((opt, index) => {
-            // Find connection for this index
-            const conn = nodeConnections.find(c => c.fromPortIndex === index);
-            if (conn) {
-                const targetLabel = getLabel(conn.toNodeId);
+        node.outputs.forEach((opt) => {
+            if (opt.target) {
+                const targetLabel = getLabel(opt.target);
                 const choiceText = sanitizeText(opt.label);
                 muchoCode += `$A ${targetLabel} ${choiceText}\n`;
             }
