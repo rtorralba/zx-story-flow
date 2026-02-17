@@ -2,7 +2,8 @@
     --bg-color: #202020;
     --panel-bg: #333;
     --text-color: #eee;
-    --accent-color: #00d022; /* Sinclair Green-ish */
+    --accent-color: #00d022;
+    /* Sinclair Green-ish */
     --node-bg: #444;
     --node-border: #666;
     --connection-color: #aaa;
@@ -10,7 +11,8 @@
 
 body {
     margin: 0;
-    font-family: 'Courier New', Courier, monospace; /* Retro feel */
+    font-family: 'Courier New', Courier, monospace;
+    /* Retro feel */
     background-color: var(--bg-color);
     color: var(--text-color);
     overflow: hidden;
@@ -31,7 +33,14 @@ header {
     border-bottom: 2px solid var(--accent-color);
 }
 
-.toolbar button {
+.menubar {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.menubar>button,
+.menu>.menu-button {
     background-color: var(--node-bg);
     color: var(--text-color);
     border: 1px solid var(--node-border);
@@ -40,9 +49,62 @@ header {
     font-family: inherit;
 }
 
-.toolbar button:hover {
+.menubar>button:hover,
+.menu>.menu-button:hover {
     background-color: #555;
     border-color: var(--accent-color);
+}
+
+/* Menu dropdown container */
+.menu {
+    position: relative;
+}
+
+/* Submenu initially hidden */
+.submenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--node-border);
+    min-width: 150px;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Show submenu on hover */
+.menu:hover .submenu {
+    display: block;
+}
+
+/* Right-aligned submenu for rightmost menus */
+.submenu-right {
+    left: auto;
+    right: 0;
+}
+
+/* Submenu items */
+.submenu button {
+    display: block;
+    width: 100%;
+    background-color: var(--panel-bg);
+    color: var(--text-color);
+    border: none;
+    border-bottom: 1px solid var(--node-border);
+    padding: 8px 12px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.submenu button:last-child {
+    border-bottom: none;
+}
+
+.submenu button:hover {
+    background-color: #555;
+    color: var(--accent-color);
 }
 
 main {

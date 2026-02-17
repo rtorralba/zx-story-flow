@@ -12,15 +12,28 @@
     <div id="app">
         <header>
             <h1>ZX Adventure Builder</h1>
-            <div class="toolbar">
+            <nav class="menubar">
                 <button id="add-screen-btn">Add Screen Node</button>
-                <button id="save-btn">Save Project</button>
-                <button id="load-btn">Load Project</button>
+
+                <div class="menu">
+                    <button class="menu-button">Project</button>
+                    <div class="submenu">
+                        <button id="save-btn">Save</button>
+                        <button id="load-btn">Load</button>
+                    </div>
+                </div>
+
+                <div class="menu">
+                    <button class="menu-button">Export</button>
+                    <div class="submenu submenu-right">
+                        <button id="export-tap-btn">.TAP</button>
+                        <button id="export-mucho-btn">MuCho</button>
+                        <button id="export-btn">BASIC</button>
+                    </div>
+                </div>
+
                 <input type="file" id="load-input" style="display: none;" accept=".json">
-                <button id="export-tap-btn">Export .TAP</button>
-                <button id="export-mucho-btn">Export to MuCho</button>
-                <button id="export-btn">Export to BASIC</button>
-            </div>
+            </nav>
         </header>
 
         <main>

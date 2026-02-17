@@ -18,6 +18,7 @@ export class NodeEditor {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
 
         // Start render loop
         this.animate();
@@ -167,6 +168,28 @@ export class NodeEditor {
             }
         }
         this.dragState = null;
+        this.draw();
+    }
+
+    handleWheel(e) {
+        e.preventDefault();
+
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // World position before zoom
+        const worldX = (mouseX - this.camera.x) / this.camera.zoom;
+        const worldY = (mouseY - this.camera.y) / this.camera.zoom;
+
+        // Zoom factor
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        this.camera.zoom = Math.max(0.1, Math.min(3, this.camera.zoom * zoomFactor));
+
+        // Adjust camera to keep mouse position stable
+        this.camera.x = mouseX - worldX * this.camera.zoom;
+        this.camera.y = mouseY - worldY * this.camera.zoom;
+
         this.draw();
     }
 

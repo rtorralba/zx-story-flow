@@ -155,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 editor.draw();
-                alert("Project loaded successfully!");
             } catch (err) {
                 console.error(err);
                 alert("Error loading project: " + err.message);
