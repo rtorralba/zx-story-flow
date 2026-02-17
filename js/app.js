@@ -1,6 +1,7 @@
 import { NodeEditor } from './node-editor.js';
 import { ScreenNode, DecisionNode } from './nodes.js';
 import { generateBasic } from './basic-generator.js';
+import { generateMucho } from './mucho-generator.js';
 import { createTap } from './bas2tap.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -49,6 +50,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = document.createElement('a');
         a.href = url;
         a.download = 'adventure.bas';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('export-mucho-btn').addEventListener('click', () => {
+        const muchoCode = generateMucho(editor.nodes, editor.connections);
+        const blob = new Blob([muchoCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'adventure.txt';
         a.click();
         URL.revokeObjectURL(url);
     });
