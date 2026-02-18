@@ -57,8 +57,8 @@
     },
     {
       "id": "n4",
-      "x": 800,
-      "y": 50,
+      "x": 793,
+      "y": 72,
       "type": "Screen",
       "title": "Exito!",
       "text": "Un milagro! La pantalla de \ntitulo aparece pixel a pixel.\n\n'JET SET WILLY'\n\nInput Type: KEMPSTON.\nJuegas hasta que la fuente\nderrite la alfombra.",
@@ -71,8 +71,8 @@
     },
     {
       "id": "n5",
-      "x": 800,
-      "y": 200,
+      "x": 798,
+      "y": 193,
       "type": "Screen",
       "title": "Silencio",
       "text": "Giraste el tornillo demasiado. El cabezal esta desalineado.\nRompiste el datasette.\n\nAhora tienes que escuchar a tus padres hablar de politica en vez de jugar.",
@@ -95,6 +95,21 @@
           "label": "Intentar de nuevo",
           "target": "n1"
         }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_1771443130338",
+      "x": 766,
+      "y": 29,
+      "width": 400,
+      "height": 300,
+      "name": "Patio",
+      "color": "#4a90e2",
+      "nodeIds": [
+        "n4",
+        "n5"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 import { NodeEditor } from './node-editor.js';
-import { ScreenNode } from './nodes.js';
+import { ScreenNode, Group } from './nodes.js';
 import { generateBasic } from './basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
 import { createTap } from './bas2tap.js';
@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toolbar Buttons
     document.getElementById('add-screen-btn').addEventListener('click', () => {
         editor.addNode('screen');
+    });
+
+    document.getElementById('add-group-btn').addEventListener('click', () => {
+        editor.addGroup(200, 150);
     });
 
     // Fullscreen button
@@ -99,6 +103,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         text: n.text,
                         outputs: n.outputs
                     };
+                }),
+                groups: editor.groups.map(g => {
+                    return {
+                        id: g.id,
+                        x: g.x,
+                        y: g.y,
+                        width: g.width,
+                        height: g.height,
+                        name: g.name,
+                        color: g.color,
+                        nodeIds: g.nodeIds
+                    };
                 })
             };
 
@@ -135,7 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Clear existing
                 editor.nodes = [];
+                editor.groups = [];
                 editor.selectNode(null);
+                editor.selectGroup(null);
 
                 // Restore project name
                 updateProjectName(data.name || 'Untitled');
@@ -173,6 +191,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
+                // Restore Groups
+                if (data.groups) {
+                    data.groups.forEach(g => {
+                        const newGroup = new Group(g.id, g.x, g.y, g.width, g.height);
+                        newGroup.name = g.name || "New Group";
+                        newGroup.color = g.color || "#4a90e2";
+                        newGroup.nodeIds = g.nodeIds || [];
+                        editor.groups.push(newGroup);
+                    });
+                }
+
                 editor.draw();
             } catch (err) {
                 console.error(err);
@@ -184,12 +213,90 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInput.value = '';
     });
 
-    function updatePropertyPanel(node) {
+    function updateGroupProperties(group) {
         propertyContent.innerHTML = '';
-        if (!node) {
-            propertyContent.innerHTML = '<p>Select a node to edit properties.</p>';
+
+        const createInput = (label, value, onChange) => {
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+
+            const labelEl = document.createElement('label');
+            labelEl.textContent = label;
+
+            const inputEl = document.createElement('input');
+            inputEl.value = value || '';
+            inputEl.addEventListener('input', (e) => onChange(e.target.value));
+
+            formGroup.appendChild(labelEl);
+            formGroup.appendChild(inputEl);
+            return formGroup;
+        };
+
+        const createColorInput = (label, value, onChange) => {
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+
+            const labelEl = document.createElement('label');
+            labelEl.textContent = label;
+
+            const inputEl = document.createElement('input');
+            inputEl.type = 'color';
+            inputEl.value = value || '#4a90e2';
+            inputEl.addEventListener('input', (e) => onChange(e.target.value));
+
+            formGroup.appendChild(labelEl);
+            formGroup.appendChild(inputEl);
+            return formGroup;
+        };
+
+        const nameInput = createInput('Group Name', group.name, (val) => {
+            group.name = val;
+            editor.draw();
+        });
+        propertyContent.appendChild(nameInput);
+
+        const colorInput = createColorInput('Group Color', group.color, (val) => {
+            group.color = val;
+            editor.draw();
+        });
+        propertyContent.appendChild(colorInput);
+
+        // Show member nodes count
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'form-group';
+        infoDiv.innerHTML = `<p style="color: #aaa; font-size: 0.9em;">Contains ${group.nodeIds.length} node(s)</p>`;
+        propertyContent.appendChild(infoDiv);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = "Delete Group";
+        deleteBtn.style.marginTop = "20px";
+        deleteBtn.style.backgroundColor = "#d00000";
+        deleteBtn.style.color = "#fff";
+        deleteBtn.style.border = "none";
+        deleteBtn.style.padding = "10px";
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.style.width = "100%";
+        deleteBtn.addEventListener('click', () => {
+            editor.removeGroup(group);
+        });
+        propertyContent.appendChild(deleteBtn);
+    }
+
+    function updatePropertyPanel(nodeOrGroup) {
+        propertyContent.innerHTML = '';
+        if (!nodeOrGroup) {
+            propertyContent.innerHTML = '<p>Select a node or group to edit properties.</p>';
             return;
         }
+
+        // Check if it's a Group
+        if (nodeOrGroup instanceof Group) {
+            updateGroupProperties(nodeOrGroup);
+            return;
+        }
+
+        // Otherwise, it's a node
+        const node = nodeOrGroup;
 
         const createInput = (label, value, onChange) => {
             const group = document.createElement('div');

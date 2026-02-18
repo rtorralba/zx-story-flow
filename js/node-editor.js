@@ -1,15 +1,17 @@
-import { ScreenNode } from './nodes.js';
+import { ScreenNode, Group } from './nodes.js';
 
 export class NodeEditor {
     constructor(canvas, propertyPanelCallback) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.nodes = [];
+        this.groups = []; // Array of Group objects
         this.camera = { x: 0, y: 0, zoom: 1 };
         this.propertyPanelCallback = propertyPanelCallback;
 
         this.selectedNode = null;
-        this.dragState = null; // { type: 'node'|'connection', ... }
+        this.selectedGroup = null;
+        this.dragState = null; // { type: 'node'|'connection'|'group', ... }
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -41,6 +43,62 @@ export class NodeEditor {
         }
     }
 
+    addGroup(x = 100, y = 100) {
+        const id = 'group_' + Date.now();
+        const newGroup = new Group(id, x, y);
+        this.groups.push(newGroup);
+        this.selectGroup(newGroup);
+        this.draw();
+        return newGroup;
+    }
+
+    removeGroup(group) {
+        if (!group) return;
+        this.groups = this.groups.filter(g => g !== group);
+        if (this.selectedGroup === group) {
+            this.selectGroup(null);
+        }
+        this.draw();
+    }
+
+    selectGroup(group) {
+        this.selectedGroup = group;
+        this.selectedNode = null; // Deselect node when selecting group
+        if (this.propertyPanelCallback) {
+            this.propertyPanelCallback(group);
+        }
+        this.draw();
+    }
+
+    getGroupAt(x, y) {
+        // Check header first (for dragging), then check if point is in group
+        for (let i = this.groups.length - 1; i >= 0; i--) {
+            const group = this.groups[i];
+            if (group.isHeaderHit(x, y)) {
+                return { group, isHeader: true };
+            }
+        }
+        for (let i = this.groups.length - 1; i >= 0; i--) {
+            const group = this.groups[i];
+            if (group.isHit(x, y)) {
+                return { group, isHeader: false };
+            }
+        }
+        return null;
+    }
+
+    updateGroupMembership() {
+        // Update which nodes belong to which groups
+        this.groups.forEach(group => {
+            group.nodeIds = [];
+            this.nodes.forEach(node => {
+                if (group.containsNode(node)) {
+                    group.nodeIds.push(node.id);
+                }
+            });
+        });
+    }
+
     removeNode(node) {
         if (!node) return;
 
@@ -62,6 +120,7 @@ export class NodeEditor {
 
     selectNode(node) {
         this.selectedNode = node;
+        this.selectedGroup = null; // Deselect group when selecting node
         if (this.propertyPanelCallback) {
             this.propertyPanelCallback(node);
         }
@@ -109,6 +168,24 @@ export class NodeEditor {
             return;
         }
 
+        // Check if clicking on a group resize handle (before nodes and headers)
+        for (let i = this.groups.length - 1; i >= 0; i--) {
+            const group = this.groups[i];
+            if (group.isResizeHandleHit(x, y)) {
+                this.selectGroup(group);
+                this.dragState = {
+                    type: 'resize-group',
+                    group: group,
+                    startX: x,
+                    startY: y,
+                    initialWidth: group.width,
+                    initialHeight: group.height
+                };
+                return;
+            }
+        }
+
+        // Check if clicking on a node first (nodes are on top of groups)
         const node = this.getNodeAt(x, y);
         if (node) {
             this.selectNode(node);
@@ -118,16 +195,38 @@ export class NodeEditor {
                 offsetX: x - node.x,
                 offsetY: y - node.y
             };
-        } else {
-            this.selectNode(null);
-            this.dragState = {
-                type: 'pan',
-                startX: e.clientX,
-                startY: e.clientY,
-                initialCameraX: this.camera.x,
-                initialCameraY: this.camera.y
-            };
+            return;
         }
+
+        // Check if clicking on a group header
+        const groupResult = this.getGroupAt(x, y);
+        if (groupResult && groupResult.isHeader) {
+            this.selectGroup(groupResult.group);
+            this.dragState = {
+                type: 'group',
+                group: groupResult.group,
+                offsetX: x - groupResult.group.x,
+                offsetY: y - groupResult.group.y
+            };
+            return;
+        }
+
+        // If clicking inside a group but not on header, select it but don't drag
+        if (groupResult) {
+            this.selectGroup(groupResult.group);
+            return;
+        }
+
+        // Otherwise, start panning
+        this.selectNode(null);
+        this.selectGroup(null);
+        this.dragState = {
+            type: 'pan',
+            startX: e.clientX,
+            startY: e.clientY,
+            initialCameraX: this.camera.x,
+            initialCameraY: this.camera.y
+        };
     }
 
     handleMouseMove(e) {
@@ -135,10 +234,58 @@ export class NodeEditor {
         const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
         const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
 
+        // Update cursor based on hover state
+        if (!this.dragState) {
+            let cursorSet = false;
+            // Check if hovering over a resize handle
+            for (let i = this.groups.length - 1; i >= 0; i--) {
+                const group = this.groups[i];
+                if (group.isResizeHandleHit(x, y)) {
+                    this.canvas.style.cursor = 'nwse-resize';
+                    cursorSet = true;
+                    break;
+                }
+            }
+            if (!cursorSet) {
+                this.canvas.style.cursor = 'default';
+            }
+        }
+
         if (this.dragState) {
             if (this.dragState.type === 'node') {
                 this.dragState.node.x = x - this.dragState.offsetX;
                 this.dragState.node.y = y - this.dragState.offsetY;
+                this.draw();
+            } else if (this.dragState.type === 'resize-group') {
+                const group = this.dragState.group;
+                const deltaX = x - this.dragState.startX;
+                const deltaY = y - this.dragState.startY;
+
+                // Update width and height with minimum constraints
+                group.width = Math.max(150, this.dragState.initialWidth + deltaX);
+                group.height = Math.max(100, this.dragState.initialHeight + deltaY);
+
+                this.draw();
+            } else if (this.dragState.type === 'group') {
+                const group = this.dragState.group;
+                const newX = x - this.dragState.offsetX;
+                const newY = y - this.dragState.offsetY;
+                const deltaX = newX - group.x;
+                const deltaY = newY - group.y;
+
+                // Move the group
+                group.x = newX;
+                group.y = newY;
+
+                // Move all nodes that belong to this group
+                group.nodeIds.forEach(nodeId => {
+                    const node = this.nodes.find(n => n.id === nodeId);
+                    if (node) {
+                        node.x += deltaX;
+                        node.y += deltaY;
+                    }
+                });
+
                 this.draw();
             } else if (this.dragState.type === 'connection') {
                 this.dragState.currentX = x;
@@ -171,6 +318,12 @@ export class NodeEditor {
                 }
             }
         }
+
+        // Update group membership after dragging nodes or resizing groups
+        if (this.dragState && (this.dragState.type === 'node' || this.dragState.type === 'resize-group')) {
+            this.updateGroupMembership();
+        }
+
         this.dragState = null;
         this.draw();
     }
@@ -203,6 +356,52 @@ export class NodeEditor {
         this.ctx.save();
         this.ctx.translate(this.camera.x, this.camera.y);
         this.ctx.scale(this.camera.zoom, this.camera.zoom);
+
+        // Draw Groups first (behind nodes)
+        this.groups.forEach(group => {
+            const isSelected = this.selectedGroup === group;
+            const headerHeight = 30;
+
+            // Draw group background
+            this.ctx.fillStyle = group.color + '15'; // Add transparency
+            this.ctx.strokeStyle = isSelected ? group.color : group.color + '80';
+            this.ctx.lineWidth = isSelected ? 3 : 2;
+            this.ctx.beginPath();
+            this.ctx.roundRect(group.x, group.y, group.width, group.height, 8);
+            this.ctx.fill();
+            this.ctx.stroke();
+
+            // Draw header bar
+            this.ctx.fillStyle = group.color;
+            this.ctx.beginPath();
+            this.ctx.roundRect(group.x, group.y, group.width, headerHeight, [8, 8, 0, 0]);
+            this.ctx.fill();
+
+            // Draw group name
+            this.ctx.fillStyle = "#fff";
+            this.ctx.font = "bold 14px Courier New";
+            this.ctx.fillText(group.name, group.x + 10, group.y + 20);
+
+            // Draw resize handle in bottom-right corner
+            const handleSize = 20;
+            const handleX = group.x + group.width - handleSize;
+            const handleY = group.y + group.height - handleSize;
+
+            // Draw handle background
+            this.ctx.fillStyle = group.color + (isSelected ? '60' : '30');
+            this.ctx.fillRect(handleX, handleY, handleSize, handleSize);
+
+            // Draw grip lines
+            this.ctx.strokeStyle = group.color;
+            this.ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const offset = handleSize - 4 - (i * 5);
+                this.ctx.beginPath();
+                this.ctx.moveTo(group.x + group.width - offset, group.y + group.height - 2);
+                this.ctx.lineTo(group.x + group.width - 2, group.y + group.height - offset);
+                this.ctx.stroke();
+            }
+        });
 
         // Draw Nodes
         this.nodes.forEach(node => {

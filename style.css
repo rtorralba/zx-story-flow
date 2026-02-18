@@ -185,6 +185,11 @@ main {
     font-family: inherit;
 }
 
+.form-group input[type="color"] {
+    height: 40px;
+    cursor: pointer;
+}
+
 .screen-text-readonly {
     background-color: #1a1a1a !important;
     cursor: not-allowed !important;

@@ -52,3 +52,50 @@ export class ScreenNode extends Node {
         }
     }
 }
+
+export class Group {
+    constructor(id, x, y, width = 400, height = 300) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.name = "New Group";
+        this.color = "#4a90e2"; // Default blue color
+        this.nodeIds = []; // IDs of nodes contained in this group
+    }
+
+    isHit(x, y) {
+        return x >= this.x && x <= this.x + this.width &&
+            y >= this.y && y <= this.y + this.height;
+    }
+
+    // Check if header bar is being clicked (for moving group)
+    isHeaderHit(x, y) {
+        const headerHeight = 30;
+        return x >= this.x && x <= this.x + this.width &&
+            y >= this.y && y <= this.y + headerHeight;
+    }
+
+    // Check if a point is inside the group
+    containsPoint(x, y) {
+        return x >= this.x && x <= this.x + this.width &&
+            y >= this.y && y <= this.y + this.height;
+    }
+
+    // Check if a node should be in this group
+    containsNode(node) {
+        const centerX = node.x + node.width / 2;
+        const centerY = node.y + node.height / 2;
+        return this.containsPoint(centerX, centerY);
+    }
+
+    // Check if the resize handle is being clicked (bottom-right corner)
+    isResizeHandleHit(x, y) {
+        const handleSize = 20;
+        return x >= this.x + this.width - handleSize &&
+            x <= this.x + this.width &&
+            y >= this.y + this.height - handleSize &&
+            y <= this.y + this.height;
+    }
+}
