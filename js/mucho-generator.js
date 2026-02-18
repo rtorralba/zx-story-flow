@@ -3,13 +3,22 @@ import { ScreenNode } from './nodes.js';
 export function generateMucho(nodes) {
     if (nodes.length === 0) return "";
 
-    let muchoCode = "";
+    const labelMap = {};
+    const slugify = (text) => (text || "").replace(/[^a-zA-Z0-9]/g, "");
 
-    const getLabel = (id) => "N" + String(id).replace(/[^a-zA-Z0-9]/g, "");
+    // Create a map of ID -> Slugified Title
+    nodes.forEach(node => {
+        let label = slugify(node.title);
+        // Fallback if title is empty or only special chars
+        if (!label) label = "Node" + node.id;
+        labelMap[node.id] = label;
+    });
+
+    let muchoCode = "";
     const sanitizeText = (text) => (text || "").replace(/\r?\n/g, " ");
 
     nodes.forEach(node => {
-        const label = getLabel(node.id);
+        const label = labelMap[node.id];
         let description = node.text || "";
         description = description.trim();
 
@@ -18,7 +27,8 @@ export function generateMucho(nodes) {
         // Iterate all options
         node.outputs.forEach((opt) => {
             if (opt.target) {
-                const targetLabel = getLabel(opt.target);
+                // Use the label from the map for the target node
+                const targetLabel = labelMap[opt.target] || ("N" + opt.target);
                 const choiceText = sanitizeText(opt.label);
                 muchoCode += `$A ${targetLabel}\n${choiceText}\n`;
             }
