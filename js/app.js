@@ -248,8 +248,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.createElement('h3');
             title.textContent = 'Edit Screen Text';
 
+            const crtTv = document.createElement('div');
+            crtTv.className = 'crt-tv';
+
+            const crtScreen = document.createElement('div');
+            crtScreen.className = 'crt-screen';
+
             const textarea = document.createElement('textarea');
             textarea.value = currentText || '';
+            textarea.className = 'spectrum-textarea';
+            textarea.cols = 32;
+            textarea.rows = 24;
+            textarea.setAttribute('maxlength', 32 * 24);
+
+            crtScreen.appendChild(textarea);
+            crtTv.appendChild(crtScreen);
 
             const btnContainer = document.createElement('div');
             btnContainer.className = 'modal-buttons';
@@ -271,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnContainer.appendChild(cancelBtn);
             btnContainer.appendChild(saveBtn);
             modalContent.appendChild(title);
-            modalContent.appendChild(textarea);
+            modalContent.appendChild(crtTv);
             modalContent.appendChild(btnContainer);
             overlay.appendChild(modalContent);
 

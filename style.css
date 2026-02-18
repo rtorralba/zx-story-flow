@@ -1,3 +1,5 @@
+@import url('https://fonts.cdnfonts.com/css/zx-spectrum-7');
+
 :root {
     --bg-color: #202020;
     --panel-bg: #333;
@@ -205,13 +207,16 @@ canvas {
     background-color: var(--panel-bg);
     padding: 20px;
     border-radius: 8px;
-    width: 80%;
-    max-width: 600px;
-    max-height: 80%;
+    width: 95vw;
+    max-width: 1400px;
+    height: 90vh;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--node-border);
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content h3 {
@@ -220,16 +225,37 @@ canvas {
 }
 
 .modal-content textarea {
-    flex: 1;
     min-height: 300px;
     font-family: 'Courier New', monospace;
     font-size: 14px;
     background-color: #222;
     color: var(--text-color);
     border: 1px solid #555;
-    padding: 15px;
     resize: vertical;
     outline: none;
+}
+
+.spectrum-textarea {
+    font-family: 'ZX Spectrum-7', monospace !important;
+    font-size: 32px !important;
+    line-height: 0.45 !important;
+    letter-spacing: 0 !important;
+    border: 40px solid #eee !important;
+    background-color: #fff !important;
+    color: #000 !important;
+
+    /* Strict 32 character width */
+    width: 32ch !important;
+    height: 200px;
+    box-sizing: content-box !important;
+
+    overflow-y: auto !important;
+    resize: none !important;
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    display: block;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.05);
+    position: relative;
 }
 
 .modal-content textarea:focus {
@@ -264,4 +290,79 @@ canvas {
 
 .modal-buttons .save-btn:hover {
     background-color: #008f18;
+}
+
+/* CRT TV Container */
+.crt-tv {
+    position: relative;
+    display: inline-block;
+    padding: 60px 80px 100px 80px;
+    background: linear-gradient(145deg, #2a2a2a, #3a3a3a);
+    border-radius: 30px;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.8),
+        inset 0 2px 10px rgba(255, 255, 255, 0.1),
+        inset 0 -5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.crt-tv::before {
+    content: '';
+    position: absolute;
+    top: 50px;
+    left: 70px;
+    right: 70px;
+    bottom: 90px;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+    border-radius: 15px;
+    pointer-events: none;
+}
+
+.crt-tv::after {
+    content: '';
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 40px;
+    background: linear-gradient(180deg, #1a1a1a, #2a2a2a);
+    border-radius: 8px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* CRT Screen effects */
+.crt-screen {
+    position: relative;
+    display: inline-block;
+}
+
+.crt-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.15) 0px,
+            transparent 1px,
+            transparent 2px,
+            rgba(0, 0, 0, 0.15) 3px
+        );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.crt-screen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.2) 100%);
+    pointer-events: none;
+    z-index: 1;
 }
