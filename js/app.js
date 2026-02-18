@@ -217,6 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const inputEl = document.createElement('textarea');
             inputEl.value = value || '';
             inputEl.rows = 8; // Increased from 4
+            inputEl.readOnly = true; // Make readonly - force users to use the window editor
+            inputEl.className = 'screen-text-readonly';
             inputEl.addEventListener('input', (e) => onChange(e.target.value));
 
             const editBtn = document.createElement('button');
@@ -260,6 +262,45 @@ document.addEventListener('DOMContentLoaded', () => {
             textarea.cols = 32;
             textarea.rows = 24;
             textarea.setAttribute('maxlength', 32 * 24);
+
+            // Transliterate non-ASCII characters to ZX Spectrum compatible ASCII
+            const transliterateToASCII = (text) => {
+                const charMap = {
+                    'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ã': 'a', 'å': 'a',
+                    'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e',
+                    'í': 'i', 'ì': 'i', 'ï': 'i', 'î': 'i',
+                    'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'õ': 'o', 'ø': 'o',
+                    'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u',
+                    'ñ': 'n',
+                    'ç': 'c',
+                    'Á': 'A', 'À': 'A', 'Ä': 'A', 'Â': 'A', 'Ã': 'A', 'Å': 'A',
+                    'É': 'E', 'È': 'E', 'Ë': 'E', 'Ê': 'E',
+                    'Í': 'I', 'Ì': 'I', 'Ï': 'I', 'Î': 'I',
+                    'Ó': 'O', 'Ò': 'O', 'Ö': 'O', 'Ô': 'O', 'Õ': 'O', 'Ø': 'O',
+                    'Ú': 'U', 'Ù': 'U', 'Ü': 'U', 'Û': 'U',
+                    'Ñ': 'N',
+                    'Ç': 'C',
+                    '¿': '?', '¡': '!',
+                    '€': 'E', '£': 'L', '¥': 'Y',
+                    '\u201C': '"', '\u201D': '"', '\u2018': "'", '\u2019': "'",
+                    '–': '-', '—': '-', '…': '...'
+                };
+                
+                return text.replace(/[^\x00-\x7F]/g, (char) => charMap[char] || '');
+            };
+
+            textarea.addEventListener('input', (e) => {
+                const cursorPos = e.target.selectionStart;
+                const originalLength = e.target.value.length;
+                const transliterated = transliterateToASCII(e.target.value);
+                
+                if (transliterated !== e.target.value) {
+                    e.target.value = transliterated;
+                    // Adjust cursor position if text length changed
+                    const lengthDiff = originalLength - transliterated.length;
+                    e.target.setSelectionRange(cursorPos - lengthDiff, cursorPos - lengthDiff);
+                }
+            });
 
             crtScreen.appendChild(textarea);
             crtTv.appendChild(crtScreen);

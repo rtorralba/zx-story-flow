@@ -185,6 +185,12 @@ main {
     font-family: inherit;
 }
 
+.screen-text-readonly {
+    background-color: #1a1a1a !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+
 canvas {
     display: block;
 }
