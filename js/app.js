@@ -44,6 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.getElementById('export-png-btn').addEventListener('click', () => {
+        editor.exportToPNG();
+    });
+
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
             const basicCode = generateBasic(editor.nodes);

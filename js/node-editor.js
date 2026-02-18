@@ -512,4 +512,203 @@ export class NodeEditor {
         // Currently just static draw on events, but good for reliable updates
         // this.draw(); 
     }
+
+    exportToPNG() {
+        if (this.nodes.length === 0 && this.groups.length === 0) {
+            alert("No content to export");
+            return;
+        }
+
+        // Calculate bounding box of all content
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
+        // Include groups in bounding box
+        this.groups.forEach(group => {
+            minX = Math.min(minX, group.x);
+            minY = Math.min(minY, group.y);
+            maxX = Math.max(maxX, group.x + group.width);
+            maxY = Math.max(maxY, group.y + group.height);
+        });
+
+        // Include nodes in bounding box
+        this.nodes.forEach(node => {
+            minX = Math.min(minX, node.x);
+            minY = Math.min(minY, node.y);
+            maxX = Math.max(maxX, node.x + node.width);
+            maxY = Math.max(maxY, node.y + node.height);
+        });
+
+        // Add padding
+        const padding = 50;
+        minX -= padding;
+        minY -= padding;
+        maxX += padding;
+        maxY += padding;
+
+        const width = maxX - minX;
+        const height = maxY - minY;
+
+        // Create temporary canvas
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        // Fill background
+        tempCtx.fillStyle = '#1a1a1a';
+        tempCtx.fillRect(0, 0, width, height);
+
+        // Draw dot grid pattern (matching the editor background)
+        tempCtx.fillStyle = '#333';
+        const gridSize = 20;
+        for (let x = 0; x < width; x += gridSize) {
+            for (let y = 0; y < height; y += gridSize) {
+                tempCtx.beginPath();
+                tempCtx.arc(x, y, 1, 0, Math.PI * 2);
+                tempCtx.fill();
+            }
+        }
+
+        // Translate to account for offset
+        tempCtx.save();
+        tempCtx.translate(-minX, -minY);
+
+        // Draw groups
+        this.groups.forEach(group => {
+            const headerHeight = 30;
+
+            // Draw group background
+            tempCtx.fillStyle = group.color + '15';
+            tempCtx.strokeStyle = group.color + '80';
+            tempCtx.lineWidth = 2;
+            tempCtx.beginPath();
+            tempCtx.roundRect(group.x, group.y, group.width, group.height, 8);
+            tempCtx.fill();
+            tempCtx.stroke();
+
+            // Draw header bar
+            tempCtx.fillStyle = group.color;
+            tempCtx.beginPath();
+            tempCtx.roundRect(group.x, group.y, group.width, headerHeight, [8, 8, 0, 0]);
+            tempCtx.fill();
+
+            // Draw group name
+            tempCtx.fillStyle = "#fff";
+            tempCtx.font = "bold 14px Courier New";
+            tempCtx.fillText(group.name, group.x + 10, group.y + 20);
+
+            // Draw resize handle
+            const handleSize = 20;
+            const handleX = group.x + group.width - handleSize;
+            const handleY = group.y + group.height - handleSize;
+
+            tempCtx.fillStyle = group.color + '30';
+            tempCtx.fillRect(handleX, handleY, handleSize, handleSize);
+
+            tempCtx.strokeStyle = group.color;
+            tempCtx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const offset = handleSize - 4 - (i * 5);
+                tempCtx.beginPath();
+                tempCtx.moveTo(group.x + group.width - offset, group.y + group.height - 2);
+                tempCtx.lineTo(group.x + group.width - 2, group.y + group.height - offset);
+                tempCtx.stroke();
+            }
+        });
+
+        // Draw nodes
+        this.nodes.forEach(node => {
+            // Draw Node Body
+            tempCtx.fillStyle = "#333";
+            tempCtx.strokeStyle = "#666";
+            tempCtx.lineWidth = 2;
+            tempCtx.beginPath();
+            tempCtx.roundRect(node.x, node.y, node.width, node.height, 5);
+            tempCtx.fill();
+            tempCtx.stroke();
+
+            // Draw Node Title
+            tempCtx.fillStyle = "#fff";
+            tempCtx.font = "bold 14px Courier New";
+            tempCtx.fillText(node.title, node.x + 10, node.y + 25);
+
+            // Draw Node Content
+            tempCtx.font = "12px Courier New";
+            tempCtx.fillStyle = "#ccc";
+            let content = node.text || "Empty screen text";
+            if (content.length > 20) content = content.substring(0, 17) + "...";
+            tempCtx.fillText(content, node.x + 10, node.y + 45);
+
+            // Draw Ports
+            if (node instanceof ScreenNode) {
+                node.outputs.forEach((opt, index) => {
+                    const port = node.getOutputPort(index);
+                    
+                    // Draw port
+                    tempCtx.fillStyle = "#00d022";
+                    tempCtx.strokeStyle = "#666";
+                    tempCtx.beginPath();
+                    tempCtx.arc(port.x, port.y, 6, 0, Math.PI * 2);
+                    tempCtx.fill();
+                    tempCtx.stroke();
+
+                    // Draw Label
+                    tempCtx.fillStyle = "#fff";
+                    tempCtx.font = "10px Courier New";
+                    tempCtx.textAlign = "right";
+
+                    let label = opt.label;
+                    if (label.length > 15) label = label.substring(0, 12) + "...";
+
+                    tempCtx.fillText(label, port.x - 12, port.y + 3);
+                    tempCtx.textAlign = "left";
+                });
+            }
+        });
+
+        // Draw connections
+        this.nodes.forEach(fromNode => {
+            if (fromNode instanceof ScreenNode) {
+                fromNode.outputs.forEach((output, index) => {
+                    if (!output.target) return;
+
+                    const toNode = this.nodes.find(n => n.id === output.target);
+                    if (!toNode) return;
+
+                    const port = fromNode.getOutputPort(index);
+                    const startX = port.x;
+                    const startY = port.y;
+                    const endX = toNode.x;
+                    const endY = toNode.y + toNode.height / 2;
+
+                    // Draw connection
+                    tempCtx.strokeStyle = "#aaa";
+                    tempCtx.lineWidth = 2;
+                    tempCtx.beginPath();
+                    tempCtx.moveTo(startX, startY);
+
+                    const cp1x = startX + (endX - startX) / 2;
+                    const cp1y = startY;
+                    const cp2x = endX - (endX - startX) / 2;
+                    const cp2y = endY;
+
+                    tempCtx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+                    tempCtx.stroke();
+                });
+            }
+        });
+
+        tempCtx.restore();
+
+        // Convert to PNG and download
+        tempCanvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'workflow.png';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    }
 }
