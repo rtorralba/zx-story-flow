@@ -17,7 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to update project name in header
     const updateProjectName = (name) => {
         projectName = name || 'Untitled';
-        document.querySelector('h1').textContent = `ZX Adventure Builder - ${projectName}`;
+        const display = document.getElementById('project-name-display');
+        if (display) {
+            display.textContent = projectName;
+        }
     };
 
     // Toolbar Buttons
