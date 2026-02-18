@@ -224,7 +224,11 @@ document.addEventListener('DOMContentLoaded', () => {
             editBtn.style.marginTop = '5px';
             editBtn.style.width = '100%';
             editBtn.addEventListener('click', () => {
-                openTextEditor(value, onChange);
+                // Use the CURRENT value from the textarea, not the initial 'value' closure
+                openTextEditor(inputEl.value, (newVal) => {
+                    inputEl.value = newVal;
+                    onChange(newVal);
+                });
             });
 
             group.appendChild(labelEl);
@@ -233,65 +237,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return group;
         };
 
-        const openTextEditor = (currentText, onChange) => {
+        const openTextEditor = (currentText, onSave) => {
             // Create modal
-            const modal = document.createElement('div');
-            modal.style.position = 'fixed';
-            modal.style.top = '0';
-            modal.style.left = '0';
-            modal.style.width = '100%';
-            modal.style.height = '100%';
-            modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-            modal.style.display = 'flex';
-            modal.style.justifyContent = 'center';
-            modal.style.alignItems = 'center';
-            modal.style.zIndex = '10000';
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
 
             const modalContent = document.createElement('div');
-            modalContent.style.backgroundColor = 'var(--panel-bg)';
-            modalContent.style.padding = '20px';
-            modalContent.style.borderRadius = '8px';
-            modalContent.style.width = '80%';
-            modalContent.style.maxWidth = '600px';
-            modalContent.style.maxHeight = '80%';
-            modalContent.style.display = 'flex';
-            modalContent.style.flexDirection = 'column';
+            modalContent.className = 'modal-content';
 
             const title = document.createElement('h3');
             title.textContent = 'Edit Screen Text';
-            title.style.marginTop = '0';
 
             const textarea = document.createElement('textarea');
             textarea.value = currentText || '';
-            textarea.style.flex = '1';
-            textarea.style.minHeight = '300px';
-            textarea.style.fontFamily = 'Courier New, monospace';
-            textarea.style.fontSize = '14px';
-            textarea.style.backgroundColor = '#222';
-            textarea.style.color = 'var(--text-color)';
-            textarea.style.border = '1px solid #555';
-            textarea.style.padding = '10px';
-            textarea.style.resize = 'vertical';
 
             const btnContainer = document.createElement('div');
-            btnContainer.style.marginTop = '15px';
-            btnContainer.style.display = 'flex';
-            btnContainer.style.gap = '10px';
-            btnContainer.style.justifyContent = 'flex-end';
+            btnContainer.className = 'modal-buttons';
 
             const saveBtn = document.createElement('button');
+            saveBtn.className = 'save-btn';
             saveBtn.textContent = 'Save';
-            saveBtn.style.padding = '8px 16px';
             saveBtn.addEventListener('click', () => {
-                onChange(textarea.value);
-                document.body.removeChild(modal);
+                onSave(textarea.value);
+                overlay.remove();
             });
 
             const cancelBtn = document.createElement('button');
             cancelBtn.textContent = 'Cancel';
-            cancelBtn.style.padding = '8px 16px';
             cancelBtn.addEventListener('click', () => {
-                document.body.removeChild(modal);
+                overlay.remove();
             });
 
             btnContainer.appendChild(cancelBtn);
@@ -299,8 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContent.appendChild(title);
             modalContent.appendChild(textarea);
             modalContent.appendChild(btnContainer);
-            modal.appendChild(modalContent);
-            document.body.appendChild(modal);
+            overlay.appendChild(modalContent);
+
+            // Append to #app instead of body to support fullscreen visibility
+            const app = document.getElementById('app');
+            app.appendChild(overlay);
 
             textarea.focus();
         };
