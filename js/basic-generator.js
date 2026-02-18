@@ -22,7 +22,7 @@ export function generateBasic(nodes) {
     // 2. Generate Header
     const startNode = nodes[0]; // Simplification: First node is start
     basicCode += `10 CLS\n`;
-    basicCode += `20 GOTO ${nodeLines.get(startNode.id)}\n`;
+    basicCode += `20 GO TO ${nodeLines.get(startNode.id)}\n`;
 
     // 3. Generate Code for each node
     nodes.forEach(node => {
@@ -103,7 +103,7 @@ export function generateBasic(nodes) {
             const target = node.outputs[0]?.target;
             if (target) {
                 const targetLine = nodeLines.get(target);
-                basicCode += `${currentLine} GOTO ${targetLine}\n`;
+                basicCode += `${currentLine} GO TO ${targetLine}\n`;
             } else {
                 basicCode += `${currentLine} STOP\n`;
             }
@@ -127,14 +127,13 @@ export function generateBasic(nodes) {
             node.outputs.forEach((opt, idx) => {
                 if (opt.target) {
                     const targetLine = nodeLines.get(opt.target);
-                    const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
-                    basicCode += `${currentLine} IF A$="${idx + 1}" OR A$="${safeLabel}" THEN GOTO ${targetLine}\n`;
+                    basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
                     currentLine += 10;
                 }
             });
 
             // Loop back if invalid input
-            basicCode += `${currentLine} GOTO ${nodeLines.get(node.id)}\n`;
+            basicCode += `${currentLine} GO TO ${nodeLines.get(node.id)}\n`;
         }
     });
 
