@@ -11,7 +11,8 @@ if %errorlevel% neq 0 (
 echo.
 echo Creating zip archive: zx-story-flow.zip...
 if exist zx-story-flow.zip del zx-story-flow.zip
-powershell -Command "Compress-Archive -Path dist\* -DestinationPath zx-story-flow.zip -Force"
+
+tar -a -c -f zx-story-flow.zip dist
 
 if %errorlevel% neq 0 (
     echo.
