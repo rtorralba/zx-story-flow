@@ -138,10 +138,17 @@ export function generateBasic(nodes) {
             const intBright = node.interfaceConfig?.bright || false;
             const intFlash = node.interfaceConfig?.flash || false;
             
-            // Apply separator attributes and print separator
+            // Calculate screen position: separator + options should be at bottom
+            // ZX Spectrum has 24 lines (0-23), but lines 22-23 are INPUT area
+            // We need: 1 line for separator + node.outputs.length lines for options
+            // Options should end at line 21 maximum
+            const totalLines = 1 + node.outputs.length; // separator + options
+            const startLine = 21 - totalLines + 1; // Start position for separator
+            
+            // Apply separator attributes and print separator at calculated position
             basicCode += `${currentLine} INK ${colorToZX(sepInk)}: PAPER ${colorToZX(sepPaper)}: BRIGHT ${sepBright ? 1 : 0}: FLASH ${sepFlash ? 1 : 0}\n`;
             currentLine += 10;
-            basicCode += `${currentLine} PRINT "--------------------------------"\n`;
+            basicCode += `${currentLine} PRINT AT ${startLine},0;"--------------------------------"\n`;
             currentLine += 10;
             
             // Apply interface attributes
@@ -151,7 +158,8 @@ export function generateBasic(nodes) {
             node.outputs.forEach((opt, idx) => {
                 // Remove newlines from labels entirely, they are single line inputs
                 const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
-                basicCode += `${currentLine} PRINT "${idx + 1}. ${safeLabel}"\n`;
+                const optionLine = startLine + 1 + idx; // Position each option below separator
+                basicCode += `${currentLine} PRINT AT ${optionLine},0;"${idx + 1}. ${safeLabel}"\n`;
                 currentLine += 10;
             });
 

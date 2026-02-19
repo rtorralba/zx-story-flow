@@ -17,7 +17,19 @@
           "label": "Esperar con paciencia",
           "target": "n3"
         }
-      ]
+      ],
+      "separatorConfig": {
+        "ink": "red",
+        "paper": "green",
+        "bright": false,
+        "flash": false
+      },
+      "interfaceConfig": {
+        "ink": "magenta",
+        "paper": "green",
+        "bright": false,
+        "flash": false
+      }
     },
     {
       "id": "n2",
@@ -35,7 +47,9 @@
           "label": "Ups, ahora no suena",
           "target": "n5"
         }
-      ]
+      ],
+      "separatorConfig": null,
+      "interfaceConfig": null
     },
     {
       "id": "n3",
@@ -53,7 +67,9 @@
           "label": "Destrozar el teclado",
           "target": "n6"
         }
-      ]
+      ],
+      "separatorConfig": null,
+      "interfaceConfig": null
     },
     {
       "id": "n4",
@@ -67,7 +83,9 @@
           "label": "Jugar otro juego",
           "target": "n1"
         }
-      ]
+      ],
+      "separatorConfig": null,
+      "interfaceConfig": null
     },
     {
       "id": "n5",
@@ -81,7 +99,9 @@
           "label": "Irse a dormir",
           "target": "n1"
         }
-      ]
+      ],
+      "separatorConfig": null,
+      "interfaceConfig": null
     },
     {
       "id": "n6",
@@ -95,7 +115,9 @@
           "label": "Intentar de nuevo",
           "target": "n1"
         }
-      ]
+      ],
+      "separatorConfig": null,
+      "interfaceConfig": null
     }
   ],
   "groups": [
