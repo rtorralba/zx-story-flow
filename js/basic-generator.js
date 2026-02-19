@@ -55,30 +55,15 @@ export function generateBasic(nodes) {
                     return;
                 }
 
-                const words = para.split(' ');
-                let currentLine = '';
-
-                words.forEach(word => {
-                    // If adding this word would exceed maxWidth
-                    if (currentLine.length + word.length + 1 > maxWidth) {
-                        // If current line is not empty, push it
-                        if (currentLine.length > 0) {
-                            wrappedLines.push(currentLine.trim());
-                            currentLine = word;
-                        } else {
-                            // Word itself is longer than maxWidth, just add it
-                            wrappedLines.push(word);
-                            currentLine = '';
-                        }
-                    } else {
-                        // Add word to current line
-                        currentLine += (currentLine.length > 0 ? ' ' : '') + word;
+                // Preservar todos los espacios, incluyendo los del principio
+                let idx = 0;
+                while (idx < para.length) {
+                    let line = '';
+                    while (idx < para.length && line.length < maxWidth) {
+                        line += para[idx];
+                        idx++;
                     }
-                });
-
-                // Push remaining line
-                if (currentLine.length > 0) {
-                    wrappedLines.push(currentLine.trim());
+                    wrappedLines.push(line);
                 }
             });
 
@@ -92,8 +77,10 @@ export function generateBasic(nodes) {
 
         // Check if options exist
         if (node.outputs.length <= 1) {
-            // Simple flow: Press any key to continue
-            basicCode += `${currentLine} PRINT "Press any key to continue..."\n`;
+            // Simple flow: Add blank line before continue message
+            basicCode += `${currentLine} PRINT\n`;
+            currentLine += 10;
+            basicCode += `${currentLine} FLASH 1: PRINT "Pulsa una tecla...": FLASH 0\n`;
             currentLine += 10;
 
             basicCode += `${currentLine} PAUSE 0\n`;
