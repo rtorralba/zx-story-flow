@@ -1,3 +1,8 @@
+// ZX Story Flow - MuCho Format Generator
+// Copyright (C) 2026 Raül Torralba Adsuara
+// Licensed under the GNU Affero General Public License v3.0 or later
+// See LICENSE file for details
+
 import { ScreenNode } from './nodes.js';
 
 export function generateMucho(nodes) {

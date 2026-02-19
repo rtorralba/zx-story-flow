@@ -1,3 +1,8 @@
+// ZX Story Flow - Visual BASIC Adventure Creator for ZX Spectrum
+// Copyright (C) 2026 Raül Torralba Adsuara
+// Licensed under the GNU Affero General Public License v3.0 or later
+// See LICENSE file for details
+
 import { NodeEditor } from './node-editor.js';
 import { ScreenNode, Group } from './nodes.js';
 import { generateBasic } from './basic-generator.js';

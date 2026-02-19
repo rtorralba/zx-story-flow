@@ -1,3 +1,8 @@
+// ZX Story Flow - Node Classes
+// Copyright (C) 2026 Raül Torralba Adsuara
+// Licensed under the GNU Affero General Public License v3.0 or later
+// See LICENSE file for details
+
 export class Node {
     constructor(id, x, y, type) {
         this.id = id;

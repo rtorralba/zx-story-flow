@@ -1,3 +1,8 @@
+// ZX Story Flow - Node Editor
+// Copyright (C) 2026 Raül Torralba Adsuara
+// Licensed under the GNU Affero General Public License v3.0 or later
+// See LICENSE file for details
+
 import { ScreenNode, Group } from './nodes.js';
 
 export class NodeEditor {
