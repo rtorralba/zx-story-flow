@@ -5,6 +5,30 @@
 
 import { ScreenNode } from './nodes.js';
 
+// Helper: Convert color name to ZX Spectrum color code (0-7)
+function colorToZX(colorName) {
+    const colors = {
+        'black': 0,
+        'blue': 1,
+        'red': 2,
+        'magenta': 3,
+        'green': 4,
+        'cyan': 5,
+        'yellow': 6,
+        'white': 7
+    };
+    return colors[colorName] || 0;
+}
+
+// Helper: Calculate ZX Spectrum attribute byte
+function calculateAttribute(ink, paper, bright, flash) {
+    const inkVal = colorToZX(ink);
+    const paperVal = colorToZX(paper);
+    const brightVal = bright ? 1 : 0;
+    const flashVal = flash ? 1 : 0;
+    return flashVal * 128 + brightVal * 64 + paperVal * 8 + inkVal;
+}
+
 export function generateMucho(nodes) {
     if (nodes.length === 0) return "";
 
@@ -27,7 +51,25 @@ export function generateMucho(nodes) {
         let description = node.text || "";
         description = description.trim();
 
-        muchoCode += `$Q ${label}\n${sanitizeText(description)}\n`;
+        // Calculate attributes
+        // Separator attributes
+        const sepInk = node.separatorConfig?.ink || 'white';
+        const sepPaper = node.separatorConfig?.paper || 'black';
+        const sepBright = node.separatorConfig?.bright || false;
+        const sepFlash = node.separatorConfig?.flash || false;
+        const sepAttr = calculateAttribute(sepInk, sepPaper, sepBright, sepFlash);
+        
+        // Interface attributes
+        const intInk = node.interfaceConfig?.ink || 'white';
+        const intPaper = node.interfaceConfig?.paper || 'black';
+        const intBright = node.interfaceConfig?.bright || false;
+        const intFlash = node.interfaceConfig?.flash || false;
+        const intAttr = calculateAttribute(intInk, intPaper, intBright, intFlash);
+        
+        // Default attribute (white on black)
+        const defAttr = 7;
+
+        muchoCode += `$Q ${label} attr:${sepAttr} dattr:${defAttr} iattr:${intAttr}\n${sanitizeText(description)}\n`;
 
         // Iterate all options
         node.outputs.forEach((opt) => {

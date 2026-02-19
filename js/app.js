@@ -30,14 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editor = new NodeEditor(canvas, (selectedNode) => {
         updatePropertyPanel(selectedNode);
         
-        console.log('Selected node:', selectedNode);
-        console.log('Node type:', selectedNode?.type);
-        console.log('Separator section:', separatorConfigSection);
-        console.log('Interface section:', interfaceConfigSection);
-        
         // Mostrar opciones solo si hay página seleccionada
         if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen')) {
-            console.log('Mostrando secciones de configuración');
             separatorConfigSection.style.display = 'block';
             interfaceConfigSection.style.display = 'block';
             

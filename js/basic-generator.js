@@ -5,6 +5,30 @@
 
 import { ScreenNode } from './nodes.js';
 
+// Helper: Convert color name to ZX Spectrum color code (0-7)
+function colorToZX(colorName) {
+    const colors = {
+        'black': 0,
+        'blue': 1,
+        'red': 2,
+        'magenta': 3,
+        'green': 4,
+        'cyan': 5,
+        'yellow': 6,
+        'white': 7
+    };
+    return colors[colorName] || 0;
+}
+
+// Helper: Calculate ZX Spectrum attribute byte
+function calculateAttribute(ink, paper, bright, flash) {
+    const inkVal = colorToZX(ink);
+    const paperVal = colorToZX(paper);
+    const brightVal = bright ? 1 : 0;
+    const flashVal = flash ? 1 : 0;
+    return flashVal * 128 + brightVal * 64 + paperVal * 8 + inkVal;
+}
+
 export function generateBasic(nodes) {
     if (nodes.length === 0) return "10 REM No nodes defined";
 
@@ -100,9 +124,28 @@ export function generateBasic(nodes) {
                 basicCode += `${currentLine} STOP\n`;
             }
         } else {
-            // Multiple options: Show menu and Input
-            // Add blank line before options
-            basicCode += `${currentLine} PRINT\n`;
+            // Multiple options: Show menu with separator and interface attributes
+            
+            // Get separator configuration (default: white on black)
+            const sepInk = node.separatorConfig?.ink || 'white';
+            const sepPaper = node.separatorConfig?.paper || 'black';
+            const sepBright = node.separatorConfig?.bright || false;
+            const sepFlash = node.separatorConfig?.flash || false;
+            
+            // Get interface configuration (default: white on black)
+            const intInk = node.interfaceConfig?.ink || 'white';
+            const intPaper = node.interfaceConfig?.paper || 'black';
+            const intBright = node.interfaceConfig?.bright || false;
+            const intFlash = node.interfaceConfig?.flash || false;
+            
+            // Apply separator attributes and print separator
+            basicCode += `${currentLine} INK ${colorToZX(sepInk)}: PAPER ${colorToZX(sepPaper)}: BRIGHT ${sepBright ? 1 : 0}: FLASH ${sepFlash ? 1 : 0}\n`;
+            currentLine += 10;
+            basicCode += `${currentLine} PRINT "--------------------------------"\n`;
+            currentLine += 10;
+            
+            // Apply interface attributes
+            basicCode += `${currentLine} INK ${colorToZX(intInk)}: PAPER ${colorToZX(intPaper)}: BRIGHT ${intBright ? 1 : 0}: FLASH ${intFlash ? 1 : 0}\n`;
             currentLine += 10;
 
             node.outputs.forEach((opt, idx) => {
@@ -111,6 +154,10 @@ export function generateBasic(nodes) {
                 basicCode += `${currentLine} PRINT "${idx + 1}. ${safeLabel}"\n`;
                 currentLine += 10;
             });
+
+            // Restore default attributes (white on black)
+            basicCode += `${currentLine} INK 7: PAPER 0: BRIGHT 0: FLASH 0\n`;
+            currentLine += 10;
 
             basicCode += `${currentLine} INPUT A$\n`;
             currentLine += 10;
