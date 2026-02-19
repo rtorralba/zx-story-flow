@@ -2,7 +2,7 @@ import { NodeEditor } from './node-editor.js';
 import { ScreenNode, Group } from './nodes.js';
 import { generateBasic } from './basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
-import { createTap } from './bas2tap.js';
+import { generateTapFromBasic } from './tap-generator.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('node-canvas');
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
             const basicCode = generateBasic(editor.nodes);
-            const tapData = createTap(basicCode, "adventure");
+            const tapData = generateTapFromBasic(basicCode, "adventure");
 
             const blob = new Blob([tapData], { type: 'application/x-tap' });
             const url = URL.createObjectURL(blob);
