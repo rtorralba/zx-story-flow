@@ -402,3 +402,35 @@ canvas {
     z-index: 1;
     border-radius: 3px;
 }
+
+/* Opciones de configuración vertical */
+.config-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.config-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-row label {
+    min-width: 60px;
+}
+
+.config-row select {
+    flex: 1;
+    padding: 4px;
+    background-color: var(--node-bg);
+    color: var(--text-color);
+    border: 1px solid var(--node-border);
+}
+
+.config-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+}

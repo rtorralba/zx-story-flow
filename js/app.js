@@ -14,10 +14,89 @@ document.addEventListener('DOMContentLoaded', () => {
     const propertyContent = document.getElementById('properties-content');
     let projectName = 'Untitled';
 
+    // Referencias a las secciones de configuración
+    const separatorConfigSection = document.getElementById('separator-config');
+    const interfaceConfigSection = document.getElementById('interface-config');
+    const separatorInk = document.getElementById('separator-ink');
+    const separatorPaper = document.getElementById('separator-paper');
+    const separatorBright = document.getElementById('separator-bright');
+    const separatorFlash = document.getElementById('separator-flash');
+    const interfaceInk = document.getElementById('interface-ink');
+    const interfacePaper = document.getElementById('interface-paper');
+    const interfaceBright = document.getElementById('interface-bright');
+    const interfaceFlash = document.getElementById('interface-flash');
+
     // Initialize Editor
     const editor = new NodeEditor(canvas, (selectedNode) => {
         updatePropertyPanel(selectedNode);
+        
+        console.log('Selected node:', selectedNode);
+        console.log('Node type:', selectedNode?.type);
+        console.log('Separator section:', separatorConfigSection);
+        console.log('Interface section:', interfaceConfigSection);
+        
+        // Mostrar opciones solo si hay página seleccionada
+        if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen')) {
+            console.log('Mostrando secciones de configuración');
+            separatorConfigSection.style.display = 'block';
+            interfaceConfigSection.style.display = 'block';
+            
+            // Cargar configuraciones guardadas
+            if (selectedNode.separatorConfig) {
+                separatorInk.value = selectedNode.separatorConfig.ink || 'black';
+                separatorPaper.value = selectedNode.separatorConfig.paper || 'white';
+                separatorBright.checked = !!selectedNode.separatorConfig.bright;
+                separatorFlash.checked = !!selectedNode.separatorConfig.flash;
+            } else {
+                separatorInk.value = 'black';
+                separatorPaper.value = 'white';
+                separatorBright.checked = false;
+                separatorFlash.checked = false;
+            }
+            
+            if (selectedNode.interfaceConfig) {
+                interfaceInk.value = selectedNode.interfaceConfig.ink || 'black';
+                interfacePaper.value = selectedNode.interfaceConfig.paper || 'white';
+                interfaceBright.checked = !!selectedNode.interfaceConfig.bright;
+                interfaceFlash.checked = !!selectedNode.interfaceConfig.flash;
+            } else {
+                interfaceInk.value = 'black';
+                interfacePaper.value = 'white';
+                interfaceBright.checked = false;
+                interfaceFlash.checked = false;
+            }
+        } else {
+            separatorConfigSection.style.display = 'none';
+            interfaceConfigSection.style.display = 'none';
+        }
     });
+
+    // Función para guardar configuraciones en el nodo seleccionado
+    function saveConfigToNode(node) {
+        if (!node || (node.type !== 'screen' && node.type !== 'Screen')) return;
+        node.separatorConfig = {
+            ink: separatorInk.value,
+            paper: separatorPaper.value,
+            bright: separatorBright.checked,
+            flash: separatorFlash.checked
+        };
+        node.interfaceConfig = {
+            ink: interfaceInk.value,
+            paper: interfacePaper.value,
+            bright: interfaceBright.checked,
+            flash: interfaceFlash.checked
+        };
+    }
+
+    // Event listeners para guardar configuraciones
+    separatorInk.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    separatorPaper.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    separatorBright.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    separatorFlash.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    interfaceInk.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    interfacePaper.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    interfaceBright.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    interfaceFlash.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
 
     // Function to update project name in header
     const updateProjectName = (name) => {
@@ -110,7 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         type: n.type,
                         title: n.title,
                         text: n.text,
-                        outputs: n.outputs
+                        outputs: n.outputs,
+                        separatorConfig: n.separatorConfig || null,
+                        interfaceConfig: n.interfaceConfig || null
                     };
                 }),
                 groups: editor.groups.map(g => {
@@ -177,6 +258,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Restore outputs if present, else default
                         if (n.outputs) {
                             newNode.outputs = n.outputs;
+                        }
+
+                        // Restaurar configuraciones
+                        if (n.separatorConfig) {
+                            newNode.separatorConfig = n.separatorConfig;
+                        }
+                        if (n.interfaceConfig) {
+                            newNode.interfaceConfig = n.interfaceConfig;
                         }
 
                         // Compatibility: if loading old DecisionNode (type 'Decision'), 
