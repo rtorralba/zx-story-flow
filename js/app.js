@@ -651,11 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
         propertyContent.appendChild(textInput);
 
         // Options Container
-        const optsHeader = document.createElement('h4');
-        optsHeader.textContent = "Options / Exits";
-        optsHeader.style.marginTop = "15px";
-        propertyContent.appendChild(optsHeader);
-
         const renderOptions = () => {
             // Remove old options UI if exists
             const oldContainer = document.getElementById('options-container');
@@ -712,19 +707,5 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         renderOptions();
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = "Delete Node";
-        deleteBtn.style.marginTop = "20px";
-        deleteBtn.style.backgroundColor = "#d00000";
-        deleteBtn.style.color = "#fff";
-        deleteBtn.style.border = "none";
-        deleteBtn.style.padding = "10px";
-        deleteBtn.style.cursor = "pointer";
-        deleteBtn.style.width = "100%";
-        deleteBtn.addEventListener('click', () => {
-            editor.removeNode(node);
-        });
-        propertyContent.appendChild(deleteBtn);
     }
 });

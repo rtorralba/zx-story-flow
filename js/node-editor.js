@@ -143,6 +143,16 @@ export class NodeEditor {
         return null;
     }
 
+    isDeleteIconHit(node, x, y) {
+        const deleteIconSize = 16;
+        const deleteIconX = node.x + node.width - deleteIconSize - 5;
+        const deleteIconY = node.y + 5;
+        const centerX = deleteIconX + deleteIconSize / 2;
+        const centerY = deleteIconY + deleteIconSize / 2;
+        const distance = Math.hypot(x - centerX, y - centerY);
+        return distance <= deleteIconSize / 2;
+    }
+
     getPortAt(x, y) {
         for (const node of this.nodes) {
             if (node instanceof ScreenNode) {
@@ -171,6 +181,16 @@ export class NodeEditor {
                 currentY: y
             };
             return;
+        }
+
+        // Check if clicking on a delete icon (before checking resize handles)
+        for (let i = this.nodes.length - 1; i >= 0; i--) {
+            const node = this.nodes[i];
+            if (this.isDeleteIconHit(node, x, y)) {
+                this.removeNode(node);
+                this.draw();
+                return;
+            }
         }
 
         // Check if clicking on a group resize handle (before nodes and headers)
@@ -242,13 +262,26 @@ export class NodeEditor {
         // Update cursor based on hover state
         if (!this.dragState) {
             let cursorSet = false;
-            // Check if hovering over a resize handle
-            for (let i = this.groups.length - 1; i >= 0; i--) {
-                const group = this.groups[i];
-                if (group.isResizeHandleHit(x, y)) {
-                    this.canvas.style.cursor = 'nwse-resize';
+            
+            // Check if hovering over a delete icon
+            for (let i = this.nodes.length - 1; i >= 0; i--) {
+                const node = this.nodes[i];
+                if (this.isDeleteIconHit(node, x, y)) {
+                    this.canvas.style.cursor = 'pointer';
                     cursorSet = true;
                     break;
+                }
+            }
+            
+            // Check if hovering over a resize handle
+            if (!cursorSet) {
+                for (let i = this.groups.length - 1; i >= 0; i--) {
+                    const group = this.groups[i];
+                    if (group.isResizeHandleHit(x, y)) {
+                        this.canvas.style.cursor = 'nwse-resize';
+                        cursorSet = true;
+                        break;
+                    }
                 }
             }
             if (!cursorSet) {
@@ -451,6 +484,29 @@ export class NodeEditor {
                     this.ctx.textAlign = "left"; // Reset
                 });
             }
+
+            // Draw Delete Icon (X in top-right corner)
+            const deleteIconSize = 16;
+            const deleteIconX = node.x + node.width - deleteIconSize - 5;
+            const deleteIconY = node.y + 5;
+
+            // Draw circle background
+            this.ctx.fillStyle = "#d00000";
+            this.ctx.beginPath();
+            this.ctx.arc(deleteIconX + deleteIconSize / 2, deleteIconY + deleteIconSize / 2, deleteIconSize / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw X
+            this.ctx.strokeStyle = "#fff";
+            this.ctx.lineWidth = 2;
+            this.ctx.lineCap = "round";
+            const xOffset = 4;
+            this.ctx.beginPath();
+            this.ctx.moveTo(deleteIconX + xOffset, deleteIconY + xOffset);
+            this.ctx.lineTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + deleteIconSize - xOffset);
+            this.ctx.moveTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + xOffset);
+            this.ctx.lineTo(deleteIconX + xOffset, deleteIconY + deleteIconSize - xOffset);
+            this.ctx.stroke();
         });
 
         // Draw Connections
