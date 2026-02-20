@@ -59,8 +59,15 @@ export function generateBasic(nodes, globalConfig = null) {
 
     // 2. Generate Header
     const startNode = nodes[0]; // Simplification: First node is start
-    basicCode += `10 CLS\n`;
-    basicCode += `20 GO TO ${nodeLines.get(startNode.id)}\n`;
+    
+    // Get page configuration for the first node to apply before initial CLS
+    const firstPageConfig = (startNode.useCustomConfig && startNode.pageConfig) 
+        ? startNode.pageConfig 
+        : globalConfig.page;
+    
+    basicCode += `10 INK ${colorToZX(firstPageConfig.ink)}: PAPER ${colorToZX(firstPageConfig.paper)}: BRIGHT ${firstPageConfig.bright ? 1 : 0}: FLASH ${firstPageConfig.flash ? 1 : 0}\n`;
+    basicCode += `20 CLS\n`;
+    basicCode += `30 GO TO ${nodeLines.get(startNode.id)}\n`;
 
     // 3. Generate Code for each node
     nodes.forEach(node => {
