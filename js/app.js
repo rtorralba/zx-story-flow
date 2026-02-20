@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Configuración global (por defecto)
     let globalConfig = {
+        page: { ink: 'white', paper: 'black', bright: false, flash: false },
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
         interface: { ink: 'white', paper: 'black', bright: false, flash: false }
     };
@@ -24,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const separatorConfigSection = document.getElementById('separator-config');
     const useCustomConfigCheckbox = document.getElementById('use-custom-config');
     const customConfigContent = document.getElementById('custom-config-content');
+    const pageInk = document.getElementById('page-ink');
+    const pagePaper = document.getElementById('page-paper');
+    const pageBright = document.getElementById('page-bright');
+    const pageFlash = document.getElementById('page-flash');
     const separatorInk = document.getElementById('separator-ink');
     const separatorPaper = document.getElementById('separator-paper');
     const separatorBright = document.getElementById('separator-bright');
@@ -35,6 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Referencias a la configuración global
     const globalConfigModal = document.getElementById('global-config-modal');
+    const globalPageInk = document.getElementById('global-page-ink');
+    const globalPagePaper = document.getElementById('global-page-paper');
+    const globalPageBright = document.getElementById('global-page-bright');
+    const globalPageFlash = document.getElementById('global-page-flash');
     const globalSeparatorInk = document.getElementById('global-separator-ink');
     const globalSeparatorPaper = document.getElementById('global-separator-paper');
     const globalSeparatorBright = document.getElementById('global-separator-bright');
@@ -46,6 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cargar configuración global en los controles
     function loadGlobalConfig() {
+        globalPageInk.value = globalConfig.page.ink;
+        globalPagePaper.value = globalConfig.page.paper;
+        globalPageBright.checked = globalConfig.page.bright;
+        globalPageFlash.checked = globalConfig.page.flash;
         globalSeparatorInk.value = globalConfig.separator.ink;
         globalSeparatorPaper.value = globalConfig.separator.paper;
         globalSeparatorBright.checked = globalConfig.separator.bright;
@@ -58,6 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Guardar configuración global desde los controles
     function saveGlobalConfig() {
+        globalConfig.page = {
+            ink: globalPageInk.value,
+            paper: globalPagePaper.value,
+            bright: globalPageBright.checked,
+            flash: globalPageFlash.checked
+        };
         globalConfig.separator = {
             ink: globalSeparatorInk.value,
             paper: globalSeparatorPaper.value,
@@ -85,6 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Event listeners para configuración global
+    globalPageInk.addEventListener('change', saveGlobalConfig);
+    globalPagePaper.addEventListener('change', saveGlobalConfig);
+    globalPageBright.addEventListener('change', saveGlobalConfig);
+    globalPageFlash.addEventListener('change', saveGlobalConfig);
     globalSeparatorInk.addEventListener('change', saveGlobalConfig);
     globalSeparatorPaper.addEventListener('change', saveGlobalConfig);
     globalSeparatorBright.addEventListener('change', saveGlobalConfig);
@@ -107,8 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
             useCustomConfigCheckbox.checked = useCustom;
             customConfigContent.style.display = useCustom ? 'block' : 'none';
             
-            if (useCustom && selectedNode.separatorConfig && selectedNode.interfaceConfig) {
+            if (useCustom && selectedNode.pageConfig && selectedNode.separatorConfig && selectedNode.interfaceConfig) {
                 // Cargar configuración específica
+                pageInk.value = selectedNode.pageConfig.ink;
+                pagePaper.value = selectedNode.pageConfig.paper;
+                pageBright.checked = selectedNode.pageConfig.bright;
+                pageFlash.checked = selectedNode.pageConfig.flash;
                 separatorInk.value = selectedNode.separatorConfig.ink;
                 separatorPaper.value = selectedNode.separatorConfig.paper;
                 separatorBright.checked = selectedNode.separatorConfig.bright;
@@ -119,6 +146,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 interfaceFlash.checked = selectedNode.interfaceConfig.flash;
             } else {
                 // Cargar configuración global por defecto
+                pageInk.value = globalConfig.page.ink;
+                pagePaper.value = globalConfig.page.paper;
+                pageBright.checked = globalConfig.page.bright;
+                pageFlash.checked = globalConfig.page.flash;
                 separatorInk.value = globalConfig.separator.ink;
                 separatorPaper.value = globalConfig.separator.paper;
                 separatorBright.checked = globalConfig.separator.bright;
@@ -146,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveConfigToNode(node);
         } else {
             // Eliminar configuración específica
+            delete node.pageConfig;
             delete node.separatorConfig;
             delete node.interfaceConfig;
         }
@@ -156,6 +188,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!node || (node.type !== 'screen' && node.type !== 'Screen')) return;
         if (!node.useCustomConfig) return; // Solo guardar si usa configuración específica
         
+        node.pageConfig = {
+            ink: pageInk.value,
+            paper: pagePaper.value,
+            bright: pageBright.checked,
+            flash: pageFlash.checked
+        };
         node.separatorConfig = {
             ink: separatorInk.value,
             paper: separatorPaper.value,
@@ -171,6 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Event listeners para guardar configuraciones
+    pageInk.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    pagePaper.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    pageBright.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    pageFlash.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
     separatorInk.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
     separatorPaper.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
     separatorBright.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
@@ -357,6 +399,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Restaurar configuración específica si existe
                         if (n.useCustomConfig) {
                             newNode.useCustomConfig = true;
+                            if (n.pageConfig) {
+                                newNode.pageConfig = n.pageConfig;
+                            }
                             if (n.separatorConfig) {
                                 newNode.separatorConfig = n.separatorConfig;
                             }

@@ -35,6 +35,7 @@ export function generateBasic(nodes, globalConfig = null) {
     // Default global config
     if (!globalConfig) {
         globalConfig = {
+            page: { ink: 'white', paper: 'black', bright: false, flash: false },
             separator: { ink: 'white', paper: 'black', bright: false, flash: false },
             interface: { ink: 'white', paper: 'black', bright: false, flash: false }
         };
@@ -71,6 +72,19 @@ export function generateBasic(nodes, globalConfig = null) {
 
         // Common Screen Logic
         basicCode += `${currentLine} CLS\n`;
+        currentLine += 10;
+        
+        // Get page configuration (use node config if exists, else global)
+        const pageConfig = (node.useCustomConfig && node.pageConfig) 
+            ? node.pageConfig 
+            : globalConfig.page;
+        const pageInk = pageConfig.ink;
+        const pagePaper = pageConfig.paper;
+        const pageBright = pageConfig.bright;
+        const pageFlash = pageConfig.flash;
+        
+        // Apply page attributes
+        basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
         currentLine += 10;
 
         // Print text with word-aware wrapping for ZX Spectrum 32-char screen

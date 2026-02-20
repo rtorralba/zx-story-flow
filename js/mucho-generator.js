@@ -35,6 +35,7 @@ export function generateMucho(nodes, globalConfig = null) {
     // Default global config
     if (!globalConfig) {
         globalConfig = {
+            page: { ink: 'white', paper: 'black', bright: false, flash: false },
             separator: { ink: 'white', paper: 'black', bright: false, flash: false },
             interface: { ink: 'white', paper: 'black', bright: false, flash: false }
         };
@@ -60,6 +61,12 @@ export function generateMucho(nodes, globalConfig = null) {
         description = description.trim();
 
         // Calculate attributes
+        // Page attributes (use node config if exists, else global)
+        const pageConfig = (node.useCustomConfig && node.pageConfig) 
+            ? node.pageConfig 
+            : globalConfig.page;
+        const pageAttr = calculateAttribute(pageConfig.ink, pageConfig.paper, pageConfig.bright, pageConfig.flash);
+        
         // Separator attributes (use node config if exists, else global)
         const sepConfig = (node.useCustomConfig && node.separatorConfig) 
             ? node.separatorConfig 
@@ -71,11 +78,8 @@ export function generateMucho(nodes, globalConfig = null) {
             ? node.interfaceConfig 
             : globalConfig.interface;
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
-        
-        // Default attribute (white on black)
-        const defAttr = 7;
 
-        muchoCode += `$Q ${label} attr:${sepAttr} dattr:${defAttr} iattr:${intAttr}\n${sanitizeText(description)}\n`;
+        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}\n${sanitizeText(description)}\n`;
 
         // Iterate all options
         node.outputs.forEach((opt) => {

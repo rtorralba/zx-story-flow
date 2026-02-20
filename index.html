@@ -63,6 +63,41 @@
                         </label>
                     </div>
                     <div id="custom-config-content" style="display: none;">
+                    <h3>Página</h3>
+                    <div class="config-options">
+                        <div class="config-row">
+                            <label for="page-ink">INK:</label>
+                            <select id="page-ink" name="page-ink">
+                                <option value="black">Negro</option>
+                                <option value="blue">Azul</option>
+                                <option value="red">Rojo</option>
+                                <option value="magenta">Magenta</option>
+                                <option value="green">Verde</option>
+                                <option value="cyan">Cyan</option>
+                                <option value="yellow">Amarillo</option>
+                                <option value="white">Blanco</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="page-paper">PAPER:</label>
+                            <select id="page-paper" name="page-paper">
+                                <option value="black">Negro</option>
+                                <option value="blue">Azul</option>
+                                <option value="red">Rojo</option>
+                                <option value="magenta">Magenta</option>
+                                <option value="green">Verde</option>
+                                <option value="cyan">Cyan</option>
+                                <option value="yellow">Amarillo</option>
+                                <option value="white">Blanco</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="page-bright">Bright</label>
+                            <input type="checkbox" id="page-bright" name="page-bright">
+                            <label for="page-flash" style="margin-left: 10px;">Flash</label>
+                            <input type="checkbox" id="page-flash" name="page-flash">
+                        </div>
+                    </div>
                     <h3>Separador</h3>
                     <div class="config-options">
                         <div class="config-row">
@@ -143,6 +178,41 @@
     <div id="global-config-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h2>Configuración Global</h2>
+            <h3>Página (por defecto)</h3>
+            <div class="config-options">
+                <div class="config-row">
+                    <label for="global-page-ink">INK:</label>
+                    <select id="global-page-ink">
+                        <option value="black">Negro</option>
+                        <option value="blue">Azul</option>
+                        <option value="red">Rojo</option>
+                        <option value="magenta">Magenta</option>
+                        <option value="green">Verde</option>
+                        <option value="cyan">Cyan</option>
+                        <option value="yellow">Amarillo</option>
+                        <option value="white" selected>Blanco</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label for="global-page-paper">PAPER:</label>
+                    <select id="global-page-paper">
+                        <option value="black" selected>Negro</option>
+                        <option value="blue">Azul</option>
+                        <option value="red">Rojo</option>
+                        <option value="magenta">Magenta</option>
+                        <option value="green">Verde</option>
+                        <option value="cyan">Cyan</option>
+                        <option value="yellow">Amarillo</option>
+                        <option value="white">Blanco</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label for="global-page-bright">Bright</label>
+                    <input type="checkbox" id="global-page-bright">
+                    <label for="global-page-flash" style="margin-left: 10px;">Flash</label>
+                    <input type="checkbox" id="global-page-flash">
+                </div>
+            </div>
             <h3>Separador (por defecto)</h3>
             <div class="config-options">
                 <div class="config-row">

@@ -1,6 +1,12 @@
 {
   "name": "Aventura ZX Spectrum",
   "globalConfig": {
+    "page": {
+      "ink": "white",
+      "paper": "black",
+      "bright": false,
+      "flash": false
+    },
     "separator": {
       "ink": "blue",
       "paper": "red",
@@ -51,6 +57,12 @@
         }
       ],
       "useCustomConfig": true,
+      "pageConfig": {
+        "ink": "yellow",
+        "paper": "blue",
+        "bright": false,
+        "flash": false
+      },
       "separatorConfig": {
         "ink": "black",
         "paper": "white",
@@ -96,6 +108,12 @@
         }
       ],
       "useCustomConfig": true,
+      "pageConfig": {
+        "ink": "white",
+        "paper": "green",
+        "bright": true,
+        "flash": false
+      },
       "separatorConfig": {
         "ink": "black",
         "paper": "white",
