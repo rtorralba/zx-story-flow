@@ -41,8 +41,8 @@
     },
     {
       "id": "n2",
-      "x": 450,
-      "y": 100,
+      "x": 451,
+      "y": 101,
       "type": "Screen",
       "title": "Azimut",
       "text": "Coges tu diminuto destornillador amarillo.\nGiras el tornillo de azimut del Datasette 0.01mm a la derecha.\n\nEl sonido cambia. Ha mejorado?",
@@ -53,7 +53,8 @@
         },
         {
           "label": "Ups, ahora no suena",
-          "target": "n5"
+          "target": "n5",
+          "flag": "unset:key"
         }
       ]
     },
@@ -67,7 +68,8 @@
       "outputs": [
         {
           "label": "Rebobinar y reintentar",
-          "target": "n1"
+          "target": "n5",
+          "flag": "set:key"
         },
         {
           "label": "Destrozar el teclado",
@@ -100,6 +102,13 @@
         {
           "label": "Irse a dormir",
           "target": "ref_1771608889239"
+        }
+      ],
+      "conditionalParagraphs": [
+        {
+          "paragraphIndex": 1,
+          "flag": "has:key",
+          "inverted": false
         }
       ]
     },

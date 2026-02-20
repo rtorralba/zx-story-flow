@@ -149,11 +149,18 @@ main {
 }
 
 #property-panel {
-    width: 300px;
+    width: 600px;
     background-color: var(--panel-bg);
     border-left: 1px solid #444;
     padding: 10px;
     overflow-y: auto;
+    transition: margin-right 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+#property-panel.hidden {
+    margin-right: -600px;
+    opacity: 0;
+    pointer-events: none;
 }
 
 #property-panel h2 {
@@ -478,7 +485,6 @@ canvas {
     margin: 0 !important;
     padding: 0 !important;
     line-height: 0.45 !important;
-    vertical-align: top !important;
 }
 
 .spectrum-options > div {

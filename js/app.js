@@ -358,6 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         nodeData.targetNodeId = n.targetNodeId;
                     }
                     
+                    // Guardar párrafos condicionales si existen
+                    if (n.conditionalParagraphs && n.conditionalParagraphs.length > 0) {
+                        nodeData.conditionalParagraphs = n.conditionalParagraphs;
+                    }
+                    
                     // Solo guardar configuración específica si está activada
                     if (n.useCustomConfig) {
                         nodeData.useCustomConfig = true;
@@ -444,6 +449,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Restore outputs if present, else default
                             if (n.outputs) {
                                 newNode.outputs = n.outputs;
+                            }
+
+                            // Restaurar párrafos condicionales si existen
+                            if (n.conditionalParagraphs) {
+                                newNode.conditionalParagraphs = n.conditionalParagraphs;
                             }
 
                             // Restaurar configuración específica si existe
@@ -619,11 +629,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updatePropertyPanel(nodeOrGroup) {
+        const propertyPanel = document.getElementById('property-panel');
         propertyContent.innerHTML = '';
         if (!nodeOrGroup) {
-            propertyContent.innerHTML = '<p>Select a node or group to edit properties.</p>';
+            propertyPanel.classList.add('hidden');
             return;
         }
+        propertyPanel.classList.remove('hidden');
 
         // Check if it's a Group
         if (nodeOrGroup instanceof Group) {
@@ -925,13 +937,258 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         propertyContent.appendChild(titleInput);
 
+        // Initialize conditionalParagraphs if not exists
+        if (!node.conditionalParagraphs) {
+            node.conditionalParagraphs = [];
+        }
+
+        // Define renderConditionalParagraphs before using it
+        let renderConditionalParagraphs;
+
         const textInput = createTextarea('Screen Text', node.text, (val) => {
             node.text = val;
             editor.draw();
+            // Re-render conditional paragraphs when text changes
+            if (renderConditionalParagraphs) {
+                renderConditionalParagraphs();
+            }
         });
         propertyContent.appendChild(textInput);
 
-        // Options Container
+        // Conditional Paragraphs Section (collapsible)
+        const conditionalSection = document.createElement('div');
+        conditionalSection.style.marginTop = '15px';
+        conditionalSection.style.padding = '10px';
+        conditionalSection.style.backgroundColor = '#2a2a2a';
+        conditionalSection.style.borderRadius = '4px';
+
+        const conditionalTitle = document.createElement('h4');
+        conditionalTitle.textContent = '▼ 🎯 Párrafos condicionales';
+        conditionalTitle.style.margin = '0 0 10px 0';
+        conditionalTitle.style.color = '#4a9eff';
+        conditionalTitle.style.cursor = 'pointer';
+        conditionalTitle.style.userSelect = 'none';
+        
+        const conditionalContent = document.createElement('div');
+        conditionalContent.style.display = 'block';
+
+        const conditionalInfo = document.createElement('div');
+        conditionalInfo.style.fontSize = '11px';
+        conditionalInfo.style.marginBottom = '10px';
+        conditionalInfo.style.color = '#aaa';
+        conditionalInfo.textContent = 'Marca párrafos para mostrarlos solo cuando un flag esté activado/desactivado. Los párrafos se separan con doble salto de línea.';
+        conditionalContent.appendChild(conditionalInfo);
+
+        // Toggle collapse
+        let isConditionalExpanded = true;
+        conditionalTitle.addEventListener('click', () => {
+            isConditionalExpanded = !isConditionalExpanded;
+            conditionalContent.style.display = isConditionalExpanded ? 'block' : 'none';
+            conditionalTitle.textContent = (isConditionalExpanded ? '▼' : '▶') + ' 🎯 Párrafos condicionales';
+        });
+
+        renderConditionalParagraphs = () => {
+            // Remove old container
+            const oldContainer = document.getElementById('conditional-paragraphs-container');
+            if (oldContainer) oldContainer.remove();
+
+            const container = document.createElement('div');
+            container.id = 'conditional-paragraphs-container';
+
+            // Split text into paragraphs
+            const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
+
+            paragraphs.forEach((paragraph, idx) => {
+                const pRow = document.createElement('div');
+                pRow.style.marginBottom = '8px';
+                pRow.style.padding = '8px';
+                pRow.style.backgroundColor = '#1a1a1a';
+                pRow.style.borderRadius = '3px';
+
+                // Find if this paragraph is conditional
+                const conditional = node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
+
+                // Paragraph preview
+                const previewRow = document.createElement('div');
+                previewRow.style.display = 'flex';
+                previewRow.style.justifyContent = 'space-between';
+                previewRow.style.alignItems = 'center';
+                previewRow.style.marginBottom = conditional ? '5px' : '0';
+
+                const preview = document.createElement('div');
+                preview.style.fontSize = '11px';
+                preview.style.color = conditional ? '#4a9eff' : '#888';
+                preview.style.fontStyle = 'italic';
+                preview.style.flex = '1';
+                const previewText = paragraph.substring(0, 50) + (paragraph.length > 50 ? '...' : '');
+                preview.textContent = `§${idx + 1}: ${previewText}`;
+                previewRow.appendChild(preview);
+
+                if (!conditional) {
+                    // Show "make conditional" button in the same row
+                    const makeCondBtn = document.createElement('button');
+                    makeCondBtn.textContent = '+ Hacer condicional';
+                    makeCondBtn.style.fontSize = '11px';
+                    makeCondBtn.style.padding = '3px 8px';
+                    makeCondBtn.style.whiteSpace = 'nowrap';
+                    makeCondBtn.addEventListener('click', () => {
+                        node.conditionalParagraphs.push({
+                            paragraphIndex: idx,
+                            flag: '',
+                            inverted: false
+                        });
+                        renderConditionalParagraphs();
+                    });
+                    previewRow.appendChild(makeCondBtn);
+                }
+
+                pRow.appendChild(previewRow);
+
+                if (conditional) {
+                    // Show flag editor
+                    const flagRow = document.createElement('div');
+                    flagRow.style.display = 'flex';
+                    flagRow.style.gap = '5px';
+                    flagRow.style.alignItems = 'center';
+                    flagRow.style.marginBottom = '5px';
+
+                    // Parse current flag (e.g., "has:key" or "not:key")
+                    let flagCondition = 'has';
+                    let flagName = conditional.flag || '';
+                    if (flagName) {
+                        const parts = flagName.split(':');
+                        if (parts.length === 2 && (parts[0] === 'has' || parts[0] === 'not')) {
+                            flagCondition = parts[0];
+                            flagName = parts[1];
+                        }
+                    }
+
+                    // Condition dropdown (has/not)
+                    const conditionSelect = document.createElement('select');
+                    conditionSelect.style.flex = '0 0 auto';
+                    
+                    const hasOption = document.createElement('option');
+                    hasOption.value = 'has';
+                    hasOption.textContent = 'has';
+                    conditionSelect.appendChild(hasOption);
+                    
+                    const notOption = document.createElement('option');
+                    notOption.value = 'not';
+                    notOption.textContent = 'not';
+                    conditionSelect.appendChild(notOption);
+                    
+                    conditionSelect.value = flagCondition;
+
+                    // Collect available flag NAMES from ALL nodes in the graph (only the name part)
+                    const availableFlags = [];
+                    editor.nodes.forEach(n => {
+                        if (n.outputs) {
+                            n.outputs.forEach(opt => {
+                                if (opt.flag && opt.flag.trim()) {
+                                    // Extract flag name (e.g., "set:key" -> "key")
+                                    const parts = opt.flag.split(':');
+                                    let name = parts.length === 2 ? parts[1] : opt.flag;
+                                    // Remove any set/clear prefix if present
+                                    name = name.replace(/^(set|clear):/, '');
+                                    if (name && !availableFlags.includes(name)) {
+                                        availableFlags.push(name);
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    const flagSelect = document.createElement('select');
+                    flagSelect.style.flex = '1';
+                    
+                    // Add empty option
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = '-- Selecciona flag --';
+                    flagSelect.appendChild(emptyOption);
+                    
+                    // Add options from available flags
+                    availableFlags.forEach(flag => {
+                        const opt = document.createElement('option');
+                        opt.value = flag;
+                        opt.textContent = flag;
+                        if (flagName === flag) {
+                            opt.selected = true;
+                        }
+                        flagSelect.appendChild(opt);
+                    });
+                    
+                    // Set selected value
+                    if (flagName && !availableFlags.includes(flagName)) {
+                        // If current flag is not in available flags, add it as option
+                        const customOpt = document.createElement('option');
+                        customOpt.value = flagName;
+                        customOpt.textContent = flagName + ' (no está en las opciones)';
+                        customOpt.selected = true;
+                        flagSelect.appendChild(customOpt);
+                    }
+                    
+                    // Update flag when either changes
+                    const updateConditionalFlag = () => {
+                        const condition = conditionSelect.value;
+                        const name = flagSelect.value;
+                        if (name) {
+                            conditional.flag = `${condition}:${name}`;
+                        } else {
+                            conditional.flag = '';
+                        }
+                    };
+                    
+                    conditionSelect.addEventListener('change', updateConditionalFlag);
+                    flagSelect.addEventListener('change', updateConditionalFlag);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = 'Quitar';
+                    removeBtn.style.padding = '3px 8px';
+                    removeBtn.style.fontSize = '11px';
+                    removeBtn.addEventListener('click', () => {
+                        node.conditionalParagraphs = node.conditionalParagraphs.filter(cp => cp !== conditional);
+                        renderConditionalParagraphs();
+                    });
+
+                    flagRow.appendChild(conditionSelect);
+                    flagRow.appendChild(flagSelect);
+                    flagRow.appendChild(removeBtn);
+                    pRow.appendChild(flagRow);
+                }
+
+                container.appendChild(pRow);
+            });
+
+            if (paragraphs.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.fontSize = '11px';
+                emptyMsg.style.color = '#666';
+                emptyMsg.textContent = 'Escribe texto arriba y separa párrafos con doble salto de línea.';
+                container.appendChild(emptyMsg);
+            }
+
+            conditionalContent.appendChild(container);
+        };
+
+        renderConditionalParagraphs();
+        conditionalSection.appendChild(conditionalTitle);
+        conditionalSection.appendChild(conditionalContent);
+        propertyContent.appendChild(conditionalSection);
+
+        // Options Section (must come before Conditional Paragraphs)
+        const optionsSection = document.createElement('div');
+        optionsSection.style.marginTop = '15px';
+        optionsSection.style.padding = '10px';
+        optionsSection.style.backgroundColor = '#2a2a2a';
+        optionsSection.style.borderRadius = '4px';
+
+        const optionsTitle = document.createElement('h4');
+        optionsTitle.textContent = '🔗 Opciones';
+        optionsTitle.style.margin = '0 0 10px 0';
+        optionsTitle.style.color = '#4a9eff';
+        optionsSection.appendChild(optionsTitle);
+
         const renderOptions = () => {
             // Remove old options UI if exists
             const oldContainer = document.getElementById('options-container');
@@ -942,39 +1199,116 @@ document.addEventListener('DOMContentLoaded', () => {
 
             node.outputs.forEach((opt, idx) => {
                 const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.marginBottom = '5px';
+                row.style.marginBottom = '10px';
+                row.style.padding = '10px';
+                row.style.backgroundColor = '#1a1a1a';
+                row.style.borderRadius = '4px';
+
+                // Label and Flag in the same row
+                const inputsRow = document.createElement('div');
+                inputsRow.style.display = 'flex';
+                inputsRow.style.gap = '10px';
+                inputsRow.style.marginBottom = '5px';
 
                 const inp = document.createElement('input');
                 inp.value = opt.label;
-                inp.style.flex = "1";
-                inp.style.marginRight = "5px";
+                inp.placeholder = 'Etiqueta de la opción';
+                inp.style.flex = "2";
                 inp.addEventListener('input', (e) => {
                     opt.label = e.target.value;
                     editor.draw();
                 });
 
+                // Parse current flag (e.g., "set:key" or "clear:key")
+                let flagAction = 'set';
+                let flagName = '';
+                if (opt.flag) {
+                    const parts = opt.flag.split(':');
+                    if (parts.length === 2 && (parts[0] === 'set' || parts[0] === 'clear')) {
+                        flagAction = parts[0];
+                        flagName = parts[1];
+                    } else {
+                        flagName = opt.flag;
+                    }
+                }
+
+                // Flag action dropdown
+                const flagActionSelect = document.createElement('select');
+                flagActionSelect.style.flex = "0 0 auto";
+                
+                const setOption = document.createElement('option');
+                setOption.value = 'set';
+                setOption.textContent = 'set';
+                flagActionSelect.appendChild(setOption);
+                
+                const unsetOption = document.createElement('option');
+                unsetOption.value = 'clear';
+                unsetOption.textContent = 'clear';
+                flagActionSelect.appendChild(unsetOption);
+                
+                flagActionSelect.value = flagAction;
+
+                // Flag name input
+                const flagInp = document.createElement('input');
+                flagInp.value = flagName;
+                flagInp.placeholder = 'nombre flag (ej: key)';
+                flagInp.style.flex = "1";
+                flagInp.title = 'Nombre del flag a set/clear';
+
+                // Update flag when either changes
+                const updateFlag = () => {
+                    const action = flagActionSelect.value;
+                    const name = flagInp.value.trim();
+                    if (name) {
+                        opt.flag = `${action}:${name}`;
+                    } else {
+                        opt.flag = undefined;
+                    }
+                    editor.draw();
+                    // Re-render conditional paragraphs to update flag dropdown
+                    if (renderConditionalParagraphs) {
+                        renderConditionalParagraphs();
+                    }
+                };
+
+                flagActionSelect.addEventListener('change', updateFlag);
+                flagInp.addEventListener('input', updateFlag);
+
+                inputsRow.appendChild(inp);
+                inputsRow.appendChild(flagActionSelect);
+                inputsRow.appendChild(flagInp);
+
+                // Delete button
                 const del = document.createElement('button');
-                del.textContent = "X";
+                del.textContent = "✕";
                 del.style.backgroundColor = "#d00000";
                 del.style.color = "white";
                 del.style.border = "none";
+                del.style.padding = "5px 10px";
+                del.style.cursor = "pointer";
+                del.style.fontSize = "16px";
+                del.style.fontWeight = "bold";
+                del.style.minWidth = "35px";
+                del.title = "Eliminar opción";
                 del.addEventListener('click', () => {
-                    // Let's ask Node to remove it
                     node.removeOption(idx);
-
                     editor.draw();
-                    renderOptions(); // Re-render UI
+                    renderOptions();
+                    // Re-render conditional paragraphs to update flag dropdown
+                    if (renderConditionalParagraphs) {
+                        renderConditionalParagraphs();
+                    }
                 });
 
-                row.appendChild(inp);
-                row.appendChild(del);
+                inputsRow.appendChild(del);
+
+                row.appendChild(inputsRow);
                 container.appendChild(row);
             });
 
             // Add Option Button
             const addBtn = document.createElement('button');
-            addBtn.textContent = "+ Add Option";
+            addBtn.textContent = "+ Añadir opción";
             addBtn.style.width = "100%";
             addBtn.style.marginTop = "5px";
             addBtn.addEventListener('click', () => {
@@ -984,9 +1318,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             container.appendChild(addBtn);
 
-            propertyContent.appendChild(container);
+            optionsSection.appendChild(container);
         };
 
         renderOptions();
+        propertyContent.appendChild(optionsSection);
     }
 });
