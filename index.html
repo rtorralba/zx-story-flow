@@ -37,6 +37,7 @@
                     </div>
                 </div>
 
+                <button id="config-btn">⚙️ Config</button>
                 <button id="fullscreen-btn" style="margin-left: auto;">⛶ Fullscreen</button>
 
                 <input type="file" id="load-input" style="display: none;" accept=".json">
@@ -55,6 +56,13 @@
                 </div>
                 <hr>
                 <section id="separator-config" style="display: none;">
+                    <div class="config-row">
+                        <label>
+                            <input type="checkbox" id="use-custom-config">
+                            Usar configuración específica
+                        </label>
+                    </div>
+                    <div id="custom-config-content" style="display: none;">
                     <h3>Separador</h3>
                     <div class="config-options">
                         <div class="config-row">
@@ -92,9 +100,7 @@
                             <input type="checkbox" id="separator-flash" name="separator-flash">
                         </div>
                     </div>
-                </section>
-                <hr>
-                <section id="interface-config" style="display: none;">
+                    <h3>Interfaz opciones</h3>
                     <h3>Interfaz opciones</h3>
                     <div class="config-options">
                         <div class="config-row">
@@ -132,9 +138,94 @@
                             <input type="checkbox" id="interface-flash" name="interface-flash">
                         </div>
                     </div>
+                    </div>
                 </section>
             </aside>
         </main>
+    </div>
+
+    <!-- Modal de configuración global -->
+    <div id="global-config-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2>Configuración Global</h2>
+            <h3>Separador (por defecto)</h3>
+            <div class="config-options">
+                <div class="config-row">
+                    <label for="global-separator-ink">INK:</label>
+                    <select id="global-separator-ink">
+                        <option value="black">Negro</option>
+                        <option value="blue">Azul</option>
+                        <option value="red">Rojo</option>
+                        <option value="magenta">Magenta</option>
+                        <option value="green">Verde</option>
+                        <option value="cyan">Cyan</option>
+                        <option value="yellow">Amarillo</option>
+                        <option value="white" selected>Blanco</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label for="global-separator-paper">PAPER:</label>
+                    <select id="global-separator-paper">
+                        <option value="black" selected>Negro</option>
+                        <option value="blue">Azul</option>
+                        <option value="red">Rojo</option>
+                        <option value="magenta">Magenta</option>
+                        <option value="green">Verde</option>
+                        <option value="cyan">Cyan</option>
+                        <option value="yellow">Amarillo</option>
+                        <option value="white">Blanco</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label for="global-separator-bright">Bright</label>
+                    <input type="checkbox" id="global-separator-bright">
+                </div>
+                <div class="config-row">
+                    <label for="global-separator-flash">Flash</label>
+                    <input type="checkbox" id="global-separator-flash">
+                </div>
+            </div>
+            <h3>Interfaz opciones (por defecto)</h3>
+            <div class="config-options">
+                <div class="config-row">
+                    <label for="global-interface-ink">INK:</label>
+                    <select id="global-interface-ink">
+                        <option value="black">Negro</option>
+                        <option value="blue">Azul</option>
+                        <option value="red">Rojo</option>
+                        <option value="magenta">Magenta</option>
+                        <option value="green">Verde</option>
+                        <option value="cyan">Cyan</option>
+                        <option value="yellow">Amarillo</option>
+                        <option value="white" selected>Blanco</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label for="global-interface-paper">PAPER:</label>
+                    <select id="global-interface-paper">
+                        <option value="black" selected>Negro</option>
+                        <option value="blue">Azul</option>
+                        <option value="red">Rojo</option>
+                        <option value="magenta">Magenta</option>
+                        <option value="green">Verde</option>
+                        <option value="cyan">Cyan</option>
+                        <option value="yellow">Amarillo</option>
+                        <option value="white">Blanco</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label for="global-interface-bright">Bright</label>
+                    <input type="checkbox" id="global-interface-bright">
+                </div>
+                <div class="config-row">
+                    <label for="global-interface-flash">Flash</label>
+                    <input type="checkbox" id="global-interface-flash">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="close-global-config">Cerrar</button>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="js/app.js"></script>

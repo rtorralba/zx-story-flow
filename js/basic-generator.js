@@ -29,8 +29,16 @@ function calculateAttribute(ink, paper, bright, flash) {
     return flashVal * 128 + brightVal * 64 + paperVal * 8 + inkVal;
 }
 
-export function generateBasic(nodes) {
+export function generateBasic(nodes, globalConfig = null) {
     if (nodes.length === 0) return "10 REM No nodes defined";
+
+    // Default global config
+    if (!globalConfig) {
+        globalConfig = {
+            separator: { ink: 'white', paper: 'black', bright: false, flash: false },
+            interface: { ink: 'white', paper: 'black', bright: false, flash: false }
+        };
+    }
 
     let basicCode = "";
     let lineNumber = 10;
@@ -126,17 +134,23 @@ export function generateBasic(nodes) {
         } else {
             // Multiple options: Show menu with separator and interface attributes
             
-            // Get separator configuration (default: white on black)
-            const sepInk = node.separatorConfig?.ink || 'white';
-            const sepPaper = node.separatorConfig?.paper || 'black';
-            const sepBright = node.separatorConfig?.bright || false;
-            const sepFlash = node.separatorConfig?.flash || false;
+            // Get separator configuration (use node config if exists, else global)
+            const sepConfig = (node.useCustomConfig && node.separatorConfig) 
+                ? node.separatorConfig 
+                : globalConfig.separator;
+            const sepInk = sepConfig.ink;
+            const sepPaper = sepConfig.paper;
+            const sepBright = sepConfig.bright;
+            const sepFlash = sepConfig.flash;
             
-            // Get interface configuration (default: white on black)
-            const intInk = node.interfaceConfig?.ink || 'white';
-            const intPaper = node.interfaceConfig?.paper || 'black';
-            const intBright = node.interfaceConfig?.bright || false;
-            const intFlash = node.interfaceConfig?.flash || false;
+            // Get interface configuration (use node config if exists, else global)
+            const intConfig = (node.useCustomConfig && node.interfaceConfig) 
+                ? node.interfaceConfig 
+                : globalConfig.interface;
+            const intInk = intConfig.ink;
+            const intPaper = intConfig.paper;
+            const intBright = intConfig.bright;
+            const intFlash = intConfig.flash;
             
             // Calculate screen position: separator + options should be at bottom
             // ZX Spectrum has 24 lines (0-23), but lines 22-23 are INPUT area

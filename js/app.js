@@ -14,9 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const propertyContent = document.getElementById('properties-content');
     let projectName = 'Untitled';
 
-    // Referencias a las secciones de configuración
+    // Configuración global (por defecto)
+    let globalConfig = {
+        separator: { ink: 'white', paper: 'black', bright: false, flash: false },
+        interface: { ink: 'white', paper: 'black', bright: false, flash: false }
+    };
+
+    // Referencias a las secciones de configuración específica
     const separatorConfigSection = document.getElementById('separator-config');
-    const interfaceConfigSection = document.getElementById('interface-config');
+    const useCustomConfigCheckbox = document.getElementById('use-custom-config');
+    const customConfigContent = document.getElementById('custom-config-content');
     const separatorInk = document.getElementById('separator-ink');
     const separatorPaper = document.getElementById('separator-paper');
     const separatorBright = document.getElementById('separator-bright');
@@ -26,6 +33,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const interfaceBright = document.getElementById('interface-bright');
     const interfaceFlash = document.getElementById('interface-flash');
 
+    // Referencias a la configuración global
+    const globalConfigModal = document.getElementById('global-config-modal');
+    const globalSeparatorInk = document.getElementById('global-separator-ink');
+    const globalSeparatorPaper = document.getElementById('global-separator-paper');
+    const globalSeparatorBright = document.getElementById('global-separator-bright');
+    const globalSeparatorFlash = document.getElementById('global-separator-flash');
+    const globalInterfaceInk = document.getElementById('global-interface-ink');
+    const globalInterfacePaper = document.getElementById('global-interface-paper');
+    const globalInterfaceBright = document.getElementById('global-interface-bright');
+    const globalInterfaceFlash = document.getElementById('global-interface-flash');
+
+    // Cargar configuración global en los controles
+    function loadGlobalConfig() {
+        globalSeparatorInk.value = globalConfig.separator.ink;
+        globalSeparatorPaper.value = globalConfig.separator.paper;
+        globalSeparatorBright.checked = globalConfig.separator.bright;
+        globalSeparatorFlash.checked = globalConfig.separator.flash;
+        globalInterfaceInk.value = globalConfig.interface.ink;
+        globalInterfacePaper.value = globalConfig.interface.paper;
+        globalInterfaceBright.checked = globalConfig.interface.bright;
+        globalInterfaceFlash.checked = globalConfig.interface.flash;
+    }
+
+    // Guardar configuración global desde los controles
+    function saveGlobalConfig() {
+        globalConfig.separator = {
+            ink: globalSeparatorInk.value,
+            paper: globalSeparatorPaper.value,
+            bright: globalSeparatorBright.checked,
+            flash: globalSeparatorFlash.checked
+        };
+        globalConfig.interface = {
+            ink: globalInterfaceInk.value,
+            paper: globalInterfacePaper.value,
+            bright: globalInterfaceBright.checked,
+            flash: globalInterfaceFlash.checked
+        };
+    }
+
+    // Abrir modal de configuración global
+    document.getElementById('config-btn').addEventListener('click', () => {
+        loadGlobalConfig();
+        globalConfigModal.style.display = 'flex';
+    });
+
+    // Cerrar modal de configuración global
+    document.getElementById('close-global-config').addEventListener('click', () => {
+        saveGlobalConfig();
+        globalConfigModal.style.display = 'none';
+    });
+
+    // Event listeners para configuración global
+    globalSeparatorInk.addEventListener('change', saveGlobalConfig);
+    globalSeparatorPaper.addEventListener('change', saveGlobalConfig);
+    globalSeparatorBright.addEventListener('change', saveGlobalConfig);
+    globalSeparatorFlash.addEventListener('change', saveGlobalConfig);
+    globalInterfaceInk.addEventListener('change', saveGlobalConfig);
+    globalInterfacePaper.addEventListener('change', saveGlobalConfig);
+    globalInterfaceBright.addEventListener('change', saveGlobalConfig);
+    globalInterfaceFlash.addEventListener('change', saveGlobalConfig);
+
     // Initialize Editor
     const editor = new NodeEditor(canvas, (selectedNode) => {
         updatePropertyPanel(selectedNode);
@@ -33,41 +101,61 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mostrar opciones solo si hay página seleccionada
         if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen')) {
             separatorConfigSection.style.display = 'block';
-            interfaceConfigSection.style.display = 'block';
             
-            // Cargar configuraciones guardadas
-            if (selectedNode.separatorConfig) {
-                separatorInk.value = selectedNode.separatorConfig.ink || 'black';
-                separatorPaper.value = selectedNode.separatorConfig.paper || 'white';
-                separatorBright.checked = !!selectedNode.separatorConfig.bright;
-                separatorFlash.checked = !!selectedNode.separatorConfig.flash;
-            } else {
-                separatorInk.value = 'black';
-                separatorPaper.value = 'white';
-                separatorBright.checked = false;
-                separatorFlash.checked = false;
-            }
+            // Verificar si usa configuración específica
+            const useCustom = selectedNode.useCustomConfig || false;
+            useCustomConfigCheckbox.checked = useCustom;
+            customConfigContent.style.display = useCustom ? 'block' : 'none';
             
-            if (selectedNode.interfaceConfig) {
-                interfaceInk.value = selectedNode.interfaceConfig.ink || 'black';
-                interfacePaper.value = selectedNode.interfaceConfig.paper || 'white';
-                interfaceBright.checked = !!selectedNode.interfaceConfig.bright;
-                interfaceFlash.checked = !!selectedNode.interfaceConfig.flash;
+            if (useCustom && selectedNode.separatorConfig && selectedNode.interfaceConfig) {
+                // Cargar configuración específica
+                separatorInk.value = selectedNode.separatorConfig.ink;
+                separatorPaper.value = selectedNode.separatorConfig.paper;
+                separatorBright.checked = selectedNode.separatorConfig.bright;
+                separatorFlash.checked = selectedNode.separatorConfig.flash;
+                interfaceInk.value = selectedNode.interfaceConfig.ink;
+                interfacePaper.value = selectedNode.interfaceConfig.paper;
+                interfaceBright.checked = selectedNode.interfaceConfig.bright;
+                interfaceFlash.checked = selectedNode.interfaceConfig.flash;
             } else {
-                interfaceInk.value = 'black';
-                interfacePaper.value = 'white';
-                interfaceBright.checked = false;
-                interfaceFlash.checked = false;
+                // Cargar configuración global por defecto
+                separatorInk.value = globalConfig.separator.ink;
+                separatorPaper.value = globalConfig.separator.paper;
+                separatorBright.checked = globalConfig.separator.bright;
+                separatorFlash.checked = globalConfig.separator.flash;
+                interfaceInk.value = globalConfig.interface.ink;
+                interfacePaper.value = globalConfig.interface.paper;
+                interfaceBright.checked = globalConfig.interface.bright;
+                interfaceFlash.checked = globalConfig.interface.flash;
             }
         } else {
             separatorConfigSection.style.display = 'none';
-            interfaceConfigSection.style.display = 'none';
+        }
+    });
+
+    // Toggle configuración específica
+    useCustomConfigCheckbox.addEventListener('change', (e) => {
+        const node = editor.selectedNode;
+        if (!node) return;
+        
+        node.useCustomConfig = e.target.checked;
+        customConfigContent.style.display = e.target.checked ? 'block' : 'none';
+        
+        if (e.target.checked) {
+            // Inicializar con valores actuales (globales)
+            saveConfigToNode(node);
+        } else {
+            // Eliminar configuración específica
+            delete node.separatorConfig;
+            delete node.interfaceConfig;
         }
     });
 
     // Función para guardar configuraciones en el nodo seleccionado
     function saveConfigToNode(node) {
         if (!node || (node.type !== 'screen' && node.type !== 'Screen')) return;
+        if (!node.useCustomConfig) return; // Solo guardar si usa configuración específica
+        
         node.separatorConfig = {
             ink: separatorInk.value,
             paper: separatorPaper.value,
@@ -128,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
-            const basicCode = generateBasic(editor.nodes);
+            const basicCode = generateBasic(editor.nodes, globalConfig);
             const tapData = generateTapFromBasic(basicCode, "adventure");
 
             const blob = new Blob([tapData], { type: 'application/x-tap' });
@@ -146,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
-        const basicCode = generateBasic(editor.nodes);
+        const basicCode = generateBasic(editor.nodes, globalConfig);
 
         // Create a blob and download
         const blob = new Blob([basicCode], { type: 'text/plain' });
@@ -159,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('export-mucho-btn').addEventListener('click', () => {
-        const muchoCode = generateMucho(editor.nodes);
+        const muchoCode = generateMucho(editor.nodes, globalConfig);
         const blob = new Blob([muchoCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -175,18 +263,24 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const projectData = {
                 name: projectName,
+                globalConfig: globalConfig,
                 nodes: editor.nodes.map(n => {
-                    return {
+                    const nodeData = {
                         id: n.id,
                         x: n.x,
                         y: n.y,
                         type: n.type,
                         title: n.title,
                         text: n.text,
-                        outputs: n.outputs,
-                        separatorConfig: n.separatorConfig || null,
-                        interfaceConfig: n.interfaceConfig || null
+                        outputs: n.outputs
                     };
+                    // Solo guardar configuración específica si está activada
+                    if (n.useCustomConfig) {
+                        nodeData.useCustomConfig = true;
+                        nodeData.separatorConfig = n.separatorConfig;
+                        nodeData.interfaceConfig = n.interfaceConfig;
+                    }
+                    return nodeData;
                 }),
                 groups: editor.groups.map(g => {
                     return {
@@ -242,6 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Restore project name
                 updateProjectName(data.name || 'Untitled');
 
+                // Restore global config
+                if (data.globalConfig) {
+                    globalConfig = data.globalConfig;
+                    loadGlobalConfig();
+                }
+
                 // Restore Nodes
                 if (data.nodes) {
                     data.nodes.forEach(n => {
@@ -254,12 +354,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             newNode.outputs = n.outputs;
                         }
 
-                        // Restaurar configuraciones
-                        if (n.separatorConfig) {
-                            newNode.separatorConfig = n.separatorConfig;
-                        }
-                        if (n.interfaceConfig) {
-                            newNode.interfaceConfig = n.interfaceConfig;
+                        // Restaurar configuración específica si existe
+                        if (n.useCustomConfig) {
+                            newNode.useCustomConfig = true;
+                            if (n.separatorConfig) {
+                                newNode.separatorConfig = n.separatorConfig;
+                            }
+                            if (n.interfaceConfig) {
+                                newNode.interfaceConfig = n.interfaceConfig;
+                            }
                         }
 
                         // Compatibility: if loading old DecisionNode (type 'Decision'), 

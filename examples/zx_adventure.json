@@ -1,5 +1,19 @@
 {
   "name": "Aventura ZX Spectrum",
+  "globalConfig": {
+    "separator": {
+      "ink": "blue",
+      "paper": "red",
+      "bright": false,
+      "flash": false
+    },
+    "interface": {
+      "ink": "magenta",
+      "paper": "green",
+      "bright": false,
+      "flash": true
+    }
+  },
   "nodes": [
     {
       "id": "n1",
@@ -17,19 +31,7 @@
           "label": "Esperar con paciencia",
           "target": "n3"
         }
-      ],
-      "separatorConfig": {
-        "ink": "red",
-        "paper": "green",
-        "bright": false,
-        "flash": false
-      },
-      "interfaceConfig": {
-        "ink": "magenta",
-        "paper": "green",
-        "bright": false,
-        "flash": false
-      }
+      ]
     },
     {
       "id": "n2",
@@ -48,8 +50,19 @@
           "target": "n5"
         }
       ],
-      "separatorConfig": null,
-      "interfaceConfig": null
+      "useCustomConfig": true,
+      "separatorConfig": {
+        "ink": "black",
+        "paper": "white",
+        "bright": false,
+        "flash": false
+      },
+      "interfaceConfig": {
+        "ink": "magenta",
+        "paper": "green",
+        "bright": false,
+        "flash": false
+      }
     },
     {
       "id": "n3",
@@ -67,9 +80,7 @@
           "label": "Destrozar el teclado",
           "target": "n6"
         }
-      ],
-      "separatorConfig": null,
-      "interfaceConfig": null
+      ]
     },
     {
       "id": "n4",
@@ -84,8 +95,19 @@
           "target": "n1"
         }
       ],
-      "separatorConfig": null,
-      "interfaceConfig": null
+      "useCustomConfig": true,
+      "separatorConfig": {
+        "ink": "black",
+        "paper": "white",
+        "bright": false,
+        "flash": false
+      },
+      "interfaceConfig": {
+        "ink": "magenta",
+        "paper": "green",
+        "bright": false,
+        "flash": false
+      }
     },
     {
       "id": "n5",
@@ -99,9 +121,7 @@
           "label": "Irse a dormir",
           "target": "n1"
         }
-      ],
-      "separatorConfig": null,
-      "interfaceConfig": null
+      ]
     },
     {
       "id": "n6",
@@ -115,9 +135,7 @@
           "label": "Intentar de nuevo",
           "target": "n1"
         }
-      ],
-      "separatorConfig": null,
-      "interfaceConfig": null
+      ]
     }
   ],
   "groups": [

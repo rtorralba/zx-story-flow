@@ -29,8 +29,16 @@ function calculateAttribute(ink, paper, bright, flash) {
     return flashVal * 128 + brightVal * 64 + paperVal * 8 + inkVal;
 }
 
-export function generateMucho(nodes) {
+export function generateMucho(nodes, globalConfig = null) {
     if (nodes.length === 0) return "";
+
+    // Default global config
+    if (!globalConfig) {
+        globalConfig = {
+            separator: { ink: 'white', paper: 'black', bright: false, flash: false },
+            interface: { ink: 'white', paper: 'black', bright: false, flash: false }
+        };
+    }
 
     const labelMap = {};
     const slugify = (text) => (text || "").replace(/[^a-zA-Z0-9]/g, "");
@@ -52,19 +60,17 @@ export function generateMucho(nodes) {
         description = description.trim();
 
         // Calculate attributes
-        // Separator attributes
-        const sepInk = node.separatorConfig?.ink || 'white';
-        const sepPaper = node.separatorConfig?.paper || 'black';
-        const sepBright = node.separatorConfig?.bright || false;
-        const sepFlash = node.separatorConfig?.flash || false;
-        const sepAttr = calculateAttribute(sepInk, sepPaper, sepBright, sepFlash);
+        // Separator attributes (use node config if exists, else global)
+        const sepConfig = (node.useCustomConfig && node.separatorConfig) 
+            ? node.separatorConfig 
+            : globalConfig.separator;
+        const sepAttr = calculateAttribute(sepConfig.ink, sepConfig.paper, sepConfig.bright, sepConfig.flash);
         
-        // Interface attributes
-        const intInk = node.interfaceConfig?.ink || 'white';
-        const intPaper = node.interfaceConfig?.paper || 'black';
-        const intBright = node.interfaceConfig?.bright || false;
-        const intFlash = node.interfaceConfig?.flash || false;
-        const intAttr = calculateAttribute(intInk, intPaper, intBright, intFlash);
+        // Interface attributes (use node config if exists, else global)
+        const intConfig = (node.useCustomConfig && node.interfaceConfig) 
+            ? node.interfaceConfig 
+            : globalConfig.interface;
+        const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
         
         // Default attribute (white on black)
         const defAttr = 7;
