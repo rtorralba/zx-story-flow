@@ -8,8 +8,8 @@
       "flash": false
     },
     "separator": {
-      "ink": "blue",
-      "paper": "red",
+      "ink": "white",
+      "paper": "black",
       "bright": false,
       "flash": false
     },
@@ -55,26 +55,7 @@
           "label": "Ups, ahora no suena",
           "target": "n5"
         }
-      ],
-      "useCustomConfig": true,
-      "pageConfig": {
-        "ink": "yellow",
-        "paper": "blue",
-        "bright": false,
-        "flash": false
-      },
-      "separatorConfig": {
-        "ink": "black",
-        "paper": "white",
-        "bright": false,
-        "flash": false
-      },
-      "interfaceConfig": {
-        "ink": "magenta",
-        "paper": "green",
-        "bright": false,
-        "flash": false
-      }
+      ]
     },
     {
       "id": "n3",
@@ -106,26 +87,7 @@
           "label": "Jugar otro juego",
           "target": "n1"
         }
-      ],
-      "useCustomConfig": true,
-      "pageConfig": {
-        "ink": "white",
-        "paper": "green",
-        "bright": true,
-        "flash": false
-      },
-      "separatorConfig": {
-        "ink": "black",
-        "paper": "white",
-        "bright": false,
-        "flash": false
-      },
-      "interfaceConfig": {
-        "ink": "magenta",
-        "paper": "green",
-        "bright": false,
-        "flash": false
-      }
+      ]
     },
     {
       "id": "n5",

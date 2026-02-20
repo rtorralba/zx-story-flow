@@ -53,7 +53,17 @@ export function generateMucho(nodes, globalConfig = null) {
     });
 
     let muchoCode = "";
-    const sanitizeText = (text) => (text || "").replace(/\r?\n/g, " ");
+    
+    // Function to format text with paragraphs
+    const formatTextWithParagraphs = (text) => {
+        if (!text) return "";
+        
+        // Split text into paragraphs (by line breaks)
+        const paragraphs = text.split('\n').filter(p => p.trim().length > 0);
+        
+        // Format each paragraph with $P
+        return paragraphs.map(p => `$P \n${p.trim()} `).join('\n');
+    };
 
     nodes.forEach(node => {
         const label = labelMap[node.id];
@@ -79,14 +89,16 @@ export function generateMucho(nodes, globalConfig = null) {
             : globalConfig.interface;
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
 
-        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}\n${sanitizeText(description)}\n`;
+        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}\n`;
+        muchoCode += formatTextWithParagraphs(description);
+        if (description) muchoCode += '\n';
 
         // Iterate all options
         node.outputs.forEach((opt) => {
             if (opt.target) {
                 // Use the label from the map for the target node
                 const targetLabel = labelMap[opt.target] || ("N" + opt.target);
-                const choiceText = sanitizeText(opt.label);
+                const choiceText = opt.label.replace(/\n/g, " ").trim();
                 muchoCode += `$A ${targetLabel}\n${choiceText}\n`;
             }
         });
