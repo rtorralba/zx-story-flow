@@ -214,9 +214,29 @@ Ver el archivo [LICENSE](LICENSE) para más detalles.
 
 ### Agradecimientos
 
-Este proyecto fue inspirado y aprendió de proyectos open source de la comunidad retro:
+Este proyecto no habría sido posible sin el apoyo y contribuciones de la comunidad retro:
 
-- **[txt2bas](https://github.com/remy/txt2bas)** por Remy Sharp (MIT License) - Usado como referencia para identificar y corregir casos especiales en la tokenización de BASIC y la implementación del formato TAP. ¡Gracias por tu excelente trabajo y documentación!
+#### Inspiración y Referencias Técnicas
+
+- **[txt2bas](https://github.com/remy/txt2bas)** por **Remy Sharp** (MIT License) - Usado como referencia para identificar y corregir casos especiales en la tokenización de BASIC y la implementación del formato TAP. ¡Gracias por tu excelente trabajo y documentación!
+
+- **[MuCho Adventure Engine](https://solhsa.com/mucho/mucho.html)** - Motor de aventuras conversacionales para ZX Spectrum que inspiró uno de los formatos de exportación
+
+#### Apoyo y Motivación
+
+- **David** de [Furillo Productions](https://github.com/Iadvd) - Por animarme a mejorar el proyecto y sugerir la exportación a formato MuCho
+
+- **Darkside29** ([itch.io](https://darkside29.itch.io/)) - Por la idea de integrar MuCho y el feedback constante
+
+#### Testing y Consejos
+
+- **CarlosITV** ([itch.io](https://charlyitv.itch.io/)) - Por las pruebas exhaustivas y reportes de bugs
+
+- **SingletonJohn** ([itch.io](https://singletonjohn.itch.io/)) - Por el testing y verificación de funcionalidades
+
+- **ZXMoe** ([itch.io](https://zxmoe.itch.io/)) - Por los valiosos consejos sobre BASIC del ZX Spectrum y optimizaciones
+
+¡Gracias a todos por formar parte de este proyecto y mantener viva la escena retro!
 
 ## 👤 Autor
 
