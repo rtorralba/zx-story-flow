@@ -276,7 +276,7 @@ canvas {
     font-size: 32px !important;
     line-height: 0.45 !important;
     letter-spacing: 0 !important;
-    border-width: 40px !important;
+    border-width: 40px 40px 0 40px !important;
     border-style: solid !important;
 
     /* Strict 32 character width */
@@ -293,6 +293,7 @@ canvas {
     position: relative;
     padding: 0 !important;
     margin: 0 !important;
+    border-bottom: none !important;
 }
 
 .modal-content textarea:focus {
@@ -329,22 +330,22 @@ canvas {
     background-color: #008f18;
 }
 
-/* CRT TV Container */
+/* CRT Monitor Container - Real CRT style */
 .crt-tv {
     position: relative;
     display: inline-block;
-    padding: 80px 100px 120px 100px;
+    padding: 50px 60px 70px 60px;
     background: 
-        linear-gradient(135deg, #4a3728 0%, #3d2f24 50%, #2d1f16 100%);
-    border-radius: 15px 15px 25px 25px;
+        linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+    border-radius: 8px;
     box-shadow: 
-        0 30px 80px rgba(0, 0, 0, 0.9),
-        inset 0 3px 15px rgba(255, 235, 205, 0.1),
-        inset 0 -8px 30px rgba(0, 0, 0, 0.7);
-    border: 3px solid #2a1f18;
+        0 20px 60px rgba(0, 0, 0, 0.8),
+        inset 0 2px 5px rgba(255, 255, 255, 0.05),
+        inset 0 -2px 8px rgba(0, 0, 0, 0.8);
+    border: 2px solid #1a1a1a;
 }
 
-/* Fake wood grain texture */
+/* Plastic texture for CRT monitor */
 .crt-tv::before {
     content: '';
     position: absolute;
@@ -353,48 +354,49 @@ canvas {
     right: 0;
     bottom: 0;
     background: 
-        repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 0, 0, 0.03) 2px,
-            rgba(0, 0, 0, 0.03) 4px
-        ),
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 1px,
-            rgba(0, 0, 0, 0.02) 1px,
-            rgba(0, 0, 0, 0.02) 2px
-        );
-    border-radius: 15px 15px 25px 25px;
+        radial-gradient(ellipse at top, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+    border-radius: 8px;
     pointer-events: none;
 }
 
-/* Brand plate and controls at bottom */
+/* Monitor vents/speaker grille */
 .crt-tv::after {
     content: '';
     position: absolute;
-    bottom: 35px;
+    bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
-    width: 200px;
-    height: 60px;
+    width: 60%;
+    height: 30px;
     background: 
-        radial-gradient(circle at 30% 30%, #3a2f24, #2d1f16);
-    border-radius: 5px;
+        repeating-linear-gradient(
+            90deg,
+            #0a0a0a 0px,
+            #0a0a0a 2px,
+            #1a1a1a 2px,
+            #1a1a1a 4px
+        );
+    border-radius: 3px;
     box-shadow: 
-        inset 0 2px 8px rgba(0, 0, 0, 0.6),
-        0 2px 4px rgba(0, 0, 0, 0.5);
-    border: 1px solid #1a1410;
+        inset 0 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 0.5;
 }
 
-/* Decorative knobs */
+/* CRT Screen with glass effect */
 .crt-screen {
     position: relative;
     display: inline-block;
+    background: #000;
+    border-radius: 4px;
+    box-shadow: 
+        inset 0 0 30px rgba(0, 0, 0, 0.9),
+        0 0 20px rgba(0, 0, 0, 0.5);
+    padding: 0;
+    margin: 0;
+    line-height: 0;
 }
 
+/* Scanlines effect */
 .crt-screen::before {
     content: '';
     position: absolute;
@@ -405,16 +407,17 @@ canvas {
     background: 
         repeating-linear-gradient(
             0deg,
-            rgba(0, 0, 0, 0.2) 0px,
+            rgba(0, 0, 0, 0.15) 0px,
             transparent 1px,
             transparent 2px,
-            rgba(0, 0, 0, 0.2) 3px
+            rgba(0, 0, 0, 0.15) 3px
         );
     pointer-events: none;
-    z-index: 1;
-    border-radius: 3px;
+    z-index: 2;
+    border-radius: 4px;
 }
 
+/* Glass reflection and curvature effect */
 .crt-screen::after {
     content: '';
     position: absolute;
@@ -423,10 +426,11 @@ canvas {
     right: 0;
     bottom: 0;
     background: 
-        radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.25) 80%, rgba(0, 0, 0, 0.4) 100%);
+        radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.3) 100%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 30%, transparent 70%, rgba(255, 255, 255, 0.03) 100%);
     pointer-events: none;
-    z-index: 1;
-    border-radius: 3px;
+    z-index: 2;
+    border-radius: 4px;
 }
 
 /* Opciones de configuración vertical */
@@ -465,4 +469,20 @@ canvas {
     50%, 100% {
         filter: invert(1);
     }
+}
+
+/* Spectrum separator and options containers */
+.spectrum-separator,
+.spectrum-options {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0.45 !important;
+    vertical-align: top !important;
+}
+
+.spectrum-options > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0.45 !important;
 }

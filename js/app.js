@@ -830,7 +830,10 @@ document.addEventListener('DOMContentLoaded', () => {
             separator.style.boxSizing = 'content-box';
             separator.style.borderLeft = '40px solid ' + sepPaperColor;
             separator.style.borderRight = '40px solid ' + sepPaperColor;
+            separator.style.borderTop = '0';
+            separator.style.borderBottom = '0';
             separator.style.overflow = 'hidden';
+            separator.style.display = 'block';
             if (separatorConfig.flash) {
                 separator.style.animation = 'flash-effect 1s infinite';
             }
@@ -853,8 +856,10 @@ document.addEventListener('DOMContentLoaded', () => {
             optionsContainer.style.boxSizing = 'content-box';
             optionsContainer.style.borderLeft = '40px solid ' + intPaperColor;
             optionsContainer.style.borderRight = '40px solid ' + intPaperColor;
+            optionsContainer.style.borderTop = '0';
             optionsContainer.style.borderBottom = '40px solid ' + intPaperColor;
             optionsContainer.style.overflow = 'hidden';
+            optionsContainer.style.display = 'block';
             
             // Display node options
             if (node.outputs && node.outputs.length > 0) {
@@ -862,13 +867,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const optLine = document.createElement('div');
                     optLine.style.margin = '0';
                     optLine.style.padding = '0';
+                    optLine.style.lineHeight = '0.45';
                     // Truncate option label to fit 32 chars including number and dot
                     const maxLabelLength = 29; // "1. " takes 3 chars
                     let label = opt.label.replace(/\n/g, ' ').trim();
                     if (label.length > maxLabelLength) {
                         label = label.substring(0, maxLabelLength - 3) + '...';
                     }
-                    optLine.textContent = `${idx + 1}. ${label}`;
+                    // Add space at start to respect ZX Spectrum border (1 character width)
+                    optLine.textContent = ` ${idx + 1}. ${label}`;
                     optionsContainer.appendChild(optLine);
                 });
             }
