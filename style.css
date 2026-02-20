@@ -228,6 +228,31 @@ canvas {
     border: 1px solid var(--node-border);
     align-items: center;
     justify-content: center;
+    position: relative;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 32px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+    color: var(--accent-color);
+    transform: scale(1.1);
 }
 
 .modal-content h3 {
@@ -416,10 +441,6 @@ canvas {
     flex-direction: row;
     align-items: center;
     gap: 8px;
-}
-
-.config-row label {
-    min-width: 60px;
 }
 
 .config-row select {

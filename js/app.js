@@ -103,6 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
         globalConfigModal.style.display = 'none';
     });
 
+    // Cerrar modal con botón X
+    document.getElementById('modal-close-btn').addEventListener('click', () => {
+        saveGlobalConfig();
+        globalConfigModal.style.display = 'none';
+    });
+
     // Event listeners para configuración global
     globalPageInk.addEventListener('change', saveGlobalConfig);
     globalPagePaper.addEventListener('change', saveGlobalConfig);
@@ -594,6 +600,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const modalContent = document.createElement('div');
             modalContent.className = 'modal-content';
 
+            // Close button
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close-btn';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.addEventListener('click', () => {
+                overlay.remove();
+            });
+
             const title = document.createElement('h3');
             title.textContent = 'Edit Screen Text';
 
@@ -671,6 +685,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btnContainer.appendChild(cancelBtn);
             btnContainer.appendChild(saveBtn);
+            modalContent.appendChild(closeBtn);
             modalContent.appendChild(title);
             modalContent.appendChild(crtTv);
             modalContent.appendChild(btnContainer);
