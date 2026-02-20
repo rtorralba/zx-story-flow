@@ -54,7 +54,7 @@
         {
           "label": "Ups, ahora no suena",
           "target": "n5",
-          "flag": "unset:key"
+          "flag": "clear:key"
         }
       ]
     },
