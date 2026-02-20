@@ -133,31 +133,16 @@ export function generateBasic(nodes, globalConfig = null) {
         basicCode += `${currentLine} PRINT "${safeText}"\n`;
         currentLine += 10;
 
-        // Check if options exist
-        if (node.outputs.length <= 1) {
-            // Simple flow: Add blank line before continue message
-            basicCode += `${currentLine} PRINT\n`;
-            currentLine += 10;
-            basicCode += `${currentLine} FLASH 1: PRINT "Pulsa una tecla...": FLASH 0\n`;
-            currentLine += 10;
-
-            basicCode += `${currentLine} PAUSE 0\n`;
-            currentLine += 10;
-
-            // Get target from first output
-            const target = node.outputs[0]?.target;
-            if (target) {
-                const targetLine = nodeLines.get(target);
-                basicCode += `${currentLine} GO TO ${targetLine}\n`;
-            } else {
-                basicCode += `${currentLine} STOP\n`;
-            }
-        } else {
-            // Multiple options: Show menu with separator and interface attributes
-            
-            // Get separator configuration (use node config if exists, else global)
-            const sepConfig = (node.useCustomConfig && node.separatorConfig) 
-                ? node.separatorConfig 
+        // Always show menu with options
+        // If it's a last node (no outputs or no target), create a "Play again" option
+        const target = node.outputs[0]?.target;
+        const effectiveOutputs = (node.outputs.length === 0 || !target) 
+            ? [{ label: "Jugar otro juego", target: startNode.id }]
+            : node.outputs;
+        
+        // Get separator configuration (use node config if exists, else global)
+        const sepConfig = (node.useCustomConfig && node.separatorConfig) 
+            ? node.separatorConfig 
                 : globalConfig.separator;
             const sepInk = sepConfig.ink;
             const sepPaper = sepConfig.paper;
@@ -172,51 +157,50 @@ export function generateBasic(nodes, globalConfig = null) {
             const intPaper = intConfig.paper;
             const intBright = intConfig.bright;
             const intFlash = intConfig.flash;
-            
-            // Calculate screen position: separator + options should be at bottom
-            // ZX Spectrum has 24 lines (0-23), but lines 22-23 are INPUT area
-            // We need: 1 line for separator + node.outputs.length lines for options
-            // Options should end at line 21 maximum
-            const totalLines = 1 + node.outputs.length; // separator + options
-            const startLine = 21 - totalLines + 1; // Start position for separator
-            
-            // Apply separator attributes and print separator at calculated position
-            basicCode += `${currentLine} INK ${colorToZX(sepInk)}: PAPER ${colorToZX(sepPaper)}: BRIGHT ${sepBright ? 1 : 0}: FLASH ${sepFlash ? 1 : 0}\n`;
-            currentLine += 10;
-            basicCode += `${currentLine} PRINT AT ${startLine},0;"--------------------------------"\n`;
-            currentLine += 10;
-            
-            // Apply interface attributes
-            basicCode += `${currentLine} INK ${colorToZX(intInk)}: PAPER ${colorToZX(intPaper)}: BRIGHT ${intBright ? 1 : 0}: FLASH ${intFlash ? 1 : 0}\n`;
-            currentLine += 10;
+        
+        // Calculate screen position: separator + options should be at bottom
+        // ZX Spectrum has 24 lines (0-23), but lines 22-23 are INPUT area
+        // We need: 1 line for separator + effectiveOutputs.length lines for options
+        // Options should end at line 21 maximum
+        const totalLines = 1 + effectiveOutputs.length; // separator + options
+        const startLine = 21 - totalLines + 1; // Start position for separator
+        
+        // Apply separator attributes and print separator at calculated position
+        basicCode += `${currentLine} INK ${colorToZX(sepInk)}: PAPER ${colorToZX(sepPaper)}: BRIGHT ${sepBright ? 1 : 0}: FLASH ${sepFlash ? 1 : 0}\n`;
+        currentLine += 10;
+        basicCode += `${currentLine} PRINT AT ${startLine},0;"--------------------------------"\n`;
+        currentLine += 10;
+        
+        // Apply interface attributes
+        basicCode += `${currentLine} INK ${colorToZX(intInk)}: PAPER ${colorToZX(intPaper)}: BRIGHT ${intBright ? 1 : 0}: FLASH ${intFlash ? 1 : 0}\n`;
+        currentLine += 10;
 
-            node.outputs.forEach((opt, idx) => {
-                // Remove newlines from labels entirely, they are single line inputs
-                const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
-                const optionLine = startLine + 1 + idx; // Position each option below separator
-                basicCode += `${currentLine} PRINT AT ${optionLine},0;"${idx + 1}. ${safeLabel}"\n`;
+        effectiveOutputs.forEach((opt, idx) => {
+            // Remove newlines from labels entirely, they are single line inputs
+            const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
+            const optionLine = startLine + 1 + idx; // Position each option below separator
+            basicCode += `${currentLine} PRINT AT ${optionLine},0;"${idx + 1}. ${safeLabel}"\n`;
+            currentLine += 10;
+        });
+
+        // Restore default attributes (white on black)
+        basicCode += `${currentLine} INK 7: PAPER 0: BRIGHT 0: FLASH 0\n`;
+        currentLine += 10;
+
+        basicCode += `${currentLine} INPUT A$\n`;
+        currentLine += 10;
+
+        // Generate IFs
+        effectiveOutputs.forEach((opt, idx) => {
+            if (opt.target) {
+                const targetLine = nodeLines.get(opt.target);
+                basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
                 currentLine += 10;
-            });
+            }
+        });
 
-            // Restore default attributes (white on black)
-            basicCode += `${currentLine} INK 7: PAPER 0: BRIGHT 0: FLASH 0\n`;
-            currentLine += 10;
-
-            basicCode += `${currentLine} INPUT A$\n`;
-            currentLine += 10;
-
-            // Generate IFs
-            node.outputs.forEach((opt, idx) => {
-                if (opt.target) {
-                    const targetLine = nodeLines.get(opt.target);
-                    basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
-                    currentLine += 10;
-                }
-            });
-
-            // Loop back if invalid input
-            basicCode += `${currentLine} GO TO ${nodeLines.get(node.id)}\n`;
-        }
+        // Loop back if invalid input
+        basicCode += `${currentLine} GO TO ${nodeLines.get(node.id)}\n`;
     });
 
     return basicCode;
