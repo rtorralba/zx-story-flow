@@ -17,6 +17,7 @@ export class NodeEditor {
         this.selectedNode = null;
         this.selectedGroup = null;
         this.dragState = null; // { type: 'node'|'connection'|'group', ... }
+        this.hoveredConnection = null; // Track which connection is being hovered
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -25,6 +26,7 @@ export class NodeEditor {
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
+        this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
 
         // Start render loop
         this.animate();
@@ -166,6 +168,58 @@ export class NodeEditor {
         return null;
     }
 
+    // Check if a point is near a bezier curve (connection)
+    isPointNearBezier(px, py, x1, y1, x2, y2, threshold = 10) {
+        const cp1x = x1 + (x2 - x1) / 2;
+        const cp1y = y1;
+        const cp2x = x2 - (x2 - x1) / 2;
+        const cp2y = y2;
+
+        // Sample points along the bezier curve
+        for (let t = 0; t <= 1; t += 0.05) {
+            const t2 = t * t;
+            const t3 = t2 * t;
+            const mt = 1 - t;
+            const mt2 = mt * mt;
+            const mt3 = mt2 * mt;
+
+            const x = mt3 * x1 + 3 * mt2 * t * cp1x + 3 * mt * t2 * cp2x + t3 * x2;
+            const y = mt3 * y1 + 3 * mt2 * t * cp1y + 3 * mt * t2 * cp2y + t3 * y2;
+
+            const distance = Math.hypot(px - x, py - y);
+            if (distance < threshold) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Find connection at given position
+    getConnectionAt(x, y) {
+        for (const fromNode of this.nodes) {
+            if (fromNode instanceof ScreenNode) {
+                for (let index = 0; index < fromNode.outputs.length; index++) {
+                    const output = fromNode.outputs[index];
+                    if (!output.target) continue;
+
+                    const toNode = this.nodes.find(n => n.id === output.target);
+                    if (!toNode) continue;
+
+                    const port = fromNode.getOutputPort(index);
+                    const startX = port.x;
+                    const startY = port.y;
+                    const endX = toNode.x;
+                    const endY = toNode.y + toNode.height / 2;
+
+                    if (this.isPointNearBezier(x, y, startX, startY, endX, endY)) {
+                        return { fromNode, outputIndex: index };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     handleMouseDown(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
@@ -284,6 +338,21 @@ export class NodeEditor {
                     }
                 }
             }
+            
+            // Check if hovering over a connection
+            if (!cursorSet) {
+                const connection = this.getConnectionAt(x, y);
+                if (connection) {
+                    this.canvas.style.cursor = 'pointer';
+                    this.hoveredConnection = connection;
+                    cursorSet = true;
+                    this.draw();
+                } else if (this.hoveredConnection) {
+                    this.hoveredConnection = null;
+                    this.draw();
+                }
+            }
+            
             if (!cursorSet) {
                 this.canvas.style.cursor = 'default';
             }
@@ -386,6 +455,22 @@ export class NodeEditor {
         this.camera.y = mouseY - worldY * this.camera.zoom;
 
         this.draw();
+    }
+
+    handleContextMenu(e) {
+        e.preventDefault();
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
+        const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
+
+        // Check if right-clicking on a connection
+        const connection = this.getConnectionAt(x, y);
+        if (connection) {
+            // Remove the connection
+            connection.fromNode.outputs[connection.outputIndex].target = null;
+            this.draw();
+            return;
+        }
     }
 
     draw() {
@@ -524,7 +609,12 @@ export class NodeEditor {
                     const endX = toNode.x;
                     const endY = toNode.y + toNode.height / 2;
 
-                    this.drawConnection(startX, startY, endX, endY);
+                    // Check if this connection is being hovered
+                    const isHovered = this.hoveredConnection && 
+                                     this.hoveredConnection.fromNode === fromNode && 
+                                     this.hoveredConnection.outputIndex === index;
+
+                    this.drawConnection(startX, startY, endX, endY, false, isHovered);
                 });
             }
         });
@@ -552,9 +642,15 @@ export class NodeEditor {
         this.ctx.stroke();
     }
 
-    drawConnection(x1, y1, x2, y2, isDragging = false) {
-        this.ctx.strokeStyle = isDragging ? "#fff" : "#aaa";
-        this.ctx.lineWidth = 2;
+    drawConnection(x1, y1, x2, y2, isDragging = false, isHovered = false) {
+        if (isHovered) {
+            this.ctx.strokeStyle = "#ff6b6b";
+            this.ctx.lineWidth = 4;
+        } else {
+            this.ctx.strokeStyle = isDragging ? "#fff" : "#aaa";
+            this.ctx.lineWidth = 2;
+        }
+        
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
 
