@@ -58,6 +58,24 @@ export class ScreenNode extends Node {
     }
 }
 
+// Node Reference (Pointer) - A small node that references another node
+export class NodeReference extends Node {
+    constructor(id, x, y, targetNodeId = null) {
+        super(id, x, y, "Reference");
+        this.targetNodeId = targetNodeId; // ID of the node this reference points to
+        this.width = 120;
+        this.height = 50;
+        this.outputs = []; // References don't have outputs, they ARE outputs
+    }
+
+    // Get the title based on the target node
+    getDisplayTitle(nodes) {
+        if (!this.targetNodeId) return "→ (No target)";
+        const targetNode = nodes.find(n => n.id === this.targetNodeId);
+        return targetNode ? `→ ${targetNode.title}` : "→ (Not found)";
+    }
+}
+
 export class Group {
     constructor(id, x, y, width = 400, height = 300) {
         this.id = id;

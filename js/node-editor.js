@@ -3,7 +3,7 @@
 // Licensed under the GNU Affero General Public License v3.0 or later
 // See LICENSE file for details
 
-import { ScreenNode, Group } from './nodes.js';
+import { ScreenNode, Group, NodeReference } from './nodes.js';
 
 export class NodeEditor {
     constructor(canvas, propertyPanelCallback) {
@@ -48,6 +48,16 @@ export class NodeEditor {
             this.selectNode(newNode);
             this.draw();
         }
+    }
+
+    addReference(targetNodeId = null, x = 100, y = 100) {
+        const id = 'ref_' + Date.now();
+        const newRef = new NodeReference(id, x, y, targetNodeId);
+
+        this.nodes.push(newRef);
+        this.selectNode(newRef);
+        this.draw();
+        return newRef;
     }
 
     addGroup(x = 100, y = 100) {
@@ -530,44 +540,69 @@ export class NodeEditor {
         this.nodes.forEach(node => {
             const isSelected = this.selectedNode === node;
 
-            // Draw Node Body
-            this.ctx.fillStyle = isSelected ? "#444" : "#333";
-            this.ctx.strokeStyle = isSelected ? "#00d022" : "#666";
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.roundRect(node.x, node.y, node.width, node.height, 5);
-            this.ctx.fill();
-            this.ctx.stroke();
+            // Draw differently for NodeReference
+            if (node instanceof NodeReference) {
+                // Draw Reference Box (smaller and different style)
+                this.ctx.fillStyle = isSelected ? "#2a4a5a" : "#1a3a4a";
+                this.ctx.strokeStyle = isSelected ? "#4a9eff" : "#3a7acc";
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([5, 3]);
+                this.ctx.beginPath();
+                this.ctx.roundRect(node.x, node.y, node.width, node.height, 5);
+                this.ctx.fill();
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
 
-            // Draw Node Title
-            this.ctx.fillStyle = "#fff";
-            this.ctx.font = "bold 14px Courier New";
-            this.ctx.fillText(node.title, node.x + 10, node.y + 25);
+                // Draw arrow icon
+                this.ctx.fillStyle = "#4a9eff";
+                this.ctx.font = "20px Arial";
+                this.ctx.fillText("➜", node.x + 10, node.y + 32);
 
-            // Draw Node Specific Content
-            this.ctx.font = "12px Courier New";
-            this.ctx.fillStyle = "#ccc";
-            let content = node.text || "Empty screen text";
-            if (content.length > 20) content = content.substring(0, 17) + "...";
-            this.ctx.fillText(content, node.x + 10, node.y + 45);
+                // Draw Reference Title
+                this.ctx.fillStyle = "#fff";
+                this.ctx.font = "bold 11px Courier New";
+                const displayTitle = node.getDisplayTitle(this.nodes);
+                this.ctx.fillText(displayTitle, node.x + 35, node.y + 30);
+            } else {
+                // Draw Normal Node Body
+                this.ctx.fillStyle = isSelected ? "#444" : "#333";
+                this.ctx.strokeStyle = isSelected ? "#00d022" : "#666";
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.roundRect(node.x, node.y, node.width, node.height, 5);
+                this.ctx.fill();
+                this.ctx.stroke();
 
-            // Draw Ports and Options
-            if (node instanceof ScreenNode) {
-                node.outputs.forEach((opt, index) => {
-                    const port = node.getOutputPort(index);
-                    this.drawPort(port, "#00d022");
+                // Draw Node Title
+                this.ctx.fillStyle = "#fff";
+                this.ctx.font = "bold 14px Courier New";
+                this.ctx.fillText(node.title, node.x + 10, node.y + 25);
 
-                    // Draw Label
-                    this.ctx.fillStyle = "#fff";
-                    this.ctx.font = "10px Courier New";
-                    this.ctx.textAlign = "right";
+                // Draw Node Specific Content
+                this.ctx.font = "12px Courier New";
+                this.ctx.fillStyle = "#ccc";
+                let content = node.text || "Empty screen text";
+                if (content.length > 20) content = content.substring(0, 17) + "...";
+                this.ctx.fillText(content, node.x + 10, node.y + 45);
 
-                    let label = opt.label;
-                    if (label.length > 15) label = label.substring(0, 12) + "...";
+                // Draw Ports and Options
+                if (node instanceof ScreenNode) {
+                    node.outputs.forEach((opt, index) => {
+                        const port = node.getOutputPort(index);
+                        this.drawPort(port, "#00d022");
 
-                    this.ctx.fillText(label, port.x - 12, port.y + 3);
-                    this.ctx.textAlign = "left"; // Reset
-                });
+                        // Draw Label
+                        this.ctx.fillStyle = "#fff";
+                        this.ctx.font = "10px Courier New";
+                        this.ctx.textAlign = "right";
+
+                        let label = opt.label;
+                        if (label.length > 15) label = label.substring(0, 12) + "...";
+
+                        this.ctx.fillText(label, port.x - 12, port.y + 3);
+                        this.ctx.textAlign = "left"; // Reset
+                    });
+                }
             }
 
             // Draw Delete Icon (X in top-right corner)

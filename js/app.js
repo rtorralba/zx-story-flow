@@ -4,7 +4,7 @@
 // See LICENSE file for details
 
 import { NodeEditor } from './node-editor.js';
-import { ScreenNode, Group } from './nodes.js';
+import { ScreenNode, Group, NodeReference } from './nodes.js';
 import { generateBasic } from './basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
 import { generateTapFromBasic } from './tap-generator.js';
@@ -272,6 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
         editor.addGroup(200, 150);
     });
 
+    document.getElementById('add-reference-btn').addEventListener('click', () => {
+        editor.addReference();
+    });
+
     // Fullscreen button
     document.getElementById('fullscreen-btn').addEventListener('click', () => {
         const app = document.getElementById('app');
@@ -348,6 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         text: n.text,
                         outputs: n.outputs
                     };
+                    
+                    // Si es una referencia, guardar el targetNodeId
+                    if (n instanceof NodeReference) {
+                        nodeData.targetNodeId = n.targetNodeId;
+                    }
+                    
                     // Solo guardar configuración específica si está activada
                     if (n.useCustomConfig) {
                         nodeData.useCustomConfig = true;
@@ -420,44 +430,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Restore Nodes
                 if (data.nodes) {
                     data.nodes.forEach(n => {
-                        const newNode = new ScreenNode(n.id, n.x, n.y);
-                        newNode.text = n.text || "";
-                        newNode.title = n.title || n.type;
+                        let newNode;
+                        
+                        // Check if it's a Reference
+                        if (n.type === 'Reference') {
+                            newNode = new NodeReference(n.id, n.x, n.y, n.targetNodeId);
+                        } else {
+                            // Regular ScreenNode
+                            newNode = new ScreenNode(n.id, n.x, n.y);
+                            newNode.text = n.text || "";
+                            newNode.title = n.title || n.type;
 
-                        // Restore outputs if present, else default
-                        if (n.outputs) {
-                            newNode.outputs = n.outputs;
-                        }
+                            // Restore outputs if present, else default
+                            if (n.outputs) {
+                                newNode.outputs = n.outputs;
+                            }
 
-                        // Restaurar configuración específica si existe
-                        if (n.useCustomConfig) {
-                            newNode.useCustomConfig = true;
-                            if (n.pageConfig) {
-                                newNode.pageConfig = n.pageConfig;
+                            // Restaurar configuración específica si existe
+                            if (n.useCustomConfig) {
+                                newNode.useCustomConfig = true;
+                                if (n.pageConfig) {
+                                    newNode.pageConfig = n.pageConfig;
+                                }
+                                if (n.separatorConfig) {
+                                    newNode.separatorConfig = n.separatorConfig;
+                                }
+                                if (n.interfaceConfig) {
+                                    newNode.interfaceConfig = n.interfaceConfig;
+                                }
                             }
-                            if (n.separatorConfig) {
-                                newNode.separatorConfig = n.separatorConfig;
-                            }
-                            if (n.interfaceConfig) {
-                                newNode.interfaceConfig = n.interfaceConfig;
-                            }
-                        }
 
-                        // Compatibility: if loading old DecisionNode (type 'Decision'), 
-                        // convert question to text and options to output?
-                        // Or if old ScreenNode, ensure outputs is set.
-                        if (n.type === 'Decision') {
-                            newNode.text = n.question || "Choice";
-                            // It should have outputs already if we saved it as new structure, 
-                            // but if loading old JSON:
-                            // Old JSON didn't have outputs saved explicitly in the node object usually?
-                            // Actually previous save logic was:
-                            /*
-                              if (n instanceof DecisionNode) data.question = n.question;
-                              return data;
-                            */
-                            // Outputs are on the instance. `JSON.stringify` includes them by default if they are properties.
-                            // So `n.outputs` *should* be there if it was a DecisionNode.
+                            // Compatibility: if loading old DecisionNode (type 'Decision'), 
+                            // convert question to text and options to output?
+                            // Or if old ScreenNode, ensure outputs is set.
+                            if (n.type === 'Decision') {
+                                newNode.text = n.question || "Choice";
+                                // It should have outputs already if we saved it as new structure, 
+                                // but if loading old JSON:
+                                // Old JSON didn't have outputs saved explicitly in the node object usually?
+                                // Actually previous save logic was:
+                                /*
+                                  if (n instanceof DecisionNode) data.question = n.question;
+                                  return data;
+                                */
+                                // Outputs are on the instance. `JSON.stringify` includes them by default if they are properties.
+                                // So `n.outputs` *should* be there if it was a DecisionNode.
+                            }
                         }
 
                         editor.nodes.push(newNode);
@@ -555,6 +573,51 @@ document.addEventListener('DOMContentLoaded', () => {
         propertyContent.appendChild(deleteBtn);
     }
 
+    function updateReferenceProperties(reference) {
+        propertyContent.innerHTML = '';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Node Reference';
+        propertyContent.appendChild(title);
+
+        // Dropdown to select target node
+        const formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+
+        const label = document.createElement('label');
+        label.textContent = 'Target Node:';
+        formGroup.appendChild(label);
+
+        const select = document.createElement('select');
+        
+        // Add "None" option
+        const noneOption = document.createElement('option');
+        noneOption.value = '';
+        noneOption.textContent = '(None)';
+        select.appendChild(noneOption);
+
+        // Add all screen nodes as options
+        editor.nodes.forEach(node => {
+            if (node instanceof ScreenNode) {
+                const option = document.createElement('option');
+                option.value = node.id;
+                option.textContent = node.title;
+                if (node.id === reference.targetNodeId) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            }
+        });
+
+        select.addEventListener('change', (e) => {
+            reference.targetNodeId = e.target.value || null;
+            editor.draw();
+        });
+
+        formGroup.appendChild(select);
+        propertyContent.appendChild(formGroup);
+    }
+
     function updatePropertyPanel(nodeOrGroup) {
         propertyContent.innerHTML = '';
         if (!nodeOrGroup) {
@@ -568,7 +631,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Otherwise, it's a node
+        // Check if it's a NodeReference
+        if (nodeOrGroup instanceof NodeReference) {
+            updateReferenceProperties(nodeOrGroup);
+            return;
+        }
+
+        // Otherwise, it's a normal node
         const node = nodeOrGroup;
 
         const createInput = (label, value, onChange) => {

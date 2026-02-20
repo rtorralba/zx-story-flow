@@ -85,7 +85,7 @@
       "outputs": [
         {
           "label": "Jugar otro juego",
-          "target": "n1"
+          "target": "ref_1771608889239"
         }
       ]
     },
@@ -99,7 +99,7 @@
       "outputs": [
         {
           "label": "Irse a dormir",
-          "target": "n1"
+          "target": "ref_1771608889239"
         }
       ]
     },
@@ -113,9 +113,19 @@
       "outputs": [
         {
           "label": "Intentar de nuevo",
-          "target": "n1"
+          "target": "ref_1771608889239"
         }
       ]
+    },
+    {
+      "id": "ref_1771608889239",
+      "x": 1272,
+      "y": 220,
+      "type": "Reference",
+      "title": "Reference",
+      "text": "",
+      "outputs": [],
+      "targetNodeId": "n1"
     }
   ],
   "groups": [

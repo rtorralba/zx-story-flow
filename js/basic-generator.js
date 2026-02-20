@@ -3,7 +3,22 @@
 // Licensed under the GNU Affero General Public License v3.0 or later
 // See LICENSE file for details
 
-import { ScreenNode } from './nodes.js';
+import { ScreenNode, NodeReference } from './nodes.js';
+
+// Helper: Resolve a node ID to its actual target (following references)
+function resolveNodeId(nodeId, nodes) {
+    if (!nodeId) return null;
+    
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return null;
+    
+    // If it's a reference, follow it to the target
+    if (node instanceof NodeReference) {
+        return resolveNodeId(node.targetNodeId, nodes);
+    }
+    
+    return nodeId;
+}
 
 // Helper: Convert color name to ZX Spectrum color code (0-7)
 function colorToZX(colorName) {
@@ -32,6 +47,10 @@ function calculateAttribute(ink, paper, bright, flash) {
 export function generateBasic(nodes, globalConfig = null) {
     if (nodes.length === 0) return "10 REM No nodes defined";
 
+    // Filter out references - only process ScreenNodes
+    const screenNodes = nodes.filter(n => n instanceof ScreenNode);
+    if (screenNodes.length === 0) return "10 REM No screen nodes defined";
+
     // Default global config
     if (!globalConfig) {
         globalConfig = {
@@ -52,13 +71,13 @@ export function generateBasic(nodes, globalConfig = null) {
     const nodeLines = new Map();
     let currentNodeLine = 1000;
 
-    nodes.forEach(node => {
+    screenNodes.forEach(node => {
         nodeLines.set(node.id, currentNodeLine);
         currentNodeLine += 1000; // Leave ample space between nodes
     });
 
     // 2. Generate Header
-    const startNode = nodes[0]; // Simplification: First node is start
+    const startNode = screenNodes[0]; // Simplification: First node is start
     
     // Get page configuration for the first node to apply before initial CLS
     const firstPageConfig = (startNode.useCustomConfig && startNode.pageConfig) 
@@ -69,8 +88,8 @@ export function generateBasic(nodes, globalConfig = null) {
     basicCode += `20 CLS\n`;
     basicCode += `30 GO TO ${nodeLines.get(startNode.id)}\n`;
 
-    // 3. Generate Code for each node
-    nodes.forEach(node => {
+    // 3. Generate Code for each screen node
+    screenNodes.forEach(node => {
         let currentLine = nodeLines.get(node.id);
 
         // Add a comment/REM for readability (optional, but helpful)
@@ -193,9 +212,12 @@ export function generateBasic(nodes, globalConfig = null) {
         // Generate IFs
         effectiveOutputs.forEach((opt, idx) => {
             if (opt.target) {
-                const targetLine = nodeLines.get(opt.target);
-                basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
-                currentLine += 10;
+                const resolvedTarget = resolveNodeId(opt.target, nodes);
+                if (resolvedTarget) {
+                    const targetLine = nodeLines.get(resolvedTarget);
+                    basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
+                    currentLine += 10;
+                }
             }
         });
 
