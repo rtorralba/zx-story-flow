@@ -13,33 +13,67 @@
     <ul>
         <li><strong>Editor Visual de Nodos</strong>: Crea pantallas y conecta opciones arrastrando cables. Visualiza el
             flujo de tu aventura de un vistazo.</li>
+        <li><strong>Sistema de Grupos</strong>: Organiza tus nodos en grupos coloreados con nombres personalizados. Redimensiona y mueve grupos completos.</li>
+        <li><strong>Configuración de Colores ZX Spectrum</strong>:
+            <ul>
+                <li><strong>Configuración Global</strong>: Define colores por defecto para toda la aventura.</li>
+                <li><strong>Configuración por Página</strong>: Personaliza INK, PAPER, BRIGHT y FLASH para cada nodo individualmente.</li>
+                <li><strong>Tres zonas configurables</strong>: Página (texto principal), Separador y Opciones.</li>
+            </ul>
+        </li>
         <li><strong>Exportación a .TAP</strong>: Genera un archivo <code>.tap</code> ejecutable en cualquier emulador o
-            hardware real de ZX Spectrum.</li>
+            hardware real de ZX Spectrum con todos los atributos de color.</li>
         <li><strong>Generador de BASIC inteligente</strong>:
             <ul>
                 <li><strong>Ajuste de línea automático</strong>: Mantiene el texto dentro de las 32 columnas del
                     Spectrum sin cortar palabras.</li>
                 <li><strong>Sanitizado de caracteres</strong>: Limpia textos para evitar errores de sintaxis en el
                     microordenador.</li>
+                <li><strong>Posicionamiento inteligente de opciones</strong>: Las opciones siempre aparecen al final de la pantalla, exactamente donde esperas.</li>
+                <li><strong>Gestión automática de atributos</strong>: Aplica correctamente INK, PAPER, BRIGHT y FLASH en cada sección.</li>
             </ul>
         </li>
         <li><strong>Multi-formato</strong>: Además de BASIC, exporta para el motor <strong>MuCho</strong> (Multiple
-            Choice Adventure Engine).</li>
-        <li><strong>Edición cómoda</strong>: Incluye un editor de texto a pantalla completa para que te concentres en la
-            narrativa.</li>
+            Choice Adventure Engine) con atributos incluidos.</li>
+        <li><strong>Editor de Texto Mejorado</strong>: 
+            <ul>
+                <li>Editor a pantalla completa con simulación de pantalla CRT del Spectrum.</li>
+                <li>Transliteración automática de caracteres especiales (á→a, ñ→n, etc.).</li>
+                <li>Límite de 32×24 caracteres como en el Spectrum real.</li>
+            </ul>
+        </li>
+        <li><strong>Gestión de Nodos</strong>: 
+            <ul>
+                <li>Icono de eliminar en cada nodo para una gestión rápida.</li>
+                <li>Panel de propiedades optimizado con controles compactos.</li>
+            </ul>
+        </li>
+        <li><strong>Exportación de Imágenes</strong>: Guarda tu diagrama de flujo completo como PNG.</li>
         <li><strong>Modo Pantalla Completa</strong>: Ideal para trabajar sin distracciones o embeber la herramienta en
             otros sitios.</li>
     </ul>
 
     <h2>📼 ¿Cómo funciona?</h2>
     <ol>
+        <li><strong>Configura los colores</strong>: Abre Config (⚙️) y define los colores por defecto para tu aventura.</li>
         <li><strong>Añade Screens</strong>: Crea los nodos que representan las escenas de tu historia.</li>
         <li><strong>Escribe tu relato</strong>: Describe la situación y añade opciones (Ir al norte, Abrir cofre, etc.).
         </li>
+        <li><strong>Personaliza colores (opcional)</strong>: Marca "Configuración específica" en cualquier nodo para darle colores únicos.</li>
+        <li><strong>Organiza con grupos</strong>: Agrupa nodos relacionados en cajas de colores para mantener el orden.</li>
         <li><strong>Conecta</strong>: Arrastra desde el punto verde de una opción al nodo de destino.</li>
-        <li><strong>Exporta</strong>: Dale a Export -> .TAP y ¡listo! Tienes un juego de Spectrum generado en segundos.
+        <li><strong>Exporta</strong>: Dale a Export → .TAP y ¡listo! Tienes un juego de Spectrum generado en segundos con todos tus colores.
         </li>
     </ol>
+
+    <h2>🎨 Sistema de Colores ZX Spectrum</h2>
+    <p>La herramienta soporta los 8 colores clásicos del Spectrum (Negro, Azul, Rojo, Magenta, Verde, Cyan, Amarillo, Blanco) 
+    con modos BRIGHT y FLASH. Cada pantalla puede tener diferentes configuraciones para:</p>
+    <ul>
+        <li><strong>Página</strong>: Color del texto principal de la historia</li>
+        <li><strong>Separador</strong>: Color de la línea que separa el texto de las opciones</li>
+        <li><strong>Opciones</strong>: Color del menú de opciones al final de la pantalla</li>
+    </ul>
 
     <hr>
 
@@ -55,19 +89,53 @@
     <ul>
         <li><strong>Visual Node Editor</strong>: Create screens and connect options by dragging lines. See your
             adventure's flowchart at a glance.</li>
+        <li><strong>Group System</strong>: Organize your nodes into colored, resizable groups with custom names.</li>
+        <li><strong>ZX Spectrum Color System</strong>:
+            <ul>
+                <li><strong>Global Configuration</strong>: Set default colors for the entire adventure.</li>
+                <li><strong>Per-Page Configuration</strong>: Customize INK, PAPER, BRIGHT, and FLASH for each individual node.</li>
+                <li><strong>Three configurable zones</strong>: Page (main text), Separator, and Options.</li>
+            </ul>
+        </li>
         <li><strong>Export to .TAP</strong>: Generate a <code>.tap</code> file playable on any emulator or real ZX
-            Spectrum hardware.</li>
+            Spectrum hardware with full color attributes.</li>
         <li><strong>Smart BASIC Generator</strong>:
             <ul>
                 <li><strong>Auto Word-Wrapping</strong>: Keeps text within the Spectrum's 32-column limit without
                     breaking words.</li>
                 <li><strong>Text Cleaning</strong>: Automatically sanitizes quotes and characters for the Spectrum.</li>
+                <li><strong>Smart Option Positioning</strong>: Options always appear at the bottom of the screen, exactly where you expect them.</li>
+                <li><strong>Automatic Attribute Management</strong>: Correctly applies INK, PAPER, BRIGHT, and FLASH to each section.</li>
             </ul>
         </li>
-        <li><strong>Multi-format Support</strong>: Export to ZX BASIC or the <strong>MuCho</strong> engine.</li>
-        <li><strong>Comfortable Editing</strong>: Full-screen text editor to focus on your writing.</li>
+        <li><strong>Multi-format Support</strong>: Export to ZX BASIC or the <strong>MuCho</strong> engine with attributes included.</li>
+        <li><strong>Enhanced Text Editor</strong>: 
+            <ul>
+                <li>Full-screen editor with CRT simulation of the Spectrum display.</li>
+                <li>Automatic special character transliteration (á→a, ñ→n, etc.).</li>
+                <li>32×24 character limit just like the real Spectrum.</li>
+            </ul>
+        </li>
+        <li><strong>Node Management</strong>: 
+            <ul>
+                <li>Delete icon on each node for quick removal.</li>
+                <li>Optimized properties panel with compact controls.</li>
+            </ul>
+        </li>
+        <li><strong>Image Export</strong>: Save your complete flowchart diagram as PNG.</li>
+        <li><strong>Fullscreen Mode</strong>: Perfect for distraction-free work or embedding in other sites.</li>
+    </ul>
+
+    <h2>🎨 ZX Spectrum Color System</h2>
+    <p>The tool supports all 8 classic Spectrum colors (Black, Blue, Red, Magenta, Green, Cyan, Yellow, White) 
+    with BRIGHT and FLASH modes. Each screen can have different settings for:</p>
+    <ul>
+        <li><strong>Page</strong>: Main story text color</li>
+        <li><strong>Separator</strong>: Color of the line separating text from options</li>
+        <li><strong>Options</strong>: Color of the menu options at the bottom of the screen</li>
     </ul>
 
     <hr>
     <p><em>Desarrollado para la comunidad retro. ¡Vuelve a los 80 con un toque moderno!</em></p>
+    <p><em>Developed for the retro community. Back to the 80s with a modern twist!</em></p>
 </div>
