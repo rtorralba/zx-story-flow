@@ -5,6 +5,9 @@
 //
 // Converts ZX Spectrum BASIC code (string) to TAP file format (ArrayBuffer).
 // Implementation based on ZX Spectrum technical documentation.
+// 
+// Special thanks to Remy Sharp's txt2bas (https://github.com/remy/txt2bas)
+// which helped identify and fix some edge cases in the tokenization process.
 
 // ZX Spectrum BASIC tokens
 const KEYWORDS = {

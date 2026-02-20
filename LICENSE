@@ -17,3 +17,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
+
+ACKNOWLEDGMENTS
+
+This project was inspired by and learned from the following open source projects:
+
+- txt2bas by Remy Sharp (https://github.com/remy/txt2bas) - MIT License
+  Used as reference to identify and fix edge cases in BASIC tokenization
+  and TAP file format implementation.
