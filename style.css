@@ -276,22 +276,23 @@ canvas {
     font-size: 32px !important;
     line-height: 0.45 !important;
     letter-spacing: 0 !important;
-    border: 40px solid #eee !important;
-    background-color: #fff !important;
-    color: #000 !important;
+    border-width: 40px !important;
+    border-style: solid !important;
 
     /* Strict 32 character width */
     width: 32ch !important;
-    height: 200px;
+    height: auto !important;
     box-sizing: content-box !important;
 
-    overflow-y: auto !important;
+    overflow-y: hidden !important;
     resize: none !important;
     white-space: pre-wrap !important;
     word-break: break-all !important;
     display: block;
     box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.05);
     position: relative;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 .modal-content textarea:focus {
@@ -454,4 +455,14 @@ canvas {
 .config-row input[type="checkbox"] {
     width: 20px;
     height: 20px;
+}
+
+/* Flash animation for ZX Spectrum FLASH attribute */
+@keyframes flash-effect {
+    0%, 49% {
+        filter: invert(0);
+    }
+    50%, 100% {
+        filter: invert(1);
+    }
 }

@@ -689,6 +689,42 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const openTextEditor = (currentText, onSave) => {
+            // Get the color configuration for current node
+            const pageConfig = (node.useCustomConfig && node.pageConfig) 
+                ? node.pageConfig 
+                : globalConfig.page;
+            const separatorConfig = (node.useCustomConfig && node.separatorConfig) 
+                ? node.separatorConfig 
+                : globalConfig.separator;
+            const interfaceConfig = (node.useCustomConfig && node.interfaceConfig) 
+                ? node.interfaceConfig 
+                : globalConfig.interface;
+
+            // Helper to convert ZX Spectrum color names to CSS colors
+            const colorToCSS = (colorName, bright = false) => {
+                const normalColors = {
+                    'black': '#000000',
+                    'blue': '#0000D7',
+                    'red': '#D70000',
+                    'magenta': '#D700D7',
+                    'green': '#00D700',
+                    'cyan': '#00D7D7',
+                    'yellow': '#D7D700',
+                    'white': '#D7D7D7'
+                };
+                const brightColors = {
+                    'black': '#000000',
+                    'blue': '#0000FF',
+                    'red': '#FF0000',
+                    'magenta': '#FF00FF',
+                    'green': '#00FF00',
+                    'cyan': '#00FFFF',
+                    'yellow': '#FFFF00',
+                    'white': '#FFFFFF'
+                };
+                return bright ? (brightColors[colorName] || '#FFFFFF') : (normalColors[colorName] || '#D7D7D7');
+            };
+
             // Create modal
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
@@ -713,12 +749,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const crtScreen = document.createElement('div');
             crtScreen.className = 'crt-screen';
 
+            // Calculate textarea height: 24 lines total - 1 separator - number of options
+            const numOptions = (node.outputs && node.outputs.length > 0) ? node.outputs.length : 0;
+            const textareaLines = 24 - 1 - numOptions; // 1 line for separator, rest for options
+            
             const textarea = document.createElement('textarea');
             textarea.value = currentText || '';
             textarea.className = 'spectrum-textarea';
             textarea.cols = 32;
-            textarea.rows = 24;
-            textarea.setAttribute('maxlength', 32 * 24);
+            textarea.rows = textareaLines;
+            textarea.setAttribute('maxlength', 32 * textareaLines);
+            
+            // Apply page colors
+            const pageInkColor = colorToCSS(pageConfig.ink, pageConfig.bright);
+            const pagePaperColor = colorToCSS(pageConfig.paper, pageConfig.bright);
+            textarea.style.color = pageInkColor;
+            textarea.style.backgroundColor = pagePaperColor;
+            textarea.style.borderColor = pagePaperColor;
+            if (pageConfig.flash) {
+                textarea.style.animation = 'flash-effect 1s infinite';
+            }
 
             // Transliterate non-ASCII characters to ZX Spectrum compatible ASCII
             const transliterateToASCII = (text) => {
@@ -760,6 +810,74 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             crtScreen.appendChild(textarea);
+            
+            // Add separator
+            const separator = document.createElement('div');
+            separator.className = 'spectrum-separator';
+            const sepInkColor = colorToCSS(separatorConfig.ink, separatorConfig.bright);
+            const sepPaperColor = colorToCSS(separatorConfig.paper, separatorConfig.bright);
+            separator.style.backgroundColor = sepPaperColor;
+            separator.style.color = sepInkColor;
+            separator.textContent = '─'.repeat(32);
+            separator.style.fontFamily = "'ZX Spectrum-7', monospace";
+            separator.style.fontSize = '32px';
+            separator.style.lineHeight = '0.45';
+            separator.style.letterSpacing = '0';
+            separator.style.width = '32ch';
+            separator.style.textAlign = 'left';
+            separator.style.padding = '0';
+            separator.style.margin = '0';
+            separator.style.boxSizing = 'content-box';
+            separator.style.borderLeft = '40px solid ' + sepPaperColor;
+            separator.style.borderRight = '40px solid ' + sepPaperColor;
+            separator.style.overflow = 'hidden';
+            if (separatorConfig.flash) {
+                separator.style.animation = 'flash-effect 1s infinite';
+            }
+            crtScreen.appendChild(separator);
+            
+            // Add options display
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'spectrum-options';
+            const intInkColor = colorToCSS(interfaceConfig.ink, interfaceConfig.bright);
+            const intPaperColor = colorToCSS(interfaceConfig.paper, interfaceConfig.bright);
+            optionsContainer.style.backgroundColor = intPaperColor;
+            optionsContainer.style.color = intInkColor;
+            optionsContainer.style.fontFamily = "'ZX Spectrum-7', monospace";
+            optionsContainer.style.fontSize = '32px';
+            optionsContainer.style.lineHeight = '0.45';
+            optionsContainer.style.letterSpacing = '0';
+            optionsContainer.style.width = '32ch';
+            optionsContainer.style.padding = '0';
+            optionsContainer.style.margin = '0';
+            optionsContainer.style.boxSizing = 'content-box';
+            optionsContainer.style.borderLeft = '40px solid ' + intPaperColor;
+            optionsContainer.style.borderRight = '40px solid ' + intPaperColor;
+            optionsContainer.style.borderBottom = '40px solid ' + intPaperColor;
+            optionsContainer.style.overflow = 'hidden';
+            
+            // Display node options
+            if (node.outputs && node.outputs.length > 0) {
+                node.outputs.forEach((opt, idx) => {
+                    const optLine = document.createElement('div');
+                    optLine.style.margin = '0';
+                    optLine.style.padding = '0';
+                    // Truncate option label to fit 32 chars including number and dot
+                    const maxLabelLength = 29; // "1. " takes 3 chars
+                    let label = opt.label.replace(/\n/g, ' ').trim();
+                    if (label.length > maxLabelLength) {
+                        label = label.substring(0, maxLabelLength - 3) + '...';
+                    }
+                    optLine.textContent = `${idx + 1}. ${label}`;
+                    optionsContainer.appendChild(optLine);
+                });
+            }
+            
+            if (interfaceConfig.flash) {
+                optionsContainer.style.animation = 'flash-effect 1s infinite';
+            }
+            crtScreen.appendChild(optionsContainer);
+            
             crtTv.appendChild(crtScreen);
 
             const btnContainer = document.createElement('div');
