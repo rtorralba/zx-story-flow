@@ -136,30 +136,39 @@ document.addEventListener('DOMContentLoaded', () => {
             useCustomConfigCheckbox.checked = useCustom;
             customConfigContent.style.display = useCustom ? 'block' : 'none';
             
-            if (useCustom && selectedNode.pageConfig && selectedNode.separatorConfig && selectedNode.interfaceConfig) {
-                // Cargar configuración específica
+            // Cargar configuración de página (específica o global)
+            if (useCustom && selectedNode.pageConfig) {
                 pageInk.value = selectedNode.pageConfig.ink;
                 pagePaper.value = selectedNode.pageConfig.paper;
                 pageBright.checked = selectedNode.pageConfig.bright;
                 pageFlash.checked = selectedNode.pageConfig.flash;
+            } else {
+                pageInk.value = globalConfig.page.ink;
+                pagePaper.value = globalConfig.page.paper;
+                pageBright.checked = globalConfig.page.bright;
+                pageFlash.checked = globalConfig.page.flash;
+            }
+            
+            // Cargar configuración de separador (específica o global)
+            if (useCustom && selectedNode.separatorConfig) {
                 separatorInk.value = selectedNode.separatorConfig.ink;
                 separatorPaper.value = selectedNode.separatorConfig.paper;
                 separatorBright.checked = selectedNode.separatorConfig.bright;
                 separatorFlash.checked = selectedNode.separatorConfig.flash;
+            } else {
+                separatorInk.value = globalConfig.separator.ink;
+                separatorPaper.value = globalConfig.separator.paper;
+                separatorBright.checked = globalConfig.separator.bright;
+                separatorFlash.checked = globalConfig.separator.flash;
+            }
+            
+            // Cargar configuración de interfaz (específica o global)
+            if (useCustom && selectedNode.interfaceConfig) {
                 interfaceInk.value = selectedNode.interfaceConfig.ink;
                 interfacePaper.value = selectedNode.interfaceConfig.paper;
                 interfaceBright.checked = selectedNode.interfaceConfig.bright;
                 interfaceFlash.checked = selectedNode.interfaceConfig.flash;
             } else {
-                // Cargar configuración global por defecto
-                pageInk.value = globalConfig.page.ink;
-                pagePaper.value = globalConfig.page.paper;
-                pageBright.checked = globalConfig.page.bright;
-                pageFlash.checked = globalConfig.page.flash;
-                separatorInk.value = globalConfig.separator.ink;
-                separatorPaper.value = globalConfig.separator.paper;
-                separatorBright.checked = globalConfig.separator.bright;
-                separatorFlash.checked = globalConfig.separator.flash;
                 interfaceInk.value = globalConfig.interface.ink;
                 interfacePaper.value = globalConfig.interface.paper;
                 interfaceBright.checked = globalConfig.interface.bright;
@@ -179,8 +188,25 @@ document.addEventListener('DOMContentLoaded', () => {
         customConfigContent.style.display = e.target.checked ? 'block' : 'none';
         
         if (e.target.checked) {
-            // Inicializar con valores actuales (globales)
-            saveConfigToNode(node);
+            // Inicializar con valores actuales de la interfaz
+            node.pageConfig = {
+                ink: pageInk.value,
+                paper: pagePaper.value,
+                bright: pageBright.checked,
+                flash: pageFlash.checked
+            };
+            node.separatorConfig = {
+                ink: separatorInk.value,
+                paper: separatorPaper.value,
+                bright: separatorBright.checked,
+                flash: separatorFlash.checked
+            };
+            node.interfaceConfig = {
+                ink: interfaceInk.value,
+                paper: interfacePaper.value,
+                bright: interfaceBright.checked,
+                flash: interfaceFlash.checked
+            };
         } else {
             // Eliminar configuración específica
             delete node.pageConfig;
@@ -325,6 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Solo guardar configuración específica si está activada
                     if (n.useCustomConfig) {
                         nodeData.useCustomConfig = true;
+                        nodeData.pageConfig = n.pageConfig;
                         nodeData.separatorConfig = n.separatorConfig;
                         nodeData.interfaceConfig = n.interfaceConfig;
                     }
