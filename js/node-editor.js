@@ -45,7 +45,7 @@ export class NodeEditor {
 
         if (newNode) {
             this.nodes.push(newNode);
-            this.selectNode(newNode);
+            this.selectNode(newNode, true); // Open panel for new nodes
             this.draw();
         }
     }
@@ -55,7 +55,7 @@ export class NodeEditor {
         const newRef = new NodeReference(id, x, y, targetNodeId);
 
         this.nodes.push(newRef);
-        this.selectNode(newRef);
+        this.selectNode(newRef, true); // Open panel for new references
         this.draw();
         return newRef;
     }
@@ -135,13 +135,19 @@ export class NodeEditor {
         this.draw();
     }
 
-    selectNode(node) {
+    selectNode(node, openPanel = false) {
         this.selectedNode = node;
         this.selectedGroup = null; // Deselect group when selecting node
-        if (this.propertyPanelCallback) {
+        if (openPanel && this.propertyPanelCallback) {
             this.propertyPanelCallback(node);
         }
         this.draw();
+    }
+
+    openPropertyPanel(node) {
+        if (this.propertyPanelCallback) {
+            this.propertyPanelCallback(node);
+        }
     }
 
     getNodeAt(x, y) {
@@ -163,6 +169,16 @@ export class NodeEditor {
         const centerY = deleteIconY + deleteIconSize / 2;
         const distance = Math.hypot(x - centerX, y - centerY);
         return distance <= deleteIconSize / 2;
+    }
+
+    isConfigIconHit(node, x, y) {
+        const configIconSize = 16;
+        const configIconX = node.x + 5; // Bottom left corner
+        const configIconY = node.y + node.height - configIconSize - 5;
+        const centerX = configIconX + configIconSize / 2;
+        const centerY = configIconY + configIconSize / 2;
+        const distance = Math.hypot(x - centerX, y - centerY);
+        return distance <= configIconSize / 2;
     }
 
     getPortAt(x, y) {
@@ -247,6 +263,16 @@ export class NodeEditor {
             return;
         }
 
+        // Check if clicking on a config icon (before checking delete and resize handles)
+        for (let i = this.nodes.length - 1; i >= 0; i--) {
+            const node = this.nodes[i];
+            if (this.isConfigIconHit(node, x, y)) {
+                this.selectNode(node, false);
+                this.openPropertyPanel(node);
+                return;
+            }
+        }
+
         // Check if clicking on a delete icon (before checking resize handles)
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
@@ -277,7 +303,7 @@ export class NodeEditor {
         // Check if clicking on a node first (nodes are on top of groups)
         const node = this.getNodeAt(x, y);
         if (node) {
-            this.selectNode(node);
+            this.selectNode(node, false); // Don't open panel, just select for dragging
             this.dragState = {
                 type: 'node',
                 node: node,
@@ -327,13 +353,25 @@ export class NodeEditor {
         if (!this.dragState) {
             let cursorSet = false;
             
-            // Check if hovering over a delete icon
+            // Check if hovering over a config icon
             for (let i = this.nodes.length - 1; i >= 0; i--) {
                 const node = this.nodes[i];
-                if (this.isDeleteIconHit(node, x, y)) {
+                if (this.isConfigIconHit(node, x, y)) {
                     this.canvas.style.cursor = 'pointer';
                     cursorSet = true;
                     break;
+                }
+            }
+            
+            // Check if hovering over a delete icon
+            if (!cursorSet) {
+                for (let i = this.nodes.length - 1; i >= 0; i--) {
+                    const node = this.nodes[i];
+                    if (this.isDeleteIconHit(node, x, y)) {
+                        this.canvas.style.cursor = 'pointer';
+                        cursorSet = true;
+                        break;
+                    }
                 }
             }
             
@@ -627,6 +665,28 @@ export class NodeEditor {
             this.ctx.moveTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + xOffset);
             this.ctx.lineTo(deleteIconX + xOffset, deleteIconY + deleteIconSize - xOffset);
             this.ctx.stroke();
+
+            // Draw Config Icon (gear icon in bottom left corner)
+            const configIconSize = 16;
+            const configIconX = node.x + 5;
+            const configIconY = node.y + node.height - configIconSize - 5;
+            const configCenterX = configIconX + configIconSize / 2;
+            const configCenterY = configIconY + configIconSize / 2;
+
+            // Draw circle background
+            this.ctx.fillStyle = "#555";
+            this.ctx.beginPath();
+            this.ctx.arc(configCenterX, configCenterY, configIconSize / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw gear icon (⚙)
+            this.ctx.fillStyle = "#fff";
+            this.ctx.font = "14px Arial";
+            this.ctx.textAlign = "center";
+            this.ctx.textBaseline = "middle";
+            this.ctx.fillText("⚙", configCenterX, configCenterY);
+            this.ctx.textAlign = "left"; // Reset
+            this.ctx.textBaseline = "alphabetic"; // Reset
         });
 
         // Draw Connections
