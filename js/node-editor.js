@@ -38,7 +38,21 @@ export class NodeEditor {
         this.draw();
     }
 
-    addNode(type, x = 100, y = 100) {
+    // Get the center of the current view in world coordinates
+    getViewCenter() {
+        const centerX = (this.canvas.width / 2 - this.camera.x) / this.camera.zoom;
+        const centerY = (this.canvas.height / 2 - this.camera.y) / this.camera.zoom;
+        return { x: centerX, y: centerY };
+    }
+
+    addNode(type, x = null, y = null) {
+        // If no coordinates provided, use center of current view
+        if (x === null || y === null) {
+            const center = this.getViewCenter();
+            x = center.x - 75; // Offset by half node width for centering
+            y = center.y - 50; // Offset by half node height for centering
+        }
+        
         const id = 'node_' + Date.now();
         // type ignored now effectively, or we can just assume screen
         const newNode = new ScreenNode(id, x, y);
@@ -50,7 +64,14 @@ export class NodeEditor {
         }
     }
 
-    addReference(targetNodeId = null, x = 100, y = 100) {
+    addReference(targetNodeId = null, x = null, y = null) {
+        // If no coordinates provided, use center of current view
+        if (x === null || y === null) {
+            const center = this.getViewCenter();
+            x = center.x - 60; // Offset by half reference width for centering
+            y = center.y - 25; // Offset by half reference height for centering
+        }
+        
         const id = 'ref_' + Date.now();
         const newRef = new NodeReference(id, x, y, targetNodeId);
 
@@ -60,7 +81,14 @@ export class NodeEditor {
         return newRef;
     }
 
-    addGroup(x = 100, y = 100) {
+    addGroup(x = null, y = null) {
+        // If no coordinates provided, use center of current view
+        if (x === null || y === null) {
+            const center = this.getViewCenter();
+            x = center.x - 200; // Offset by half group width for centering
+            y = center.y - 150; // Offset by half group height for centering
+        }
+        
         const id = 'group_' + Date.now();
         const newGroup = new Group(id, x, y);
         this.groups.push(newGroup);

@@ -265,15 +265,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Toolbar Buttons
     document.getElementById('add-screen-btn').addEventListener('click', () => {
-        editor.addNode('screen');
+        editor.addNode('screen'); // No coordinates = center of view
     });
 
     document.getElementById('add-group-btn').addEventListener('click', () => {
-        editor.addGroup(200, 150);
+        editor.addGroup(); // No coordinates = center of view
     });
 
     document.getElementById('add-reference-btn').addEventListener('click', () => {
-        editor.addReference();
+        editor.addReference(); // No coordinates = center of view
     });
 
     // Fullscreen button
