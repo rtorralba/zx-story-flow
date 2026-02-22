@@ -121,4 +121,26 @@ export class Group {
             y >= this.y + this.height - handleSize &&
             y <= this.y + this.height;
     }
+
+    // Check if delete icon is being clicked (top-right corner of header)
+    isDeleteIconHit(x, y) {
+        const deleteIconSize = 16;
+        const deleteIconX = this.x + this.width - deleteIconSize - 5;
+        const deleteIconY = this.y + 5;
+        const centerX = deleteIconX + deleteIconSize / 2;
+        const centerY = deleteIconY + deleteIconSize / 2;
+        const distance = Math.hypot(x - centerX, y - centerY);
+        return distance <= deleteIconSize / 2;
+    }
+
+    // Check if config icon is being clicked (top-right corner of header, left of delete icon)
+    isConfigIconHit(x, y) {
+        const configIconSize = 16;
+        const configIconX = this.x + this.width - configIconSize - 25; // 25 to leave space for delete icon
+        const configIconY = this.y + 5;
+        const centerX = configIconX + configIconSize / 2;
+        const centerY = configIconY + configIconSize / 2;
+        const distance = Math.hypot(x - centerX, y - centerY);
+        return distance <= configIconSize / 2;
+    }
 }

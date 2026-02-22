@@ -92,7 +92,7 @@ export class NodeEditor {
         const id = 'group_' + Date.now();
         const newGroup = new Group(id, x, y);
         this.groups.push(newGroup);
-        this.selectGroup(newGroup);
+        this.selectGroup(newGroup, true); // Open panel for new groups
         this.draw();
         return newGroup;
     }
@@ -106,13 +106,21 @@ export class NodeEditor {
         this.draw();
     }
 
-    selectGroup(group) {
+    selectGroup(group, openPanel = false) {
         this.selectedGroup = group;
         this.selectedNode = null; // Deselect node when selecting group
-        if (this.propertyPanelCallback) {
+        // Always call callback when deselecting (group === null) to close panel
+        // Only call when openPanel is true if selecting a group
+        if ((group === null || openPanel) && this.propertyPanelCallback) {
             this.propertyPanelCallback(group);
         }
         this.draw();
+    }
+
+    openGroupPropertyPanel(group) {
+        if (this.propertyPanelCallback) {
+            this.propertyPanelCallback(group);
+        }
     }
 
     getGroupAt(x, y) {
@@ -166,7 +174,9 @@ export class NodeEditor {
     selectNode(node, openPanel = false) {
         this.selectedNode = node;
         this.selectedGroup = null; // Deselect group when selecting node
-        if (openPanel && this.propertyPanelCallback) {
+        // Always call callback when deselecting (node === null) to close panel
+        // Only call when openPanel is true if selecting a node
+        if ((node === null || openPanel) && this.propertyPanelCallback) {
             this.propertyPanelCallback(node);
         }
         this.draw();
@@ -291,7 +301,7 @@ export class NodeEditor {
             return;
         }
 
-        // Check if clicking on a config icon (before checking delete and resize handles)
+        // Check if clicking on a node config icon (before checking delete and resize handles)
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
             if (this.isConfigIconHit(node, x, y)) {
@@ -301,11 +311,31 @@ export class NodeEditor {
             }
         }
 
-        // Check if clicking on a delete icon (before checking resize handles)
+        // Check if clicking on a node delete icon
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
             if (this.isDeleteIconHit(node, x, y)) {
                 this.removeNode(node);
+                this.draw();
+                return;
+            }
+        }
+
+        // Check if clicking on a group config icon (before delete and resize handles)
+        for (let i = this.groups.length - 1; i >= 0; i--) {
+            const group = this.groups[i];
+            if (group.isConfigIconHit(x, y)) {
+                this.selectGroup(group, false);
+                this.openGroupPropertyPanel(group);
+                return;
+            }
+        }
+
+        // Check if clicking on a group delete icon (before resize handles)
+        for (let i = this.groups.length - 1; i >= 0; i--) {
+            const group = this.groups[i];
+            if (group.isDeleteIconHit(x, y)) {
+                this.removeGroup(group);
                 this.draw();
                 return;
             }
@@ -381,7 +411,7 @@ export class NodeEditor {
         if (!this.dragState) {
             let cursorSet = false;
             
-            // Check if hovering over a config icon
+            // Check if hovering over a node config icon
             for (let i = this.nodes.length - 1; i >= 0; i--) {
                 const node = this.nodes[i];
                 if (this.isConfigIconHit(node, x, y)) {
@@ -391,11 +421,35 @@ export class NodeEditor {
                 }
             }
             
-            // Check if hovering over a delete icon
+            // Check if hovering over a node delete icon
             if (!cursorSet) {
                 for (let i = this.nodes.length - 1; i >= 0; i--) {
                     const node = this.nodes[i];
                     if (this.isDeleteIconHit(node, x, y)) {
+                        this.canvas.style.cursor = 'pointer';
+                        cursorSet = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Check if hovering over a group config icon
+            if (!cursorSet) {
+                for (let i = this.groups.length - 1; i >= 0; i--) {
+                    const group = this.groups[i];
+                    if (group.isConfigIconHit(x, y)) {
+                        this.canvas.style.cursor = 'pointer';
+                        cursorSet = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Check if hovering over a group delete icon
+            if (!cursorSet) {
+                for (let i = this.groups.length - 1; i >= 0; i--) {
+                    const group = this.groups[i];
+                    if (group.isDeleteIconHit(x, y)) {
                         this.canvas.style.cursor = 'pointer';
                         cursorSet = true;
                         break;
@@ -581,24 +635,72 @@ export class NodeEditor {
             this.ctx.font = "bold 14px Courier New";
             this.ctx.fillText(group.name, group.x + 10, group.y + 20);
 
-            // Draw resize handle in bottom-right corner
-            const handleSize = 20;
-            const handleX = group.x + group.width - handleSize;
-            const handleY = group.y + group.height - handleSize;
+            // Draw delete, config and resize icons only when selected
+            if (isSelected) {
+                // Draw Config Icon (⚙ in top-right corner of header, left of delete)
+                const configIconSize = 16;
+                const configIconX = group.x + group.width - configIconSize - 25;
+                const configIconY = group.y + 5;
+                const configCenterX = configIconX + configIconSize / 2;
+                const configCenterY = configIconY + configIconSize / 2;
 
-            // Draw handle background
-            this.ctx.fillStyle = group.color + (isSelected ? '60' : '30');
-            this.ctx.fillRect(handleX, handleY, handleSize, handleSize);
-
-            // Draw grip lines
-            this.ctx.strokeStyle = group.color;
-            this.ctx.lineWidth = 2;
-            for (let i = 0; i < 3; i++) {
-                const offset = handleSize - 4 - (i * 5);
+                // Draw circle background
+                this.ctx.fillStyle = "#555";
                 this.ctx.beginPath();
-                this.ctx.moveTo(group.x + group.width - offset, group.y + group.height - 2);
-                this.ctx.lineTo(group.x + group.width - 2, group.y + group.height - offset);
+                this.ctx.arc(configCenterX, configCenterY, configIconSize / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Draw gear icon (⚙)
+                this.ctx.fillStyle = "#fff";
+                this.ctx.font = "14px Arial";
+                this.ctx.textAlign = "center";
+                this.ctx.textBaseline = "middle";
+                this.ctx.fillText("⚙", configCenterX, configCenterY);
+                this.ctx.textAlign = "left"; // Reset
+                this.ctx.textBaseline = "alphabetic"; // Reset
+
+                // Draw Delete Icon (X in top-right corner of header)
+                const deleteIconSize = 16;
+                const deleteIconX = group.x + group.width - deleteIconSize - 5;
+                const deleteIconY = group.y + 5;
+
+                // Draw circle background
+                this.ctx.fillStyle = "#d00000";
+                this.ctx.beginPath();
+                this.ctx.arc(deleteIconX + deleteIconSize / 2, deleteIconY + deleteIconSize / 2, deleteIconSize / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Draw X
+                this.ctx.strokeStyle = "#fff";
+                this.ctx.lineWidth = 2;
+                this.ctx.lineCap = "round";
+                const xOffset = 4;
+                this.ctx.beginPath();
+                this.ctx.moveTo(deleteIconX + xOffset, deleteIconY + xOffset);
+                this.ctx.lineTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + deleteIconSize - xOffset);
+                this.ctx.moveTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + xOffset);
+                this.ctx.lineTo(deleteIconX + xOffset, deleteIconY + deleteIconSize - xOffset);
                 this.ctx.stroke();
+
+                // Draw resize handle in bottom-right corner
+                const handleSize = 20;
+                const handleX = group.x + group.width - handleSize;
+                const handleY = group.y + group.height - handleSize;
+
+                // Draw handle background
+                this.ctx.fillStyle = group.color + '60';
+                this.ctx.fillRect(handleX, handleY, handleSize, handleSize);
+
+                // Draw grip lines
+                this.ctx.strokeStyle = group.color;
+                this.ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    const offset = handleSize - 4 - (i * 5);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(group.x + group.width - offset, group.y + group.height - 2);
+                    this.ctx.lineTo(group.x + group.width - 2, group.y + group.height - offset);
+                    this.ctx.stroke();
+                }
             }
         });
 
@@ -671,50 +773,52 @@ export class NodeEditor {
                 }
             }
 
-            // Draw Delete Icon (X in top-right corner)
-            const deleteIconSize = 16;
-            const deleteIconX = node.x + node.width - deleteIconSize - 5;
-            const deleteIconY = node.y + 5;
+            // Draw Delete Icon (X in top-right corner) - only when selected
+            if (isSelected) {
+                const deleteIconSize = 16;
+                const deleteIconX = node.x + node.width - deleteIconSize - 5;
+                const deleteIconY = node.y + 5;
 
-            // Draw circle background
-            this.ctx.fillStyle = "#d00000";
-            this.ctx.beginPath();
-            this.ctx.arc(deleteIconX + deleteIconSize / 2, deleteIconY + deleteIconSize / 2, deleteIconSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
+                // Draw circle background
+                this.ctx.fillStyle = "#d00000";
+                this.ctx.beginPath();
+                this.ctx.arc(deleteIconX + deleteIconSize / 2, deleteIconY + deleteIconSize / 2, deleteIconSize / 2, 0, Math.PI * 2);
+                this.ctx.fill();
 
-            // Draw X
-            this.ctx.strokeStyle = "#fff";
-            this.ctx.lineWidth = 2;
-            this.ctx.lineCap = "round";
-            const xOffset = 4;
-            this.ctx.beginPath();
-            this.ctx.moveTo(deleteIconX + xOffset, deleteIconY + xOffset);
-            this.ctx.lineTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + deleteIconSize - xOffset);
-            this.ctx.moveTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + xOffset);
-            this.ctx.lineTo(deleteIconX + xOffset, deleteIconY + deleteIconSize - xOffset);
-            this.ctx.stroke();
+                // Draw X
+                this.ctx.strokeStyle = "#fff";
+                this.ctx.lineWidth = 2;
+                this.ctx.lineCap = "round";
+                const xOffset = 4;
+                this.ctx.beginPath();
+                this.ctx.moveTo(deleteIconX + xOffset, deleteIconY + xOffset);
+                this.ctx.lineTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + deleteIconSize - xOffset);
+                this.ctx.moveTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + xOffset);
+                this.ctx.lineTo(deleteIconX + xOffset, deleteIconY + deleteIconSize - xOffset);
+                this.ctx.stroke();
 
-            // Draw Config Icon (gear icon in bottom left corner)
-            const configIconSize = 16;
-            const configIconX = node.x + 5;
-            const configIconY = node.y + node.height - configIconSize - 5;
-            const configCenterX = configIconX + configIconSize / 2;
-            const configCenterY = configIconY + configIconSize / 2;
+                // Draw Config Icon (gear icon in bottom left corner)
+                const configIconSize = 16;
+                const configIconX = node.x + 5;
+                const configIconY = node.y + node.height - configIconSize - 5;
+                const configCenterX = configIconX + configIconSize / 2;
+                const configCenterY = configIconY + configIconSize / 2;
 
-            // Draw circle background
-            this.ctx.fillStyle = "#555";
-            this.ctx.beginPath();
-            this.ctx.arc(configCenterX, configCenterY, configIconSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
+                // Draw circle background
+                this.ctx.fillStyle = "#555";
+                this.ctx.beginPath();
+                this.ctx.arc(configCenterX, configCenterY, configIconSize / 2, 0, Math.PI * 2);
+                this.ctx.fill();
 
-            // Draw gear icon (⚙)
-            this.ctx.fillStyle = "#fff";
-            this.ctx.font = "14px Arial";
-            this.ctx.textAlign = "center";
-            this.ctx.textBaseline = "middle";
-            this.ctx.fillText("⚙", configCenterX, configCenterY);
-            this.ctx.textAlign = "left"; // Reset
-            this.ctx.textBaseline = "alphabetic"; // Reset
+                // Draw gear icon (⚙)
+                this.ctx.fillStyle = "#fff";
+                this.ctx.font = "14px Arial";
+                this.ctx.textAlign = "center";
+                this.ctx.textBaseline = "middle";
+                this.ctx.fillText("⚙", configCenterX, configCenterY);
+                this.ctx.textAlign = "left"; // Reset
+                this.ctx.textBaseline = "alphabetic"; // Reset
+            }
         });
 
         // Draw Connections
