@@ -143,7 +143,7 @@ function tokenizeLine(line) {
 }
 
 // Generate TAP file from BASIC code
-export function generateTapFromBasic(basicCode, filename = "PROGRAM") {
+export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImages = []) {
     const lines = basicCode.split('\n').filter(l => l.trim().length > 0);
 
     const plainData = [];
@@ -198,10 +198,64 @@ export function generateTapFromBasic(basicCode, filename = "PROGRAM") {
     // Create Data Block (Flag 0xFF)
     const dataBlock = createTapBlock(0xFF, dataUint);
 
-    // Combine
-    const file = new Uint8Array(headerBlock.length + dataBlock.length);
-    file.set(headerBlock, 0);
-    file.set(dataBlock, headerBlock.length);
+    // Start building the TAP file with the BASIC program
+    const blocks = [];
+    blocks.push(headerBlock);
+    blocks.push(dataBlock);
+
+    // Add SCREEN$ images
+    screenImages.forEach(img => {
+        try {
+            // Convert data URL to binary data
+            const base64Data = img.data.split(',')[1];
+            const binaryString = atob(base64Data);
+            const imageBytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                imageBytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Verify it's a valid SCREEN$ file (6912 bytes)
+            if (imageBytes.length !== 6912) {
+                console.warn(`Image ${img.name} is not 6912 bytes (got ${imageBytes.length}), skipping`);
+                return;
+            }
+
+            // Create header for SCREEN$ (Code type)
+            const screenHeader = new Uint8Array(17);
+            screenHeader[0] = 0x03; // Type: Code (bytes)
+
+            // Remove .scr extension and pad to 10 characters
+            let screenName = img.name.toUpperCase().replace(/\.SCR$/i, '');
+            screenName = (screenName + '          ').substr(0, 10);
+            for (let i = 0; i < 10; i++) screenHeader[i + 1] = screenName.charCodeAt(i);
+
+            screenHeader[11] = 6912 & 0xFF;
+            screenHeader[12] = (6912 >> 8) & 0xFF;
+
+            // Start address for SCREEN$ is 16384
+            screenHeader[13] = 16384 & 0xFF;
+            screenHeader[14] = (16384 >> 8) & 0xFF;
+
+            screenHeader[15] = 0; // Param2 not used for CODE
+            screenHeader[16] = 0;
+
+            blocks.push(createTapBlock(0x00, screenHeader));
+            blocks.push(createTapBlock(0xFF, imageBytes));
+        } catch (e) {
+            console.error(`Error adding image ${img.name}:`, e);
+        }
+    });
+
+    // Combine all blocks
+    let totalLength = 0;
+    blocks.forEach(block => totalLength += block.length);
+    
+    const file = new Uint8Array(totalLength);
+    let offset = 0;
+    blocks.forEach(block => {
+        file.set(block, offset);
+        offset += block.length;
+    });
 
     return file.buffer;
 }

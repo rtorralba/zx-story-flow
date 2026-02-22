@@ -295,7 +295,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
             const basicCode = generateBasic(editor.nodes, globalConfig);
-            const tapData = generateTapFromBasic(basicCode, "adventure");
+            
+            // Collect all images from nodes
+            const screenImages = [];
+            editor.nodes.forEach(node => {
+                if (node.paragraphImages && node.paragraphImages.length > 0) {
+                    node.paragraphImages.forEach(pi => {
+                        if (pi.imageName && pi.imageData) {
+                            // Check if not already added
+                            if (!screenImages.find(img => img.name === pi.imageName)) {
+                                screenImages.push({
+                                    name: pi.imageName,
+                                    data: pi.imageData
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+            
+            const tapData = generateTapFromBasic(basicCode, "adventure", screenImages);
 
             const blob = new Blob([tapData], { type: 'application/x-tap' });
             const url = URL.createObjectURL(blob);
@@ -305,6 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
             a.click();
             URL.revokeObjectURL(url);
             console.log("TAP Export successful");
+            
+            if (screenImages.length > 0) {
+                console.log(`Included ${screenImages.length} SCREEN$ images in TAP`);
+            }
         } catch (e) {
             console.error("TAP Export failed:", e);
             alert("TAP Export failed: " + e.message);
@@ -361,6 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Guardar párrafos condicionales si existen
                     if (n.conditionalParagraphs && n.conditionalParagraphs.length > 0) {
                         nodeData.conditionalParagraphs = n.conditionalParagraphs;
+                    }
+                    
+                    // Guardar imágenes de párrafos si existen
+                    if (n.paragraphImages && n.paragraphImages.length > 0) {
+                        nodeData.paragraphImages = n.paragraphImages;
                     }
                     
                     // Solo guardar configuración específica si está activada
@@ -454,6 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Restaurar párrafos condicionales si existen
                             if (n.conditionalParagraphs) {
                                 newNode.conditionalParagraphs = n.conditionalParagraphs;
+                            }
+                            
+                            if (n.paragraphImages) {
+                                newNode.paragraphImages = n.paragraphImages;
                             }
 
                             // Restaurar configuración específica si existe
@@ -942,15 +974,24 @@ document.addEventListener('DOMContentLoaded', () => {
             node.conditionalParagraphs = [];
         }
 
-        // Define renderConditionalParagraphs before using it
+        // Initialize paragraphImages if not exists
+        if (!node.paragraphImages) {
+            node.paragraphImages = [];
+        }
+
+        // Define render functions before using them
         let renderConditionalParagraphs;
+        let renderParagraphImages;
 
         const textInput = createTextarea('Screen Text', node.text, (val) => {
             node.text = val;
             editor.draw();
-            // Re-render conditional paragraphs when text changes
+            // Re-render conditional paragraphs and images when text changes
             if (renderConditionalParagraphs) {
                 renderConditionalParagraphs();
+            }
+            if (renderParagraphImages) {
+                renderParagraphImages();
             }
         });
         propertyContent.appendChild(textInput);
@@ -1175,6 +1216,182 @@ document.addEventListener('DOMContentLoaded', () => {
         conditionalSection.appendChild(conditionalTitle);
         conditionalSection.appendChild(conditionalContent);
         propertyContent.appendChild(conditionalSection);
+
+        // Paragraph Images Section (collapsible)
+        const imagesSection = document.createElement('div');
+        imagesSection.style.marginTop = '15px';
+        imagesSection.style.padding = '10px';
+        imagesSection.style.backgroundColor = '#2a2a2a';
+        imagesSection.style.borderRadius = '4px';
+
+        const imagesTitle = document.createElement('h4');
+        imagesTitle.textContent = '▼ 🖼️ Imágenes entre párrafos';
+        imagesTitle.style.margin = '0 0 10px 0';
+        imagesTitle.style.color = '#4a9eff';
+        imagesTitle.style.cursor = 'pointer';
+        imagesTitle.style.userSelect = 'none';
+        
+        const imagesContent = document.createElement('div');
+        imagesContent.style.display = 'block';
+
+        const imagesInfo = document.createElement('div');
+        imagesInfo.style.fontSize = '11px';
+        imagesInfo.style.marginBottom = '10px';
+        imagesInfo.style.color = '#aaa';
+        imagesInfo.textContent = 'Añade imágenes SCREEN$ (.scr) que se mostrarán antes de cada párrafo. Las imágenes deben estar en el mismo directorio que el TAP.';
+        imagesContent.appendChild(imagesInfo);
+
+        // Toggle collapse
+        let isImagesExpanded = true;
+        imagesTitle.addEventListener('click', () => {
+            isImagesExpanded = !isImagesExpanded;
+            imagesContent.style.display = isImagesExpanded ? 'block' : 'none';
+            imagesTitle.textContent = (isImagesExpanded ? '▼' : '▶') + ' 🖼️ Imágenes entre párrafos';
+        });
+
+        renderParagraphImages = () => {
+            // Remove old container
+            const oldContainer = document.getElementById('paragraph-images-container');
+            if (oldContainer) oldContainer.remove();
+
+            const container = document.createElement('div');
+            container.id = 'paragraph-images-container';
+
+            // Split text into paragraphs
+            const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
+
+            paragraphs.forEach((paragraph, idx) => {
+                const pRow = document.createElement('div');
+                pRow.style.marginBottom = '8px';
+                pRow.style.padding = '8px';
+                pRow.style.backgroundColor = '#1a1a1a';
+                pRow.style.borderRadius = '3px';
+
+                // Find if this paragraph has an image
+                const imageData = node.paragraphImages.find(pi => pi.paragraphIndex === idx);
+
+                // Paragraph preview
+                const previewRow = document.createElement('div');
+                previewRow.style.display = 'flex';
+                previewRow.style.justifyContent = 'space-between';
+                previewRow.style.alignItems = 'center';
+                previewRow.style.marginBottom = imageData ? '5px' : '0';
+
+                const preview = document.createElement('div');
+                preview.style.fontSize = '11px';
+                preview.style.color = imageData ? '#4a9eff' : '#888';
+                preview.style.fontStyle = 'italic';
+                preview.style.flex = '1';
+                const previewText = paragraph.substring(0, 50) + (paragraph.length > 50 ? '...' : '');
+                preview.textContent = `§${idx + 1}: ${previewText}`;
+                previewRow.appendChild(preview);
+
+                if (!imageData) {
+                    // Show "add image" button in the same row
+                    const addImgBtn = document.createElement('button');
+                    addImgBtn.textContent = '+ Añadir imagen';
+                    addImgBtn.style.fontSize = '11px';
+                    addImgBtn.style.padding = '3px 8px';
+                    addImgBtn.style.whiteSpace = 'nowrap';
+                    addImgBtn.addEventListener('click', () => {
+                        node.paragraphImages.push({
+                            paragraphIndex: idx,
+                            imageName: ''
+                        });
+                        renderParagraphImages();
+                    });
+                    previewRow.appendChild(addImgBtn);
+                }
+
+                pRow.appendChild(previewRow);
+
+                if (imageData) {
+                    // Show image name editor
+                    const imgRow = document.createElement('div');
+                    imgRow.style.display = 'flex';
+                    imgRow.style.gap = '5px';
+                    imgRow.style.alignItems = 'center';
+
+                    const imgLabel = document.createElement('span');
+                    imgLabel.textContent = 'SCREEN$:';
+                    imgLabel.style.fontSize = '11px';
+                    imgLabel.style.whiteSpace = 'nowrap';
+
+                    const imgInput = document.createElement('input');
+                    imgInput.type = 'text';
+                    imgInput.value = imageData.imageName || '';
+                    imgInput.placeholder = 'nombre.scr';
+                    imgInput.style.flex = '1';
+                    imgInput.style.fontSize = '11px';
+                    imgInput.addEventListener('input', (e) => {
+                        imageData.imageName = e.target.value;
+                    });
+
+                    // Hidden file input
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = '.scr';
+                    fileInput.style.display = 'none';
+                    fileInput.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            // Store just the filename
+                            imageData.imageName = file.name;
+                            imgInput.value = file.name;
+                            
+                            // Optionally read and store file content as base64 for future use
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                imageData.imageData = event.target.result; // Store as data URL
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+
+                    const browseBtn = document.createElement('button');
+                    browseBtn.textContent = '📁 Examinar';
+                    browseBtn.style.padding = '3px 8px';
+                    browseBtn.style.fontSize = '11px';
+                    browseBtn.style.whiteSpace = 'nowrap';
+                    browseBtn.addEventListener('click', () => {
+                        fileInput.click();
+                    });
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = 'Quitar';
+                    removeBtn.style.padding = '3px 8px';
+                    removeBtn.style.fontSize = '11px';
+                    removeBtn.addEventListener('click', () => {
+                        node.paragraphImages = node.paragraphImages.filter(pi => pi !== imageData);
+                        renderParagraphImages();
+                    });
+
+                    imgRow.appendChild(imgLabel);
+                    imgRow.appendChild(imgInput);
+                    imgRow.appendChild(browseBtn);
+                    imgRow.appendChild(fileInput);
+                    imgRow.appendChild(removeBtn);
+                    pRow.appendChild(imgRow);
+                }
+
+                container.appendChild(pRow);
+            });
+
+            if (paragraphs.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.fontSize = '11px';
+                emptyMsg.style.color = '#666';
+                emptyMsg.textContent = 'Escribe texto arriba y separa párrafos con doble salto de línea.';
+                container.appendChild(emptyMsg);
+            }
+
+            imagesContent.appendChild(container);
+        };
+
+        renderParagraphImages();
+        imagesSection.appendChild(imagesTitle);
+        imagesSection.appendChild(imagesContent);
+        propertyContent.appendChild(imagesSection);
 
         // Options Section (must come before Conditional Paragraphs)
         const optionsSection = document.createElement('div');

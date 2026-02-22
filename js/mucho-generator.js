@@ -73,16 +73,24 @@ export function generateMucho(nodes, globalConfig = null) {
 
     let muchoCode = "";
     
-    // Function to format text with paragraphs and conditional markers
-    const formatTextWithParagraphs = (text, conditionalParagraphs = []) => {
+    // Function to format text with paragraphs, conditional markers and images
+    const formatTextWithParagraphs = (text, conditionalParagraphs = [], paragraphImages = []) => {
         if (!text) return "";
         
         // Split text into paragraphs (by double line breaks)
         const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
         
-        // Format each paragraph with $P and conditional markers
+        // Format each paragraph with $P, conditional markers, and image markers
         return paragraphs.map((p, idx) => {
             const trimmed = p.trim();
+            let result = '';
+            
+            // Check if this paragraph has an image
+            const imageData = paragraphImages.find(pi => pi.paragraphIndex === idx);
+            if (imageData && imageData.imageName) {
+                // Add $I marker for images (SCREEN$ files)
+                result += `$I ${imageData.imageName}\n`;
+            }
             
             // Check if this paragraph is conditional
             const conditional = conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
@@ -91,11 +99,13 @@ export function generateMucho(nodes, globalConfig = null) {
                 // Add $O marker for conditional paragraphs
                 // Format is stored as "has:key" or "not:key"
                 // Export as-is: "$O has:key" or "$O not:key"
-                return `$O ${conditional.flag}\n$P \n${trimmed} `;
+                result += `$O ${conditional.flag}\n$P \n${trimmed} `;
             } else {
                 // Normal paragraph
-                return `$P \n${trimmed} `;
+                result += `$P \n${trimmed} `;
             }
+            
+            return result;
         }).join('\n');
     };
 
@@ -124,7 +134,7 @@ export function generateMucho(nodes, globalConfig = null) {
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
 
         muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}\n`;
-        muchoCode += formatTextWithParagraphs(description, node.conditionalParagraphs || []);
+        muchoCode += formatTextWithParagraphs(description, node.conditionalParagraphs || [], node.paragraphImages || []);
         if (description) muchoCode += '\n';
 
         // Iterate all options

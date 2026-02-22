@@ -139,10 +139,6 @@ export function generateBasic(nodes, globalConfig = null) {
         basicCode += `${currentLine} REM --- ${node.title} ---\n`;
         currentLine += 10;
 
-        // Common Screen Logic
-        basicCode += `${currentLine} CLS\n`;
-        currentLine += 10;
-        
         // Get page configuration (use node config if exists, else global)
         const pageConfig = (node.useCustomConfig && node.pageConfig) 
             ? node.pageConfig 
@@ -152,9 +148,15 @@ export function generateBasic(nodes, globalConfig = null) {
         const pageBright = pageConfig.bright;
         const pageFlash = pageConfig.flash;
         
-        // Apply page attributes
+        // Always set colors and clear screen at the start of each node
+        // This ensures we have a clean state even if image loading fails
         basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
         currentLine += 10;
+        basicCode += `${currentLine} CLS\n`;
+        currentLine += 10;
+        
+        // Check if there are images
+        const hasParagraphImages = node.paragraphImages && node.paragraphImages.length > 0;
 
         // Print text with word-aware wrapping for ZX Spectrum 32-char screen
         // 1. Replace quotes
@@ -194,15 +196,80 @@ export function generateBasic(nodes, globalConfig = null) {
         const safeText = wrapText(node.text || "");
         
         // Split text into paragraphs (separated by double newlines in the original text)
-        const rawParagraphs = (node.text || "").split('\n\n').filter(p => p.trim());
+        // When there are images, preserve empty lines; otherwise filter them out
+        const rawParagraphs = hasParagraphImages 
+            ? (node.text || "").split('\n\n')  // Keep all paragraphs including empty ones
+            : (node.text || "").split('\n\n').filter(p => p.trim());  // Filter empty ones when no images
         
         // Check if there are conditional paragraphs
-        if (node.conditionalParagraphs && node.conditionalParagraphs.length > 0) {
-            // Print each paragraph, checking if it's conditional
+        const hasConditionalParagraphs = node.conditionalParagraphs && node.conditionalParagraphs.length > 0;
+        
+        // If there's no text at all
+        if (!node.text || node.text.trim().length === 0) {
+            // Check if there are images to show even without text
+            if (hasParagraphImages && node.paragraphImages.length > 0) {
+                // Load all images (without clearing after since there's no text to show)
+                node.paragraphImages.forEach(imageData => {
+                    if (imageData && imageData.imageName) {
+                        // Remove .scr extension, convert to uppercase, and replace quotes for LOAD command
+                        const imgName = imageData.imageName
+                            .replace(/\.scr$/i, '')  // Remove .scr extension
+                            .toUpperCase()            // Convert to uppercase to match TAP filename
+                            .replace(/"/g, "'");      // Replace quotes
+                        basicCode += `${currentLine} LOAD "${imgName}" SCREEN$\n`;
+                        currentLine += 10;
+                        basicCode += `${currentLine} PAUSE 0\n`;
+                        currentLine += 10;
+                    }
+                });
+                // After last image, restore text colors for menu without clearing screen
+                basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
+                currentLine += 10;
+            } else {
+                // No text and no images - show node title
+                basicCode += `${currentLine} PRINT "[ ${node.title} ]"\n`;
+                currentLine += 10;
+            }
+        } else if (hasConditionalParagraphs || hasParagraphImages) {
+            // Print each paragraph, checking if it's conditional or has an image
             rawParagraphs.forEach((paragraph, idx) => {
-                const conditional = node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
+                const conditional = hasConditionalParagraphs ? node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx) : null;
                 
-                if (conditional && conditional.flag) {
+                // Check if there's an image for this paragraph
+                const imageData = hasParagraphImages ? node.paragraphImages.find(pi => pi.paragraphIndex === idx) : null;
+                
+                // If there's an image, load it first
+                if (imageData && imageData.imageName) {
+                    // Remove .scr extension, convert to uppercase, and replace quotes for LOAD command
+                    const imgName = imageData.imageName
+                        .replace(/\.scr$/i, '')  // Remove .scr extension
+                        .toUpperCase()            // Convert to uppercase to match TAP filename
+                        .replace(/"/g, "'");      // Replace quotes
+                    basicCode += `${currentLine} LOAD "${imgName}" SCREEN$\n`;
+                    currentLine += 10;
+                    // Set text colors to print over the image
+                    basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
+                    currentLine += 10;
+                }
+                
+                // Then print the paragraph text (either over the image or on clean screen)
+                // When there's an image, preserve ALL newlines including empty ones
+                if (imageData && imageData.imageName && paragraph) {
+                    // Split by single newlines to preserve empty lines
+                    const lines = paragraph.split('\n');
+                    lines.forEach(line => {
+                        if (line.trim().length === 0) {
+                            // Empty line - just print blank
+                            basicCode += `${currentLine} PRINT ""\n`;
+                            currentLine += 10;
+                        } else {
+                            // Line with content - wrap and print
+                            const wrappedLine = line.replace(/"/g, "'");
+                            basicCode += `${currentLine} PRINT "${wrappedLine}"\n`;
+                            currentLine += 10;
+                        }
+                    });
+                } else if (conditional && conditional.flag) {
                     // This paragraph is conditional
                     const parts = conditional.flag.split(':');
                     if (parts.length === 2) {
@@ -244,7 +311,7 @@ export function generateBasic(nodes, globalConfig = null) {
                 }
             });
         } else {
-            // No conditional paragraphs, print all text at once
+            // No conditional paragraphs or images, print all text at once
             basicCode += `${currentLine} PRINT "${safeText}"\n`;
             currentLine += 10;
         }
