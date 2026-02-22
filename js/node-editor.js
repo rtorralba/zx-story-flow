@@ -59,7 +59,7 @@ export class NodeEditor {
 
         if (newNode) {
             this.nodes.push(newNode);
-            this.selectNode(newNode, true); // Open panel for new nodes
+            this.selectNode(newNode, false); // Don't open panel automatically
             this.draw();
         }
     }
@@ -76,7 +76,7 @@ export class NodeEditor {
         const newRef = new NodeReference(id, x, y, targetNodeId);
 
         this.nodes.push(newRef);
-        this.selectNode(newRef, true); // Open panel for new references
+        this.selectNode(newRef, false); // Don't open panel automatically
         this.draw();
         return newRef;
     }
@@ -92,7 +92,7 @@ export class NodeEditor {
         const id = 'group_' + Date.now();
         const newGroup = new Group(id, x, y);
         this.groups.push(newGroup);
-        this.selectGroup(newGroup, true); // Open panel for new groups
+        this.selectGroup(newGroup, false); // Don't open panel automatically
         this.draw();
         return newGroup;
     }
