@@ -60,6 +60,35 @@ export function generateBasic(nodes, globalConfig = null) {
         };
     }
 
+    // Collect all flags used in the project
+    const allFlags = new Set();
+    screenNodes.forEach(node => {
+        // Flags from outputs
+        if (node.outputs) {
+            node.outputs.forEach(output => {
+                if (output.flag && output.flag.trim()) {
+                    // Extract flag name (e.g., "set:key" -> "key")
+                    const parts = output.flag.split(':');
+                    if (parts.length === 2) {
+                        allFlags.add(parts[1]);
+                    }
+                }
+            });
+        }
+        // Flags from conditional paragraphs
+        if (node.conditionalParagraphs) {
+            node.conditionalParagraphs.forEach(cp => {
+                if (cp.flag && cp.flag.trim()) {
+                    // Extract flag name (e.g., "has:key" -> "key")
+                    const parts = cp.flag.split(':');
+                    if (parts.length === 2) {
+                        allFlags.add(parts[1]);
+                    }
+                }
+            });
+        }
+    });
+
     let basicCode = "";
     let lineNumber = 10;
 
@@ -86,7 +115,21 @@ export function generateBasic(nodes, globalConfig = null) {
     
     basicCode += `10 INK ${colorToZX(firstPageConfig.ink)}: PAPER ${colorToZX(firstPageConfig.paper)}: BRIGHT ${firstPageConfig.bright ? 1 : 0}: FLASH ${firstPageConfig.flash ? 1 : 0}\n`;
     basicCode += `20 CLS\n`;
-    basicCode += `30 GO TO ${nodeLines.get(startNode.id)}\n`;
+    
+    // Initialize flag variables (LET f=0)
+    if (allFlags.size > 0) {
+        let flagLine = 30;
+        const flagArray = Array.from(allFlags);
+        flagArray.forEach(flag => {
+            // Use single letter variables for flags to avoid long names
+            const varName = `f${flag}`;
+            basicCode += `${flagLine} LET ${varName}=0\n`;
+            flagLine += 10;
+        });
+        basicCode += `${flagLine} GO TO ${nodeLines.get(startNode.id)}\n`;
+    } else {
+        basicCode += `30 GO TO ${nodeLines.get(startNode.id)}\n`;
+    }
 
     // 3. Generate Code for each screen node
     screenNodes.forEach(node => {
@@ -149,8 +192,62 @@ export function generateBasic(nodes, globalConfig = null) {
         };
 
         const safeText = wrapText(node.text || "");
-        basicCode += `${currentLine} PRINT "${safeText}"\n`;
-        currentLine += 10;
+        
+        // Split text into paragraphs (separated by double newlines in the original text)
+        const rawParagraphs = (node.text || "").split('\n\n').filter(p => p.trim());
+        
+        // Check if there are conditional paragraphs
+        if (node.conditionalParagraphs && node.conditionalParagraphs.length > 0) {
+            // Print each paragraph, checking if it's conditional
+            rawParagraphs.forEach((paragraph, idx) => {
+                const conditional = node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
+                
+                if (conditional && conditional.flag) {
+                    // This paragraph is conditional
+                    const parts = conditional.flag.split(':');
+                    if (parts.length === 2) {
+                        const condition = parts[0]; // "has" or "not"
+                        const flagName = parts[1];
+                        const varName = `f${flagName}`;
+                        
+                        // Generate IF statement to print paragraph
+                        const wrappedPara = wrapText(paragraph);
+                        
+                        if (condition === 'has') {
+                            basicCode += `${currentLine} IF ${varName}=1 THEN PRINT "${wrappedPara}"\n`;
+                        } else { // "not"
+                            basicCode += `${currentLine} IF ${varName}=0 THEN PRINT "${wrappedPara}"\n`;
+                        }
+                        currentLine += 10;
+                        
+                        // Add blank line separator after conditional paragraph
+                        if (idx < rawParagraphs.length - 1) {
+                            if (condition === 'has') {
+                                basicCode += `${currentLine} IF ${varName}=1 THEN PRINT ""\n`;
+                            } else {
+                                basicCode += `${currentLine} IF ${varName}=0 THEN PRINT ""\n`;
+                            }
+                            currentLine += 10;
+                        }
+                    }
+                } else {
+                    // Normal paragraph
+                    const wrappedPara = wrapText(paragraph);
+                    basicCode += `${currentLine} PRINT "${wrappedPara}"\n`;
+                    currentLine += 10;
+                    
+                    // Add blank line separator between paragraphs
+                    if (idx < rawParagraphs.length - 1) {
+                        basicCode += `${currentLine} PRINT ""\n`;
+                        currentLine += 10;
+                    }
+                }
+            });
+        } else {
+            // No conditional paragraphs, print all text at once
+            basicCode += `${currentLine} PRINT "${safeText}"\n`;
+            currentLine += 10;
+        }
 
         // Always show menu with options
         // If it's a last node (no outputs or no target), create a "Play again" option
@@ -209,14 +306,35 @@ export function generateBasic(nodes, globalConfig = null) {
         basicCode += `${currentLine} INPUT A$\n`;
         currentLine += 10;
 
-        // Generate IFs
+        // Generate IFs for option selection
         effectiveOutputs.forEach((opt, idx) => {
             if (opt.target) {
                 const resolvedTarget = resolveNodeId(opt.target, nodes);
                 if (resolvedTarget) {
                     const targetLine = nodeLines.get(resolvedTarget);
-                    basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
-                    currentLine += 10;
+                    
+                    // Check if this option has a flag action
+                    if (opt.flag && opt.flag.trim()) {
+                        const parts = opt.flag.split(':');
+                        if (parts.length === 2) {
+                            const action = parts[0]; // "set" or "clear"
+                            const flagName = parts[1];
+                            const varName = `f${flagName}`;
+                            
+                            // Generate: IF A$="1" THEN LET fkey=1: GO TO 2000
+                            const flagValue = action === 'set' ? 1 : 0;
+                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN LET ${varName}=${flagValue}: GO TO ${targetLine}\n`;
+                            currentLine += 10;
+                        } else {
+                            // No flag action, just jump
+                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
+                            currentLine += 10;
+                        }
+                    } else {
+                        // No flag, just jump
+                        basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
+                        currentLine += 10;
+                    }
                 }
             }
         });
