@@ -25,6 +25,7 @@ export class NodeEditor {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
         this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
 
@@ -305,8 +306,7 @@ export class NodeEditor {
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
             if (this.isConfigIconHit(node, x, y)) {
-                this.selectNode(node, false);
-                this.openPropertyPanel(node);
+                this.selectNode(node, true); // Open modal
                 return;
             }
         }
@@ -325,8 +325,7 @@ export class NodeEditor {
         for (let i = this.groups.length - 1; i >= 0; i--) {
             const group = this.groups[i];
             if (group.isConfigIconHit(x, y)) {
-                this.selectGroup(group, false);
-                this.openGroupPropertyPanel(group);
+                this.selectGroup(group, true); // Open modal
                 return;
             }
         }
@@ -563,6 +562,26 @@ export class NodeEditor {
 
         this.dragState = null;
         this.draw();
+    }
+
+    handleDoubleClick(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
+        const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
+
+        // Check if double-clicking on a node
+        const node = this.getNodeAt(x, y);
+        if (node) {
+            this.selectNode(node, true); // Open modal
+            return;
+        }
+
+        // Check if double-clicking on a group
+        const groupResult = this.getGroupAt(x, y);
+        if (groupResult) {
+            this.selectGroup(groupResult.group, true); // Open modal
+            return;
+        }
     }
 
     handleWheel(e) {

@@ -78,8 +78,15 @@ export function generateBasic(nodes, globalConfig = null) {
         // Flags from conditional paragraphs
         if (node.conditionalParagraphs) {
             node.conditionalParagraphs.forEach(cp => {
-                if (cp.flag && cp.flag.trim()) {
-                    // Extract flag name (e.g., "has:key" -> "key")
+                if (cp.conditions && cp.conditions.length > 0) {
+                    // New format: array of conditions
+                    cp.conditions.forEach(cond => {
+                        if (cond.flag && cond.flag.trim()) {
+                            allFlags.add(cond.flag);
+                        }
+                    });
+                } else if (cp.flag && cp.flag.trim()) {
+                    // Old format: single flag (backward compatibility)
                     const parts = cp.flag.split(':');
                     if (parts.length === 2) {
                         allFlags.add(parts[1]);
@@ -269,31 +276,37 @@ export function generateBasic(nodes, globalConfig = null) {
                             currentLine += 10;
                         }
                     });
-                } else if (conditional && conditional.flag) {
+                } else if (conditional && (conditional.conditions || conditional.flag)) {
                     // This paragraph is conditional
-                    const parts = conditional.flag.split(':');
-                    if (parts.length === 2) {
-                        const condition = parts[0]; // "has" or "not"
-                        const flagName = parts[1];
-                        const varName = `f${flagName}`;
-                        
-                        // Generate IF statement to print paragraph
-                        const wrappedPara = wrapText(paragraph);
-                        
-                        if (condition === 'has') {
-                            basicCode += `${currentLine} IF ${varName}=1 THEN PRINT "${wrappedPara}"\n`;
-                        } else { // "not"
-                            basicCode += `${currentLine} IF ${varName}=0 THEN PRINT "${wrappedPara}"\n`;
+                    const wrappedPara = wrapText(paragraph);
+                    let conditionExpression = '';
+                    
+                    if (conditional.conditions && conditional.conditions.length > 0) {
+                        // New format: multiple conditions combined with AND
+                        const conditions = conditional.conditions.map(cond => {
+                            const varName = `f${cond.flag}`;
+                            return cond.type === 'has' ? `${varName}=1` : `${varName}=0`;
+                        });
+                        conditionExpression = conditions.join(' AND ');
+                    } else if (conditional.flag) {
+                        // Old format: single condition (backward compatibility)
+                        const parts = conditional.flag.split(':');
+                        if (parts.length === 2) {
+                            const condition = parts[0]; // "has" or "not"
+                            const flagName = parts[1];
+                            const varName = `f${flagName}`;
+                            conditionExpression = condition === 'has' ? `${varName}=1` : `${varName}=0`;
                         }
+                    }
+                    
+                    if (conditionExpression) {
+                        // Generate IF statement to print paragraph
+                        basicCode += `${currentLine} IF ${conditionExpression} THEN PRINT "${wrappedPara}"\n`;
                         currentLine += 10;
                         
                         // Add blank line separator after conditional paragraph
                         if (idx < rawParagraphs.length - 1) {
-                            if (condition === 'has') {
-                                basicCode += `${currentLine} IF ${varName}=1 THEN PRINT ""\n`;
-                            } else {
-                                basicCode += `${currentLine} IF ${varName}=0 THEN PRINT ""\n`;
-                            }
+                            basicCode += `${currentLine} IF ${conditionExpression} THEN PRINT ""\n`;
                             currentLine += 10;
                         }
                     }

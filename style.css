@@ -149,18 +149,11 @@ main {
 }
 
 #property-panel {
-    width: 600px;
-    background-color: var(--panel-bg);
-    border-left: 1px solid #444;
-    padding: 10px;
-    overflow-y: auto;
-    transition: margin-right 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    display: none; /* Panel lateral oculto - se usa modal en su lugar */
 }
 
 #property-panel.hidden {
-    margin-right: -600px;
-    opacity: 0;
-    pointer-events: none;
+    display: none;
 }
 
 #property-panel h2 {
@@ -197,12 +190,6 @@ main {
     cursor: pointer;
 }
 
-.screen-text-readonly {
-    background-color: #1a1a1a !important;
-    cursor: not-allowed !important;
-    opacity: 0.7;
-}
-
 canvas {
     display: block;
 }
@@ -236,6 +223,161 @@ canvas {
     align-items: center;
     justify-content: center;
     position: relative;
+}
+
+/* Contenido del modal de edición de nodos */
+#node-edit-modal .modal-content {
+    max-width: 2200px;
+    width: 98%;
+    max-height: 90vh;
+    overflow-y: visible;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+#node-edit-modal-content {
+    flex: 1;
+    overflow-y: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Layout de dos columnas para el editor de nodos */
+.node-editor-layout {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    min-height: 0;
+}
+
+.node-editor-main {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.node-editor-sidebar {
+    width: 380px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.node-editor-sidebar h4 {
+    margin: 0 0 15px 0;
+    color: #4a9eff;
+    font-size: 14px;
+}
+
+/* Párrafos en el editor */
+.paragraph-item {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.paragraph-item:hover {
+    background-color: #333;
+    border-color: #555;
+}
+
+.paragraph-item.selected {
+    border-color: #4a9eff;
+    background-color: #1a3a5a;
+}
+
+.paragraph-item.conditional {
+    border-left: 4px solid #ffa500;
+}
+
+.paragraph-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.paragraph-number {
+    font-size: 11px;
+    color: #888;
+    font-weight: bold;
+}
+
+.paragraph-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background-color: #ffa500;
+    color: #000;
+}
+
+.paragraph-preview {
+    font-size: 12px;
+    color: #ccc;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.paragraph-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 5px;
+}
+
+.paragraph-actions button {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+/* Condiciones */
+.condition-item {
+    background-color: #2a2a2a;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border-left: 3px solid #4a9eff;
+}
+
+.condition-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.condition-row select,
+.condition-row input {
+    flex: 1;
+    padding: 4px 8px;
+    background-color: var(--node-bg);
+    color: var(--text-color);
+    border: 1px solid var(--node-border);
+    font-size: 12px;
+}
+
+.condition-remove {
+    background-color: #d00000 !important;
+    color: white !important;
+    border: none !important;
+    padding: 4px 8px !important;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.add-condition-btn {
+    width: 100%;
+    margin-top: 10px;
 }
 
 .modal-close-btn {

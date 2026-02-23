@@ -21,23 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         interface: { ink: 'white', paper: 'black', bright: false, flash: false }
     };
 
-    // Referencias a las secciones de configuración específica
-    const separatorConfigSection = document.getElementById('separator-config');
-    const useCustomConfigCheckbox = document.getElementById('use-custom-config');
-    const customConfigContent = document.getElementById('custom-config-content');
-    const pageInk = document.getElementById('page-ink');
-    const pagePaper = document.getElementById('page-paper');
-    const pageBright = document.getElementById('page-bright');
-    const pageFlash = document.getElementById('page-flash');
-    const separatorInk = document.getElementById('separator-ink');
-    const separatorPaper = document.getElementById('separator-paper');
-    const separatorBright = document.getElementById('separator-bright');
-    const separatorFlash = document.getElementById('separator-flash');
-    const interfaceInk = document.getElementById('interface-ink');
-    const interfacePaper = document.getElementById('interface-paper');
-    const interfaceBright = document.getElementById('interface-bright');
-    const interfaceFlash = document.getElementById('interface-flash');
-
     // Referencias a la configuración global
     const globalConfigModal = document.getElementById('global-config-modal');
     const globalPageInk = document.getElementById('global-page-ink');
@@ -123,136 +106,71 @@ document.addEventListener('DOMContentLoaded', () => {
     globalInterfaceBright.addEventListener('change', saveGlobalConfig);
     globalInterfaceFlash.addEventListener('change', saveGlobalConfig);
 
-    // Initialize Editor
-    const editor = new NodeEditor(canvas, (selectedNode) => {
-        updatePropertyPanel(selectedNode);
-        
-        // Mostrar opciones solo si hay página seleccionada
-        if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen')) {
-            separatorConfigSection.style.display = 'block';
-            
-            // Verificar si usa configuración específica
-            const useCustom = selectedNode.useCustomConfig || false;
-            useCustomConfigCheckbox.checked = useCustom;
-            customConfigContent.style.display = useCustom ? 'block' : 'none';
-            
-            // Cargar configuración de página (específica o global)
-            if (useCustom && selectedNode.pageConfig) {
-                pageInk.value = selectedNode.pageConfig.ink;
-                pagePaper.value = selectedNode.pageConfig.paper;
-                pageBright.checked = selectedNode.pageConfig.bright;
-                pageFlash.checked = selectedNode.pageConfig.flash;
-            } else {
-                pageInk.value = globalConfig.page.ink;
-                pagePaper.value = globalConfig.page.paper;
-                pageBright.checked = globalConfig.page.bright;
-                pageFlash.checked = globalConfig.page.flash;
-            }
-            
-            // Cargar configuración de separador (específica o global)
-            if (useCustom && selectedNode.separatorConfig) {
-                separatorInk.value = selectedNode.separatorConfig.ink;
-                separatorPaper.value = selectedNode.separatorConfig.paper;
-                separatorBright.checked = selectedNode.separatorConfig.bright;
-                separatorFlash.checked = selectedNode.separatorConfig.flash;
-            } else {
-                separatorInk.value = globalConfig.separator.ink;
-                separatorPaper.value = globalConfig.separator.paper;
-                separatorBright.checked = globalConfig.separator.bright;
-                separatorFlash.checked = globalConfig.separator.flash;
-            }
-            
-            // Cargar configuración de interfaz (específica o global)
-            if (useCustom && selectedNode.interfaceConfig) {
-                interfaceInk.value = selectedNode.interfaceConfig.ink;
-                interfacePaper.value = selectedNode.interfaceConfig.paper;
-                interfaceBright.checked = selectedNode.interfaceConfig.bright;
-                interfaceFlash.checked = selectedNode.interfaceConfig.flash;
-            } else {
-                interfaceInk.value = globalConfig.interface.ink;
-                interfacePaper.value = globalConfig.interface.paper;
-                interfaceBright.checked = globalConfig.interface.bright;
-                interfaceFlash.checked = globalConfig.interface.flash;
-            }
-        } else {
-            separatorConfigSection.style.display = 'none';
-        }
-    });
+    // Funciones para el modal de edición de nodos
+    const nodeEditModal = document.getElementById('node-edit-modal');
+    const nodeEditModalContent = document.getElementById('node-edit-modal-content');
+    const nodeEditModalTitle = document.getElementById('node-edit-modal-title');
+    let currentEditingNode = null;
 
-    // Toggle configuración específica
-    useCustomConfigCheckbox.addEventListener('change', (e) => {
-        const node = editor.selectedNode;
-        if (!node) return;
+    function openNodeEditModal(nodeOrGroup) {
+        if (!nodeOrGroup) return;
+        currentEditingNode = nodeOrGroup;
         
-        node.useCustomConfig = e.target.checked;
-        customConfigContent.style.display = e.target.checked ? 'block' : 'none';
-        
-        if (e.target.checked) {
-            // Inicializar con valores actuales de la interfaz
-            node.pageConfig = {
-                ink: pageInk.value,
-                paper: pagePaper.value,
-                bright: pageBright.checked,
-                flash: pageFlash.checked
-            };
-            node.separatorConfig = {
-                ink: separatorInk.value,
-                paper: separatorPaper.value,
-                bright: separatorBright.checked,
-                flash: separatorFlash.checked
-            };
-            node.interfaceConfig = {
-                ink: interfaceInk.value,
-                paper: interfacePaper.value,
-                bright: interfaceBright.checked,
-                flash: interfaceFlash.checked
-            };
+        // Actualizar título del modal
+        if (nodeOrGroup instanceof Group) {
+            nodeEditModalTitle.textContent = 'Editar Grupo';
+        } else if (nodeOrGroup instanceof NodeReference) {
+            nodeEditModalTitle.textContent = 'Editar Referencia';
         } else {
-            // Eliminar configuración específica
-            delete node.pageConfig;
-            delete node.separatorConfig;
-            delete node.interfaceConfig;
+            nodeEditModalTitle.textContent = 'Editar Nodo';
         }
-    });
-
-    // Función para guardar configuraciones en el nodo seleccionado
-    function saveConfigToNode(node) {
-        if (!node || (node.type !== 'screen' && node.type !== 'Screen')) return;
-        if (!node.useCustomConfig) return; // Solo guardar si usa configuración específica
         
-        node.pageConfig = {
-            ink: pageInk.value,
-            paper: pagePaper.value,
-            bright: pageBright.checked,
-            flash: pageFlash.checked
-        };
-        node.separatorConfig = {
-            ink: separatorInk.value,
-            paper: separatorPaper.value,
-            bright: separatorBright.checked,
-            flash: separatorFlash.checked
-        };
-        node.interfaceConfig = {
-            ink: interfaceInk.value,
-            paper: interfacePaper.value,
-            bright: interfaceBright.checked,
-            flash: interfaceFlash.checked
-        };
+        // Limpiar contenido anterior
+        nodeEditModalContent.innerHTML = '';
+        
+        // Generar contenido según el tipo
+        if (nodeOrGroup instanceof Group) {
+            updateGroupProperties(nodeOrGroup, nodeEditModalContent);
+        } else if (nodeOrGroup instanceof NodeReference) {
+            updateReferenceProperties(nodeOrGroup, nodeEditModalContent);
+        } else {
+            updateNodeProperties(nodeOrGroup, nodeEditModalContent);
+        }
+        
+        // Mostrar modal
+        nodeEditModal.style.display = 'flex';
     }
 
-    // Event listeners para guardar configuraciones
-    pageInk.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    pagePaper.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    pageBright.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    pageFlash.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    separatorInk.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    separatorPaper.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    separatorBright.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    separatorFlash.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    interfaceInk.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    interfacePaper.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    interfaceBright.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
-    interfaceFlash.addEventListener('change', () => saveConfigToNode(editor.selectedNode));
+    function closeNodeEditModal() {
+        nodeEditModal.style.display = 'none';
+        currentEditingNode = null;
+    }
+
+    // Event listeners para cerrar el modal
+    document.getElementById('node-edit-modal-close-btn').addEventListener('click', closeNodeEditModal);
+    document.getElementById('node-edit-modal-close').addEventListener('click', closeNodeEditModal);
+
+    // Cerrar modal al hacer clic fuera de él
+    nodeEditModal.addEventListener('click', (e) => {
+        if (e.target === nodeEditModal) {
+            closeNodeEditModal();
+        }
+    });
+
+    // Initialize Editor
+    const editor = new NodeEditor(canvas, (selectedNode) => {
+        // Cuando se selecciona un nodo, abrir el modal de edición
+        if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen')) {
+            openNodeEditModal(selectedNode);
+        } else if (selectedNode instanceof Group) {
+            openNodeEditModal(selectedNode);
+        } else if (selectedNode instanceof NodeReference) {
+            openNodeEditModal(selectedNode);
+        } else {
+            // Si se deselecciona, cerrar el modal
+            closeNodeEditModal();
+        }
+    });
 
     // Function to update project name in header
     const updateProjectName = (name) => {
@@ -546,8 +464,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInput.value = '';
     });
 
-    function updateGroupProperties(group) {
-        propertyContent.innerHTML = '';
+    function updateGroupProperties(group, container = null) {
+        const targetContainer = container || propertyContent;
+        targetContainer.innerHTML = '';
 
         const createInput = (label, value, onChange) => {
             const formGroup = document.createElement('div');
@@ -586,19 +505,19 @@ document.addEventListener('DOMContentLoaded', () => {
             group.name = val;
             editor.draw();
         });
-        propertyContent.appendChild(nameInput);
+        targetContainer.appendChild(nameInput);
 
         const colorInput = createColorInput('Group Color', group.color, (val) => {
             group.color = val;
             editor.draw();
         });
-        propertyContent.appendChild(colorInput);
+        targetContainer.appendChild(colorInput);
 
         // Show member nodes count
         const infoDiv = document.createElement('div');
         infoDiv.className = 'form-group';
         infoDiv.innerHTML = `<p style="color: #aaa; font-size: 0.9em;">Contains ${group.nodeIds.length} node(s)</p>`;
-        propertyContent.appendChild(infoDiv);
+        targetContainer.appendChild(infoDiv);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = "Delete Group";
@@ -611,16 +530,18 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteBtn.style.width = "100%";
         deleteBtn.addEventListener('click', () => {
             editor.removeGroup(group);
+            if (container) closeNodeEditModal(); // Cerrar modal si se está usando
         });
-        propertyContent.appendChild(deleteBtn);
+        targetContainer.appendChild(deleteBtn);
     }
 
-    function updateReferenceProperties(reference) {
-        propertyContent.innerHTML = '';
+    function updateReferenceProperties(reference, container = null) {
+        const targetContainer = container || propertyContent;
+        targetContainer.innerHTML = '';
 
         const title = document.createElement('h3');
         title.textContent = 'Node Reference';
-        propertyContent.appendChild(title);
+        targetContainer.appendChild(title);
 
         // Dropdown to select target node
         const formGroup = document.createElement('div');
@@ -657,27 +578,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         formGroup.appendChild(select);
-        propertyContent.appendChild(formGroup);
+        targetContainer.appendChild(formGroup);
     }
 
-    function updatePropertyPanel(nodeOrGroup) {
+    function updatePropertyPanel(nodeOrGroup, container = null) {
+        const targetContainer = container || propertyContent;
         const propertyPanel = document.getElementById('property-panel');
-        propertyContent.innerHTML = '';
+        targetContainer.innerHTML = '';
         if (!nodeOrGroup) {
-            propertyPanel.classList.add('hidden');
+            if (!container) propertyPanel.classList.add('hidden');
             return;
         }
-        propertyPanel.classList.remove('hidden');
+        if (!container) propertyPanel.classList.remove('hidden');
 
         // Check if it's a Group
         if (nodeOrGroup instanceof Group) {
-            updateGroupProperties(nodeOrGroup);
+            updateGroupProperties(nodeOrGroup, targetContainer);
             return;
         }
 
         // Check if it's a NodeReference
         if (nodeOrGroup instanceof NodeReference) {
-            updateReferenceProperties(nodeOrGroup);
+            updateReferenceProperties(nodeOrGroup, targetContainer);
             return;
         }
 
@@ -700,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return group;
         };
 
-        const createTextarea = (label, value, onChange) => {
+        const createTextarea = (label, value, onChange, onCursorChange) => {
             const group = document.createElement('div');
             group.className = 'form-group';
 
@@ -709,691 +631,467 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const inputEl = document.createElement('textarea');
             inputEl.value = value || '';
-            inputEl.rows = 8; // Increased from 4
-            inputEl.readOnly = true; // Make readonly - force users to use the window editor
-            inputEl.className = 'screen-text-readonly';
+            inputEl.rows = 12; // Más grande para edición directa
+            inputEl.style.fontFamily = 'Courier New, monospace';
+            inputEl.style.fontSize = '14px';
+            inputEl.style.width = '100%';
+            inputEl.style.resize = 'vertical';
             inputEl.addEventListener('input', (e) => onChange(e.target.value));
-
-            const editBtn = document.createElement('button');
-            editBtn.textContent = '✎ Edit in Window';
-            editBtn.style.marginTop = '5px';
-            editBtn.style.width = '100%';
-            editBtn.addEventListener('click', () => {
-                // Use the CURRENT value from the textarea, not the initial 'value' closure
-                openTextEditor(inputEl.value, (newVal) => {
-                    inputEl.value = newVal;
-                    onChange(newVal);
-                });
-            });
+            
+            if (onCursorChange) {
+                inputEl.addEventListener('click', onCursorChange);
+                inputEl.addEventListener('keyup', onCursorChange);
+                inputEl.addEventListener('select', onCursorChange);
+            }
 
             group.appendChild(labelEl);
             group.appendChild(inputEl);
-            group.appendChild(editBtn);
-            return group;
+            return { group, inputEl };
         };
 
-        const openTextEditor = (currentText, onSave) => {
-            // Get the color configuration for current node
-            const pageConfig = (node.useCustomConfig && node.pageConfig) 
-                ? node.pageConfig 
-                : globalConfig.page;
-            const separatorConfig = (node.useCustomConfig && node.separatorConfig) 
-                ? node.separatorConfig 
-                : globalConfig.separator;
-            const interfaceConfig = (node.useCustomConfig && node.interfaceConfig) 
-                ? node.interfaceConfig 
-                : globalConfig.interface;
-
-            // Helper to convert ZX Spectrum color names to CSS colors
-            const colorToCSS = (colorName, bright = false) => {
-                const normalColors = {
-                    'black': '#000000',
-                    'blue': '#0000D7',
-                    'red': '#D70000',
-                    'magenta': '#D700D7',
-                    'green': '#00D700',
-                    'cyan': '#00D7D7',
-                    'yellow': '#D7D700',
-                    'white': '#D7D7D7'
-                };
-                const brightColors = {
-                    'black': '#000000',
-                    'blue': '#0000FF',
-                    'red': '#FF0000',
-                    'magenta': '#FF00FF',
-                    'green': '#00FF00',
-                    'cyan': '#00FFFF',
-                    'yellow': '#FFFF00',
-                    'white': '#FFFFFF'
-                };
-                return bright ? (brightColors[colorName] || '#FFFFFF') : (normalColors[colorName] || '#D7D7D7');
-            };
-
-            // Create modal
-            const overlay = document.createElement('div');
-            overlay.className = 'modal-overlay';
-
-            const modalContent = document.createElement('div');
-            modalContent.className = 'modal-content';
-
-            // Close button
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'modal-close-btn';
-            closeBtn.innerHTML = '&times;';
-            closeBtn.addEventListener('click', () => {
-                overlay.remove();
-            });
-
-            const title = document.createElement('h3');
-            title.textContent = 'Edit Screen Text';
-
-            const crtTv = document.createElement('div');
-            crtTv.className = 'crt-tv';
-
-            const crtScreen = document.createElement('div');
-            crtScreen.className = 'crt-screen';
-
-            // Calculate textarea height: 24 lines total - 1 separator - number of options
-            const numOptions = (node.outputs && node.outputs.length > 0) ? node.outputs.length : 0;
-            const textareaLines = 24 - 1 - numOptions; // 1 line for separator, rest for options
-            
-            const textarea = document.createElement('textarea');
-            textarea.value = currentText || '';
-            textarea.className = 'spectrum-textarea';
-            textarea.cols = 32;
-            textarea.rows = textareaLines;
-            textarea.setAttribute('maxlength', 32 * textareaLines);
-            
-            // Apply page colors
-            const pageInkColor = colorToCSS(pageConfig.ink, pageConfig.bright);
-            const pagePaperColor = colorToCSS(pageConfig.paper, pageConfig.bright);
-            textarea.style.color = pageInkColor;
-            textarea.style.backgroundColor = pagePaperColor;
-            textarea.style.borderColor = pagePaperColor;
-            if (pageConfig.flash) {
-                textarea.style.animation = 'flash-effect 1s infinite';
-            }
-
-            // Transliterate non-ASCII characters to ZX Spectrum compatible ASCII
-            const transliterateToASCII = (text) => {
-                const charMap = {
-                    'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ã': 'a', 'å': 'a',
-                    'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e',
-                    'í': 'i', 'ì': 'i', 'ï': 'i', 'î': 'i',
-                    'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'õ': 'o', 'ø': 'o',
-                    'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u',
-                    'ñ': 'n',
-                    'ç': 'c',
-                    'Á': 'A', 'À': 'A', 'Ä': 'A', 'Â': 'A', 'Ã': 'A', 'Å': 'A',
-                    'É': 'E', 'È': 'E', 'Ë': 'E', 'Ê': 'E',
-                    'Í': 'I', 'Ì': 'I', 'Ï': 'I', 'Î': 'I',
-                    'Ó': 'O', 'Ò': 'O', 'Ö': 'O', 'Ô': 'O', 'Õ': 'O', 'Ø': 'O',
-                    'Ú': 'U', 'Ù': 'U', 'Ü': 'U', 'Û': 'U',
-                    'Ñ': 'N',
-                    'Ç': 'C',
-                    '¿': '?', '¡': '!',
-                    '€': 'E', '£': 'L', '¥': 'Y',
-                    '\u201C': '"', '\u201D': '"', '\u2018': "'", '\u2019': "'",
-                    '–': '-', '—': '-', '…': '...'
-                };
-                
-                return text.replace(/[^\x00-\x7F]/g, (char) => charMap[char] || '');
-            };
-
-            textarea.addEventListener('input', (e) => {
-                const cursorPos = e.target.selectionStart;
-                const originalLength = e.target.value.length;
-                const transliterated = transliterateToASCII(e.target.value);
-                
-                if (transliterated !== e.target.value) {
-                    e.target.value = transliterated;
-                    // Adjust cursor position if text length changed
-                    const lengthDiff = originalLength - transliterated.length;
-                    e.target.setSelectionRange(cursorPos - lengthDiff, cursorPos - lengthDiff);
-                }
-            });
-
-            crtScreen.appendChild(textarea);
-            
-            // Add separator
-            const separator = document.createElement('div');
-            separator.className = 'spectrum-separator';
-            const sepInkColor = colorToCSS(separatorConfig.ink, separatorConfig.bright);
-            const sepPaperColor = colorToCSS(separatorConfig.paper, separatorConfig.bright);
-            separator.style.backgroundColor = sepPaperColor;
-            separator.style.color = sepInkColor;
-            separator.textContent = '─'.repeat(32);
-            separator.style.fontFamily = "'ZX Spectrum-7', monospace";
-            separator.style.fontSize = '32px';
-            separator.style.lineHeight = '0.45';
-            separator.style.letterSpacing = '0';
-            separator.style.width = '32ch';
-            separator.style.textAlign = 'left';
-            separator.style.padding = '0';
-            separator.style.margin = '0';
-            separator.style.boxSizing = 'content-box';
-            separator.style.borderLeft = '40px solid ' + sepPaperColor;
-            separator.style.borderRight = '40px solid ' + sepPaperColor;
-            separator.style.borderTop = '0';
-            separator.style.borderBottom = '0';
-            separator.style.overflow = 'hidden';
-            separator.style.display = 'block';
-            if (separatorConfig.flash) {
-                separator.style.animation = 'flash-effect 1s infinite';
-            }
-            crtScreen.appendChild(separator);
-            
-            // Add options display
-            const optionsContainer = document.createElement('div');
-            optionsContainer.className = 'spectrum-options';
-            const intInkColor = colorToCSS(interfaceConfig.ink, interfaceConfig.bright);
-            const intPaperColor = colorToCSS(interfaceConfig.paper, interfaceConfig.bright);
-            optionsContainer.style.backgroundColor = intPaperColor;
-            optionsContainer.style.color = intInkColor;
-            optionsContainer.style.fontFamily = "'ZX Spectrum-7', monospace";
-            optionsContainer.style.fontSize = '32px';
-            optionsContainer.style.lineHeight = '0.45';
-            optionsContainer.style.letterSpacing = '0';
-            optionsContainer.style.width = '32ch';
-            optionsContainer.style.padding = '0';
-            optionsContainer.style.margin = '0';
-            optionsContainer.style.boxSizing = 'content-box';
-            optionsContainer.style.borderLeft = '40px solid ' + intPaperColor;
-            optionsContainer.style.borderRight = '40px solid ' + intPaperColor;
-            optionsContainer.style.borderTop = '0';
-            optionsContainer.style.borderBottom = '40px solid ' + intPaperColor;
-            optionsContainer.style.overflow = 'hidden';
-            optionsContainer.style.display = 'block';
-            
-            // Display node options
-            if (node.outputs && node.outputs.length > 0) {
-                node.outputs.forEach((opt, idx) => {
-                    const optLine = document.createElement('div');
-                    optLine.style.margin = '0';
-                    optLine.style.padding = '0';
-                    optLine.style.lineHeight = '0.45';
-                    // Truncate option label to fit 32 chars including number and dot
-                    const maxLabelLength = 29; // "1. " takes 3 chars
-                    let label = opt.label.replace(/\n/g, ' ').trim();
-                    if (label.length > maxLabelLength) {
-                        label = label.substring(0, maxLabelLength - 3) + '...';
-                    }
-                    // Add space at start to respect ZX Spectrum border (1 character width)
-                    optLine.textContent = ` ${idx + 1}. ${label}`;
-                    optionsContainer.appendChild(optLine);
-                });
-            }
-            
-            if (interfaceConfig.flash) {
-                optionsContainer.style.animation = 'flash-effect 1s infinite';
-            }
-            crtScreen.appendChild(optionsContainer);
-            
-            crtTv.appendChild(crtScreen);
-
-            const btnContainer = document.createElement('div');
-            btnContainer.className = 'modal-buttons';
-
-            const saveBtn = document.createElement('button');
-            saveBtn.className = 'save-btn';
-            saveBtn.textContent = 'Save';
-            saveBtn.addEventListener('click', () => {
-                onSave(textarea.value);
-                overlay.remove();
-            });
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.addEventListener('click', () => {
-                overlay.remove();
-            });
-
-            btnContainer.appendChild(cancelBtn);
-            btnContainer.appendChild(saveBtn);
-            modalContent.appendChild(closeBtn);
-            modalContent.appendChild(title);
-            modalContent.appendChild(crtTv);
-            modalContent.appendChild(btnContainer);
-            overlay.appendChild(modalContent);
-
-            // Append to #app instead of body to support fullscreen visibility
-            const app = document.getElementById('app');
-            app.appendChild(overlay);
-
-            textarea.focus();
-        };
-
-        const titleInput = createInput('Node Title', node.title, (val) => {
-            node.title = val;
-            editor.draw();
-        });
-        propertyContent.appendChild(titleInput);
-
-        // Initialize conditionalParagraphs if not exists
+        // Initialize conditionalParagraphs with new structure (array of conditions)
         if (!node.conditionalParagraphs) {
             node.conditionalParagraphs = [];
         }
+        // Migrate old structure to new if needed
+        node.conditionalParagraphs.forEach(cp => {
+            if (cp.flag && !cp.conditions) {
+                // Old structure: {paragraphIndex: 0, flag: "has:key"}
+                // New structure: {paragraphIndex: 0, conditions: [{type: "has", flag: "key"}]}
+                cp.conditions = [];
+                if (cp.flag) {
+                    const parts = cp.flag.split(':');
+                    if (parts.length === 2) {
+                        cp.conditions.push({type: parts[0], flag: parts[1]});
+                    }
+                }
+                delete cp.flag;
+                delete cp.inverted;
+            }
+        });
 
         // Initialize paragraphImages if not exists
         if (!node.paragraphImages) {
             node.paragraphImages = [];
         }
 
-        // Define render functions before using them
-        let renderConditionalParagraphs;
-        let renderParagraphImages;
+        // Title input at the top
+        const titleInput = createInput('Node Title', node.title, (val) => {
+            node.title = val;
+            editor.draw();
+        });
+        targetContainer.appendChild(titleInput);
 
-        const textInput = createTextarea('Screen Text', node.text, (val) => {
+        // Create two-column layout
+        const editorLayout = document.createElement('div');
+        editorLayout.className = 'node-editor-layout';
+
+        // Main column (left)
+        const mainColumn = document.createElement('div');
+        mainColumn.className = 'node-editor-main';
+
+        // Sidebar column (right) - for paragraph details
+        const sidebarColumn = document.createElement('div');
+        sidebarColumn.className = 'node-editor-sidebar';
+        
+        const sidebarTitle = document.createElement('h4');
+        sidebarTitle.textContent = 'Detalles del Párrafo';
+        sidebarColumn.appendChild(sidebarTitle);
+
+        const sidebarContent = document.createElement('div');
+        sidebarContent.id = 'paragraph-details';
+        sidebarContent.innerHTML = '<p style="color: #888; font-size: 12px;">Haz clic en el texto para editar condiciones e imágenes del párrafo</p>';
+        sidebarColumn.appendChild(sidebarContent);
+
+        let selectedParagraphIndex = null;
+        let textareaElement = null;
+
+        // Function to get paragraph index from cursor position
+        const getParagraphIndexFromCursor = (textarea) => {
+            const cursorPos = textarea.selectionStart;
+            const text = textarea.value;
+            
+            // Find all double newline positions
+            const regex = /\n\n+/g;
+            const separators = [];
+            let match;
+            
+            while ((match = regex.exec(text)) !== null) {
+                separators.push({
+                    start: match.index,
+                    end: match.index + match[0].length
+                });
+            }
+            
+            // Determine which paragraph the cursor is in
+            let paragraphIndex = 0;
+            let lastEnd = 0;
+            
+            for (let i = 0; i < separators.length; i++) {
+                if (cursorPos >= lastEnd && cursorPos <= separators[i].start) {
+                    // Cursor is in paragraph i
+                    return paragraphIndex;
+                }
+                
+                // Check if there's actual content between lastEnd and separator start
+                const content = text.substring(lastEnd, separators[i].start).trim();
+                if (content.length > 0) {
+                    paragraphIndex++;
+                }
+                
+                lastEnd = separators[i].end;
+            }
+            
+            // Check if cursor is in the last paragraph
+            const lastContent = text.substring(lastEnd).trim();
+            if (lastContent.length > 0 && cursorPos >= lastEnd) {
+                return paragraphIndex;
+            }
+            
+            return Math.max(0, paragraphIndex);
+        };
+
+        // Function to update paragraph info display
+        const updateParagraphInfo = () => {
+            if (!textareaElement) return;
+            
+            const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
+            if (paragraphs.length === 0) {
+                selectedParagraphIndex = null;
+                sidebarContent.innerHTML = '<p style="color: #888; font-size: 12px;">Escribe texto y separa párrafos con doble salto de línea.</p>';
+                return;
+            }
+            
+            const idx = getParagraphIndexFromCursor(textareaElement);
+            
+            // Only update if paragraph changed
+            if (idx !== selectedParagraphIndex && idx < paragraphs.length) {
+                selectedParagraphIndex = idx;
+                renderParagraphDetails(idx);
+            }
+        };
+
+        // Text editor in main column with cursor change handler
+        const textInputData = createTextarea('Screen Text', node.text, (val) => {
             node.text = val;
             editor.draw();
-            // Re-render conditional paragraphs and images when text changes
-            if (renderConditionalParagraphs) {
-                renderConditionalParagraphs();
-            }
-            if (renderParagraphImages) {
-                renderParagraphImages();
-            }
-        });
-        propertyContent.appendChild(textInput);
-
-        // Conditional Paragraphs Section (collapsible)
-        const conditionalSection = document.createElement('div');
-        conditionalSection.style.marginTop = '15px';
-        conditionalSection.style.padding = '10px';
-        conditionalSection.style.backgroundColor = '#2a2a2a';
-        conditionalSection.style.borderRadius = '4px';
-
-        const conditionalTitle = document.createElement('h4');
-        conditionalTitle.textContent = '▼ 🎯 Párrafos condicionales';
-        conditionalTitle.style.margin = '0 0 10px 0';
-        conditionalTitle.style.color = '#4a9eff';
-        conditionalTitle.style.cursor = 'pointer';
-        conditionalTitle.style.userSelect = 'none';
+            updateParagraphInfo();
+        }, updateParagraphInfo);
         
-        const conditionalContent = document.createElement('div');
-        conditionalContent.style.display = 'block';
+        textareaElement = textInputData.inputEl;
+        mainColumn.appendChild(textInputData.group);
 
-        const conditionalInfo = document.createElement('div');
-        conditionalInfo.style.fontSize = '11px';
-        conditionalInfo.style.marginBottom = '10px';
-        conditionalInfo.style.color = '#aaa';
-        conditionalInfo.textContent = 'Marca párrafos para mostrarlos solo cuando un flag esté activado/desactivado. Los párrafos se separan con doble salto de línea.';
-        conditionalContent.appendChild(conditionalInfo);
+        const renderParagraphDetails = (idx) => {
+            sidebarContent.innerHTML = '';
 
-        // Toggle collapse
-        let isConditionalExpanded = true;
-        conditionalTitle.addEventListener('click', () => {
-            isConditionalExpanded = !isConditionalExpanded;
-            conditionalContent.style.display = isConditionalExpanded ? 'block' : 'none';
-            conditionalTitle.textContent = (isConditionalExpanded ? '▼' : '▶') + ' 🎯 Párrafos condicionales';
-        });
-
-        renderConditionalParagraphs = () => {
-            // Remove old container
-            const oldContainer = document.getElementById('conditional-paragraphs-container');
-            if (oldContainer) oldContainer.remove();
-
-            const container = document.createElement('div');
-            container.id = 'conditional-paragraphs-container';
-
-            // Split text into paragraphs
             const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
+            if (idx >= paragraphs.length) {
+                sidebarContent.innerHTML = '<p style="color: #888; font-size: 12px;">Párrafo no encontrado</p>';
+                return;
+            }
 
-            paragraphs.forEach((paragraph, idx) => {
-                const pRow = document.createElement('div');
-                pRow.style.marginBottom = '8px';
-                pRow.style.padding = '8px';
-                pRow.style.backgroundColor = '#1a1a1a';
-                pRow.style.borderRadius = '3px';
+            const paragraph = paragraphs[idx];
 
-                // Find if this paragraph is conditional
-                const conditional = node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
+            // Show paragraph number
+            const header = document.createElement('div');
+            header.style.marginBottom = '15px';
+            header.style.paddingBottom = '10px';
+            header.style.borderBottom = '1px solid #333';
 
-                // Paragraph preview
-                const previewRow = document.createElement('div');
-                previewRow.style.display = 'flex';
-                previewRow.style.justifyContent = 'space-between';
-                previewRow.style.alignItems = 'center';
-                previewRow.style.marginBottom = conditional ? '5px' : '0';
+            const title = document.createElement('h5');
+            title.textContent = `Párrafo §${idx + 1}`;
+            title.style.margin = '0 0 8px 0';
+            title.style.color = '#4a9eff';
+            header.appendChild(title);
 
-                const preview = document.createElement('div');
-                preview.style.fontSize = '11px';
-                preview.style.color = conditional ? '#4a9eff' : '#888';
-                preview.style.fontStyle = 'italic';
-                preview.style.flex = '1';
-                const previewText = paragraph.substring(0, 50) + (paragraph.length > 50 ? '...' : '');
-                preview.textContent = `§${idx + 1}: ${previewText}`;
-                previewRow.appendChild(preview);
+            const preview = document.createElement('div');
+            preview.style.fontSize = '11px';
+            preview.style.color = '#aaa';
+            preview.style.fontStyle = 'italic';
+            preview.textContent = paragraph.substring(0, 100) + (paragraph.length > 100 ? '...' : '');
+            header.appendChild(preview);
 
-                if (!conditional) {
-                    // Show "make conditional" button in the same row
-                    const makeCondBtn = document.createElement('button');
-                    makeCondBtn.textContent = '+ Hacer condicional';
-                    makeCondBtn.style.fontSize = '11px';
-                    makeCondBtn.style.padding = '3px 8px';
-                    makeCondBtn.style.whiteSpace = 'nowrap';
-                    makeCondBtn.addEventListener('click', () => {
-                        node.conditionalParagraphs.push({
-                            paragraphIndex: idx,
-                            flag: '',
-                            inverted: false
+            sidebarContent.appendChild(header);
+
+            // Conditions section
+            const conditionsTitle = document.createElement('h5');
+            conditionsTitle.textContent = 'Condiciones';
+            conditionsTitle.style.margin = '0 0 10px 0';
+            conditionsTitle.style.color = '#4a9eff';
+            conditionsTitle.style.fontSize = '13px';
+            sidebarContent.appendChild(conditionsTitle);
+
+            const conditionsInfo = document.createElement('div');
+            conditionsInfo.style.fontSize = '10px';
+            conditionsInfo.style.marginBottom = '10px';
+            conditionsInfo.style.color = '#888';
+            conditionsInfo.textContent = 'Este párrafo se mostrará solo si TODAS las condiciones se cumplen (AND lógico).';
+            sidebarContent.appendChild(conditionsInfo);
+
+            // Get or create conditional data
+            let conditionalData = node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
+            if (!conditionalData) {
+                conditionalData = {
+                    paragraphIndex: idx,
+                    conditions: []
+                };
+                node.conditionalParagraphs.push(conditionalData);
+            }
+
+            if (!conditionalData.conditions) {
+                conditionalData.conditions = [];
+            }
+
+            const conditionsContainer = document.createElement('div');
+            
+            const renderConditions = () => {
+                conditionsContainer.innerHTML = '';
+
+                if (conditionalData.conditions.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.style.fontSize = '11px';
+                    emptyMsg.style.color = '#666';
+                    emptyMsg.style.padding = '10px';
+                    emptyMsg.style.textAlign = 'center';
+                    emptyMsg.textContent = 'Sin condiciones (siempre se muestra)';
+                    conditionsContainer.appendChild(emptyMsg);
+                } else {
+                    conditionalData.conditions.forEach((condition, condIdx) => {
+                        const condItem = document.createElement('div');
+                        condItem.className = 'condition-item';
+
+                        const condRow = document.createElement('div');
+                        condRow.className = 'condition-row';
+
+                        // Type select
+                        const typeSelect = document.createElement('select');
+                        ['has', 'not'].forEach(type => {
+                            const opt = document.createElement('option');
+                            opt.value = type;
+                            opt.textContent = type === 'has' ? 'Tiene' : 'No tiene';
+                            if (condition.type === type) opt.selected = true;
+                            typeSelect.appendChild(opt);
                         });
-                        renderConditionalParagraphs();
-                    });
-                    previewRow.appendChild(makeCondBtn);
-                }
+                        typeSelect.addEventListener('change', (e) => {
+                            condition.type = e.target.value;
+                        });
 
-                pRow.appendChild(previewRow);
-
-                if (conditional) {
-                    // Show flag editor
-                    const flagRow = document.createElement('div');
-                    flagRow.style.display = 'flex';
-                    flagRow.style.gap = '5px';
-                    flagRow.style.alignItems = 'center';
-                    flagRow.style.marginBottom = '5px';
-
-                    // Parse current flag (e.g., "has:key" or "not:key")
-                    let flagCondition = 'has';
-                    let flagName = conditional.flag || '';
-                    if (flagName) {
-                        const parts = flagName.split(':');
-                        if (parts.length === 2 && (parts[0] === 'has' || parts[0] === 'not')) {
-                            flagCondition = parts[0];
-                            flagName = parts[1];
-                        }
-                    }
-
-                    // Condition dropdown (has/not)
-                    const conditionSelect = document.createElement('select');
-                    conditionSelect.style.flex = '0 0 auto';
-                    
-                    const hasOption = document.createElement('option');
-                    hasOption.value = 'has';
-                    hasOption.textContent = 'has';
-                    conditionSelect.appendChild(hasOption);
-                    
-                    const notOption = document.createElement('option');
-                    notOption.value = 'not';
-                    notOption.textContent = 'not';
-                    conditionSelect.appendChild(notOption);
-                    
-                    conditionSelect.value = flagCondition;
-
-                    // Collect available flag NAMES from ALL nodes in the graph (only the name part)
-                    const availableFlags = [];
-                    editor.nodes.forEach(n => {
-                        if (n.outputs) {
-                            n.outputs.forEach(opt => {
-                                if (opt.flag && opt.flag.trim()) {
-                                    // Extract flag name (e.g., "set:key" -> "key")
-                                    const parts = opt.flag.split(':');
-                                    let name = parts.length === 2 ? parts[1] : opt.flag;
-                                    // Remove any set/clear prefix if present
-                                    name = name.replace(/^(set|clear):/, '');
-                                    if (name && !availableFlags.includes(name)) {
-                                        availableFlags.push(name);
+                        // Flag select/input
+                        const availableFlags = new Set();
+                        editor.nodes.forEach(n => {
+                            if (n.outputs) {
+                                n.outputs.forEach(opt => {
+                                    if (opt.flag && opt.flag.trim()) {
+                                        const parts = opt.flag.split(':');
+                                        const name = parts.length === 2 ? parts[1] : opt.flag;
+                                        availableFlags.add(name);
                                     }
-                                }
-                            });
-                        }
-                    });
-
-                    const flagSelect = document.createElement('select');
-                    flagSelect.style.flex = '1';
-                    
-                    // Add empty option
-                    const emptyOption = document.createElement('option');
-                    emptyOption.value = '';
-                    emptyOption.textContent = '-- Selecciona flag --';
-                    flagSelect.appendChild(emptyOption);
-                    
-                    // Add options from available flags
-                    availableFlags.forEach(flag => {
-                        const opt = document.createElement('option');
-                        opt.value = flag;
-                        opt.textContent = flag;
-                        if (flagName === flag) {
-                            opt.selected = true;
-                        }
-                        flagSelect.appendChild(opt);
-                    });
-                    
-                    // Set selected value
-                    if (flagName && !availableFlags.includes(flagName)) {
-                        // If current flag is not in available flags, add it as option
-                        const customOpt = document.createElement('option');
-                        customOpt.value = flagName;
-                        customOpt.textContent = flagName + ' (no está en las opciones)';
-                        customOpt.selected = true;
-                        flagSelect.appendChild(customOpt);
-                    }
-                    
-                    // Update flag when either changes
-                    const updateConditionalFlag = () => {
-                        const condition = conditionSelect.value;
-                        const name = flagSelect.value;
-                        if (name) {
-                            conditional.flag = `${condition}:${name}`;
-                        } else {
-                            conditional.flag = '';
-                        }
-                    };
-                    
-                    conditionSelect.addEventListener('change', updateConditionalFlag);
-                    flagSelect.addEventListener('change', updateConditionalFlag);
-
-                    const removeBtn = document.createElement('button');
-                    removeBtn.textContent = 'Quitar';
-                    removeBtn.style.padding = '3px 8px';
-                    removeBtn.style.fontSize = '11px';
-                    removeBtn.addEventListener('click', () => {
-                        node.conditionalParagraphs = node.conditionalParagraphs.filter(cp => cp !== conditional);
-                        renderConditionalParagraphs();
-                    });
-
-                    flagRow.appendChild(conditionSelect);
-                    flagRow.appendChild(flagSelect);
-                    flagRow.appendChild(removeBtn);
-                    pRow.appendChild(flagRow);
-                }
-
-                container.appendChild(pRow);
-            });
-
-            if (paragraphs.length === 0) {
-                const emptyMsg = document.createElement('div');
-                emptyMsg.style.fontSize = '11px';
-                emptyMsg.style.color = '#666';
-                emptyMsg.textContent = 'Escribe texto arriba y separa párrafos con doble salto de línea.';
-                container.appendChild(emptyMsg);
-            }
-
-            conditionalContent.appendChild(container);
-        };
-
-        renderConditionalParagraphs();
-        conditionalSection.appendChild(conditionalTitle);
-        conditionalSection.appendChild(conditionalContent);
-        propertyContent.appendChild(conditionalSection);
-
-        // Paragraph Images Section (collapsible)
-        const imagesSection = document.createElement('div');
-        imagesSection.style.marginTop = '15px';
-        imagesSection.style.padding = '10px';
-        imagesSection.style.backgroundColor = '#2a2a2a';
-        imagesSection.style.borderRadius = '4px';
-
-        const imagesTitle = document.createElement('h4');
-        imagesTitle.textContent = '▼ 🖼️ Imágenes entre párrafos';
-        imagesTitle.style.margin = '0 0 10px 0';
-        imagesTitle.style.color = '#4a9eff';
-        imagesTitle.style.cursor = 'pointer';
-        imagesTitle.style.userSelect = 'none';
-        
-        const imagesContent = document.createElement('div');
-        imagesContent.style.display = 'block';
-
-        const imagesInfo = document.createElement('div');
-        imagesInfo.style.fontSize = '11px';
-        imagesInfo.style.marginBottom = '10px';
-        imagesInfo.style.color = '#aaa';
-        imagesInfo.textContent = 'Añade imágenes SCREEN$ (.scr) que se mostrarán antes de cada párrafo. Las imágenes deben estar en el mismo directorio que el TAP.';
-        imagesContent.appendChild(imagesInfo);
-
-        // Toggle collapse
-        let isImagesExpanded = true;
-        imagesTitle.addEventListener('click', () => {
-            isImagesExpanded = !isImagesExpanded;
-            imagesContent.style.display = isImagesExpanded ? 'block' : 'none';
-            imagesTitle.textContent = (isImagesExpanded ? '▼' : '▶') + ' 🖼️ Imágenes entre párrafos';
-        });
-
-        renderParagraphImages = () => {
-            // Remove old container
-            const oldContainer = document.getElementById('paragraph-images-container');
-            if (oldContainer) oldContainer.remove();
-
-            const container = document.createElement('div');
-            container.id = 'paragraph-images-container';
-
-            // Split text into paragraphs
-            const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
-
-            paragraphs.forEach((paragraph, idx) => {
-                const pRow = document.createElement('div');
-                pRow.style.marginBottom = '8px';
-                pRow.style.padding = '8px';
-                pRow.style.backgroundColor = '#1a1a1a';
-                pRow.style.borderRadius = '3px';
-
-                // Find if this paragraph has an image
-                const imageData = node.paragraphImages.find(pi => pi.paragraphIndex === idx);
-
-                // Paragraph preview
-                const previewRow = document.createElement('div');
-                previewRow.style.display = 'flex';
-                previewRow.style.justifyContent = 'space-between';
-                previewRow.style.alignItems = 'center';
-                previewRow.style.marginBottom = imageData ? '5px' : '0';
-
-                const preview = document.createElement('div');
-                preview.style.fontSize = '11px';
-                preview.style.color = imageData ? '#4a9eff' : '#888';
-                preview.style.fontStyle = 'italic';
-                preview.style.flex = '1';
-                const previewText = paragraph.substring(0, 50) + (paragraph.length > 50 ? '...' : '');
-                preview.textContent = `§${idx + 1}: ${previewText}`;
-                previewRow.appendChild(preview);
-
-                if (!imageData) {
-                    // Show "add image" button in the same row
-                    const addImgBtn = document.createElement('button');
-                    addImgBtn.textContent = '+ Añadir imagen';
-                    addImgBtn.style.fontSize = '11px';
-                    addImgBtn.style.padding = '3px 8px';
-                    addImgBtn.style.whiteSpace = 'nowrap';
-                    addImgBtn.addEventListener('click', () => {
-                        node.paragraphImages.push({
-                            paragraphIndex: idx,
-                            imageName: ''
+                                });
+                            }
                         });
-                        renderParagraphImages();
-                    });
-                    previewRow.appendChild(addImgBtn);
-                }
 
-                pRow.appendChild(previewRow);
+                        const flagSelect = document.createElement('select');
+                        const emptyOpt = document.createElement('option');
+                        emptyOpt.value = '';
+                        emptyOpt.textContent = '-- Flag --';
+                        flagSelect.appendChild(emptyOpt);
 
-                if (imageData) {
-                    // Show image name editor
-                    const imgRow = document.createElement('div');
-                    imgRow.style.display = 'flex';
-                    imgRow.style.gap = '5px';
-                    imgRow.style.alignItems = 'center';
+                        Array.from(availableFlags).forEach(flag => {
+                            const opt = document.createElement('option');
+                            opt.value = flag;
+                            opt.textContent = flag;
+                            if (condition.flag === flag) opt.selected = true;
+                            flagSelect.appendChild(opt);
+                        });
 
-                    const imgLabel = document.createElement('span');
-                    imgLabel.textContent = 'SCREEN$:';
-                    imgLabel.style.fontSize = '11px';
-                    imgLabel.style.whiteSpace = 'nowrap';
-
-                    const imgInput = document.createElement('input');
-                    imgInput.type = 'text';
-                    imgInput.value = imageData.imageName || '';
-                    imgInput.placeholder = 'nombre.scr';
-                    imgInput.style.flex = '1';
-                    imgInput.style.fontSize = '11px';
-                    imgInput.addEventListener('input', (e) => {
-                        imageData.imageName = e.target.value;
-                    });
-
-                    // Hidden file input
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = '.scr';
-                    fileInput.style.display = 'none';
-                    fileInput.addEventListener('change', (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                            // Store just the filename
-                            imageData.imageName = file.name;
-                            imgInput.value = file.name;
-                            
-                            // Optionally read and store file content as base64 for future use
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                                imageData.imageData = event.target.result; // Store as data URL
-                            };
-                            reader.readAsDataURL(file);
+                        // Add custom option if current flag is not in list
+                        if (condition.flag && !availableFlags.has(condition.flag)) {
+                            const customOpt = document.createElement('option');
+                            customOpt.value = condition.flag;
+                            customOpt.textContent = condition.flag + ' (custom)';
+                            customOpt.selected = true;
+                            flagSelect.appendChild(customOpt);
                         }
-                    });
 
-                    const browseBtn = document.createElement('button');
-                    browseBtn.textContent = '📁 Examinar';
-                    browseBtn.style.padding = '3px 8px';
-                    browseBtn.style.fontSize = '11px';
-                    browseBtn.style.whiteSpace = 'nowrap';
-                    browseBtn.addEventListener('click', () => {
-                        fileInput.click();
-                    });
+                        flagSelect.addEventListener('change', (e) => {
+                            condition.flag = e.target.value;
+                        });
 
-                    const removeBtn = document.createElement('button');
-                    removeBtn.textContent = 'Quitar';
-                    removeBtn.style.padding = '3px 8px';
-                    removeBtn.style.fontSize = '11px';
-                    removeBtn.addEventListener('click', () => {
-                        node.paragraphImages = node.paragraphImages.filter(pi => pi !== imageData);
-                        renderParagraphImages();
-                    });
+                        // Remove button
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'condition-remove';
+                        removeBtn.textContent = '✕';
+                        removeBtn.addEventListener('click', () => {
+                            conditionalData.conditions.splice(condIdx, 1);
+                            renderConditions();
+                        });
 
-                    imgRow.appendChild(imgLabel);
-                    imgRow.appendChild(imgInput);
-                    imgRow.appendChild(browseBtn);
-                    imgRow.appendChild(fileInput);
-                    imgRow.appendChild(removeBtn);
-                    pRow.appendChild(imgRow);
+                        condRow.appendChild(typeSelect);
+                        condRow.appendChild(flagSelect);
+                        condRow.appendChild(removeBtn);
+                        condItem.appendChild(condRow);
+                        conditionsContainer.appendChild(condItem);
+                    });
                 }
+            };
 
-                container.appendChild(pRow);
+            renderConditions();
+            sidebarContent.appendChild(conditionsContainer);
+
+            // Add condition button
+            const addBtn = document.createElement('button');
+            addBtn.className = 'add-condition-btn';
+            addBtn.textContent = '+ Añadir condición';
+            addBtn.addEventListener('click', () => {
+                conditionalData.conditions.push({
+                    type: 'has',
+                    flag: ''
+                });
+                renderConditions();
             });
+            sidebarContent.appendChild(addBtn);
 
-            if (paragraphs.length === 0) {
-                const emptyMsg = document.createElement('div');
-                emptyMsg.style.fontSize = '11px';
-                emptyMsg.style.color = '#666';
-                emptyMsg.textContent = 'Escribe texto arriba y separa párrafos con doble salto de línea.';
-                container.appendChild(emptyMsg);
+            // Remove all conditions button
+            if (conditionalData.conditions.length > 0) {
+                const removeAllBtn = document.createElement('button');
+                removeAllBtn.textContent = 'Quitar todas las condiciones';
+                removeAllBtn.style.width = '100%';
+                removeAllBtn.style.marginTop = '10px';
+                removeAllBtn.style.backgroundColor = '#d00000';
+                removeAllBtn.style.color = 'white';
+                removeAllBtn.addEventListener('click', () => {
+                    conditionalData.conditions = [];
+                    node.conditionalParagraphs = node.conditionalParagraphs.filter(cp => cp.paragraphIndex !== idx);
+                    renderConditions();
+                });
+                sidebarContent.appendChild(removeAllBtn);
             }
 
-            imagesContent.appendChild(container);
+            // Separator
+            const separator = document.createElement('div');
+            separator.style.height = '1px';
+            separator.style.backgroundColor = '#333';
+            separator.style.margin = '20px 0';
+            sidebarContent.appendChild(separator);
+
+            // Image section
+            const imageTitle = document.createElement('h5');
+            imageTitle.textContent = 'Imagen SCREEN$';
+            imageTitle.style.margin = '0 0 10px 0';
+            imageTitle.style.color = '#4a9eff';
+            imageTitle.style.fontSize = '13px';
+            sidebarContent.appendChild(imageTitle);
+
+            const imageInfo = document.createElement('div');
+            imageInfo.style.fontSize = '10px';
+            imageInfo.style.marginBottom = '10px';
+            imageInfo.style.color = '#888';
+            imageInfo.textContent = 'Añade una imagen .scr que se mostrará antes de este párrafo.';
+            sidebarContent.appendChild(imageInfo);
+
+            // Get or create image data for this paragraph
+            let imageData = node.paragraphImages.find(pi => pi.paragraphIndex === idx);
+
+            if (!imageData) {
+                // Show "add image" button
+                const addImgBtn = document.createElement('button');
+                addImgBtn.textContent = '+ Añadir imagen';
+                addImgBtn.style.width = '100%';
+                addImgBtn.style.padding = '8px';
+                addImgBtn.addEventListener('click', () => {
+                    node.paragraphImages.push({
+                        paragraphIndex: idx,
+                        imageName: ''
+                    });
+                    renderParagraphDetails(idx);
+                });
+                sidebarContent.appendChild(addImgBtn);
+            } else {
+                // Show image editor
+                const imgContainer = document.createElement('div');
+                imgContainer.style.backgroundColor = '#2a2a2a';
+                imgContainer.style.padding = '10px';
+                imgContainer.style.borderRadius = '4px';
+
+                const imgLabel = document.createElement('label');
+                imgLabel.textContent = 'Nombre del archivo:';
+                imgLabel.style.fontSize = '11px';
+                imgLabel.style.display = 'block';
+                imgLabel.style.marginBottom = '5px';
+                imgContainer.appendChild(imgLabel);
+
+                const imgInput = document.createElement('input');
+                imgInput.type = 'text';
+                imgInput.value = imageData.imageName || '';
+                imgInput.placeholder = 'nombre.scr';
+                imgInput.style.width = '100%';
+                imgInput.style.fontSize = '12px';
+                imgInput.style.marginBottom = '8px';
+                imgInput.addEventListener('input', (e) => {
+                    imageData.imageName = e.target.value;
+                });
+                imgContainer.appendChild(imgInput);
+
+                // Hidden file input
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.scr';
+                fileInput.style.display = 'none';
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        imageData.imageName = file.name;
+                        imgInput.value = file.name;
+                        
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            imageData.imageData = event.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+                imgContainer.appendChild(fileInput);
+
+                const buttonRow = document.createElement('div');
+                buttonRow.style.display = 'flex';
+                buttonRow.style.gap = '5px';
+
+                const browseBtn = document.createElement('button');
+                browseBtn.textContent = '📁 Examinar';
+                browseBtn.style.flex = '1';
+                browseBtn.style.padding = '6px 8px';
+                browseBtn.style.fontSize = '11px';
+                browseBtn.addEventListener('click', () => {
+                    fileInput.click();
+                });
+                buttonRow.appendChild(browseBtn);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Quitar';
+                removeBtn.style.flex = '1';
+                removeBtn.style.padding = '6px 8px';
+                removeBtn.style.fontSize = '11px';
+                removeBtn.style.backgroundColor = '#d00000';
+                removeBtn.style.color = 'white';
+                removeBtn.addEventListener('click', () => {
+                    node.paragraphImages = node.paragraphImages.filter(pi => pi !== imageData);
+                    renderParagraphDetails(idx);
+                });
+                buttonRow.appendChild(removeBtn);
+
+                imgContainer.appendChild(buttonRow);
+                sidebarContent.appendChild(imgContainer);
+            }
         };
 
-        renderParagraphImages();
-        imagesSection.appendChild(imagesTitle);
-        imagesSection.appendChild(imagesContent);
-        propertyContent.appendChild(imagesSection);
+        // Initialize paragraph display
+        setTimeout(() => updateParagraphInfo(), 0);
 
-        // Options Section (must come before Conditional Paragraphs)
+        editorLayout.appendChild(mainColumn);
+        editorLayout.appendChild(sidebarColumn);
+        targetContainer.appendChild(editorLayout);
+
+        // Options Section
         const optionsSection = document.createElement('div');
         optionsSection.style.marginTop = '15px';
         optionsSection.style.padding = '10px';
@@ -1539,6 +1237,232 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         renderOptions();
-        propertyContent.appendChild(optionsSection);
+        mainColumn.appendChild(optionsSection);
+
+        // Color Configuration Section (collapsible)
+        const colorConfigSection = document.createElement('div');
+        colorConfigSection.style.marginTop = '15px';
+        colorConfigSection.style.padding = '10px';
+        colorConfigSection.style.backgroundColor = '#2a2a2a';
+        colorConfigSection.style.borderRadius = '4px';
+
+        const colorConfigTitle = document.createElement('h4');
+        colorConfigTitle.textContent = '▼ 🎨 Configuración de Colores';
+        colorConfigTitle.style.margin = '0 0 10px 0';
+        colorConfigTitle.style.color = '#4a9eff';
+        colorConfigTitle.style.cursor = 'pointer';
+        colorConfigTitle.style.userSelect = 'none';
+        
+        const colorConfigContent = document.createElement('div');
+        colorConfigContent.style.display = 'block';
+
+        // Toggle collapse
+        let isColorConfigExpanded = true;
+        colorConfigTitle.addEventListener('click', () => {
+            isColorConfigExpanded = !isColorConfigExpanded;
+            colorConfigContent.style.display = isColorConfigExpanded ? 'block' : 'none';
+            colorConfigTitle.textContent = (isColorConfigExpanded ? '▼' : '▶') + ' 🎨 Configuración de Colores';
+        });
+
+        // Use custom config checkbox
+        const useCustomRow = document.createElement('div');
+        useCustomRow.style.marginBottom = '10px';
+        
+        const useCustomLabel = document.createElement('label');
+        useCustomLabel.style.display = 'flex';
+        useCustomLabel.style.alignItems = 'center';
+        useCustomLabel.style.cursor = 'pointer';
+        
+        const useCustomCheckbox = document.createElement('input');
+        useCustomCheckbox.type = 'checkbox';
+        useCustomCheckbox.checked = node.useCustomConfig || false;
+        useCustomCheckbox.style.marginRight = '8px';
+        
+        const useCustomText = document.createElement('span');
+        useCustomText.textContent = 'Usar configuración específica para este nodo';
+        
+        useCustomLabel.appendChild(useCustomCheckbox);
+        useCustomLabel.appendChild(useCustomText);
+        useCustomRow.appendChild(useCustomLabel);
+        colorConfigContent.appendChild(useCustomRow);
+
+        // Custom config container
+        const customConfigContainer = document.createElement('div');
+        customConfigContainer.style.display = node.useCustomConfig ? 'block' : 'none';
+
+        // Helper function to create color selects
+        const createColorConfig = (sectionTitle, configKey) => {
+            const section = document.createElement('div');
+            section.style.marginTop = '15px';
+            section.style.padding = '10px';
+            section.style.backgroundColor = '#1a1a1a';
+            section.style.borderRadius = '4px';
+
+            const title = document.createElement('h5');
+            title.textContent = sectionTitle;
+            title.style.margin = '0 0 10px 0';
+            title.style.color = '#4a9eff';
+            section.appendChild(title);
+
+            // Get current config or defaults
+            const currentConfig = node.useCustomConfig && node[configKey] 
+                ? node[configKey] 
+                : globalConfig[configKey.replace('Config', '')];
+
+            // INK and PAPER row
+            const colorRow = document.createElement('div');
+            colorRow.style.display = 'flex';
+            colorRow.style.gap = '10px';
+            colorRow.style.marginBottom = '8px';
+            colorRow.style.alignItems = 'center';
+
+            const inkLabel = document.createElement('label');
+            inkLabel.textContent = 'INK:';
+            inkLabel.style.minWidth = '40px';
+            
+            const inkSelect = document.createElement('select');
+            inkSelect.style.flex = '1';
+            ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
+                const opt = document.createElement('option');
+                opt.value = color;
+                opt.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+                if (currentConfig.ink === color) opt.selected = true;
+                inkSelect.appendChild(opt);
+            });
+
+            const paperLabel = document.createElement('label');
+            paperLabel.textContent = 'PAPER:';
+            paperLabel.style.minWidth = '50px';
+            paperLabel.style.marginLeft = '5px';
+            
+            const paperSelect = document.createElement('select');
+            paperSelect.style.flex = '1';
+            ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
+                const opt = document.createElement('option');
+                opt.value = color;
+                opt.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+                if (currentConfig.paper === color) opt.selected = true;
+                paperSelect.appendChild(opt);
+            });
+
+            colorRow.appendChild(inkLabel);
+            colorRow.appendChild(inkSelect);
+            colorRow.appendChild(paperLabel);
+            colorRow.appendChild(paperSelect);
+            section.appendChild(colorRow);
+
+            // Bright and Flash row
+            const flagsRow = document.createElement('div');
+            flagsRow.style.display = 'flex';
+            flagsRow.style.gap = '15px';
+            flagsRow.style.alignItems = 'center';
+
+            const brightLabel = document.createElement('label');
+            brightLabel.style.display = 'flex';
+            brightLabel.style.alignItems = 'center';
+            brightLabel.style.cursor = 'pointer';
+            
+            const brightCheckbox = document.createElement('input');
+            brightCheckbox.type = 'checkbox';
+            brightCheckbox.checked = currentConfig.bright || false;
+            brightCheckbox.style.marginRight = '5px';
+            
+            const brightText = document.createElement('span');
+            brightText.textContent = 'Bright';
+            
+            brightLabel.appendChild(brightCheckbox);
+            brightLabel.appendChild(brightText);
+
+            const flashLabel = document.createElement('label');
+            flashLabel.style.display = 'flex';
+            flashLabel.style.alignItems = 'center';
+            flashLabel.style.cursor = 'pointer';
+            
+            const flashCheckbox = document.createElement('input');
+            flashCheckbox.type = 'checkbox';
+            flashCheckbox.checked = currentConfig.flash || false;
+            flashCheckbox.style.marginRight = '5px';
+            
+            const flashText = document.createElement('span');
+            flashText.textContent = 'Flash';
+            
+            flashLabel.appendChild(flashCheckbox);
+            flashLabel.appendChild(flashText);
+
+            flagsRow.appendChild(brightLabel);
+            flagsRow.appendChild(flashLabel);
+            section.appendChild(flagsRow);
+
+            // Save changes
+            const saveConfig = () => {
+                if (node.useCustomConfig) {
+                    node[configKey] = {
+                        ink: inkSelect.value,
+                        paper: paperSelect.value,
+                        bright: brightCheckbox.checked,
+                        flash: flashCheckbox.checked
+                    };
+                }
+            };
+
+            inkSelect.addEventListener('change', saveConfig);
+            paperSelect.addEventListener('change', saveConfig);
+            brightCheckbox.addEventListener('change', saveConfig);
+            flashCheckbox.addEventListener('change', saveConfig);
+
+            return section;
+        };
+
+        customConfigContainer.appendChild(createColorConfig('Página', 'pageConfig'));
+        customConfigContainer.appendChild(createColorConfig('Separador', 'separatorConfig'));
+        customConfigContainer.appendChild(createColorConfig('Opciones', 'interfaceConfig'));
+
+        colorConfigContent.appendChild(customConfigContainer);
+
+        // Toggle custom config
+        useCustomCheckbox.addEventListener('change', (e) => {
+            node.useCustomConfig = e.target.checked;
+            customConfigContainer.style.display = e.target.checked ? 'block' : 'none';
+            
+            if (e.target.checked) {
+                // Initialize with current global values
+                node.pageConfig = {
+                    ink: globalConfig.page.ink,
+                    paper: globalConfig.page.paper,
+                    bright: globalConfig.page.bright,
+                    flash: globalConfig.page.flash
+                };
+                node.separatorConfig = {
+                    ink: globalConfig.separator.ink,
+                    paper: globalConfig.separator.paper,
+                    bright: globalConfig.separator.bright,
+                    flash: globalConfig.separator.flash
+                };
+                node.interfaceConfig = {
+                    ink: globalConfig.interface.ink,
+                    paper: globalConfig.interface.paper,
+                    bright: globalConfig.interface.bright,
+                    flash: globalConfig.interface.flash
+                };
+                // Recreate the config UI with new values
+                customConfigContainer.innerHTML = '';
+                customConfigContainer.appendChild(createColorConfig('Página', 'pageConfig'));
+                customConfigContainer.appendChild(createColorConfig('Separador', 'separatorConfig'));
+                customConfigContainer.appendChild(createColorConfig('Opciones', 'interfaceConfig'));
+            } else {
+                delete node.pageConfig;
+                delete node.separatorConfig;
+                delete node.interfaceConfig;
+            }
+        });
+
+        colorConfigSection.appendChild(colorConfigTitle);
+        colorConfigSection.appendChild(colorConfigContent);
+        mainColumn.appendChild(colorConfigSection);
+    }
+
+    // Wrapper for modal editing
+    function updateNodeProperties(node, container) {
+        return updatePropertyPanel(node, container);
     }
 });

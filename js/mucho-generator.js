@@ -95,11 +95,22 @@ export function generateMucho(nodes, globalConfig = null) {
             // Check if this paragraph is conditional
             const conditional = conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
             
-            if (conditional && conditional.flag) {
+            if (conditional && (conditional.conditions || conditional.flag)) {
                 // Add $O marker for conditional paragraphs
-                // Format is stored as "has:key" or "not:key"
-                // Export as-is: "$O has:key" or "$O not:key"
-                result += `$O ${conditional.flag}\n$P \n${trimmed} `;
+                let conditionStr = '';
+                
+                if (conditional.conditions && conditional.conditions.length > 0) {
+                    // New format: multiple conditions combined with AND
+                    // Format for MUCHO: $O has:key AND not:door
+                    conditionStr = conditional.conditions
+                        .map(cond => `${cond.type}:${cond.flag}`)
+                        .join(' AND ');
+                } else if (conditional.flag) {
+                    // Old format: single condition (backward compatibility)
+                    conditionStr = conditional.flag;
+                }
+                
+                result += `$O ${conditionStr}\n$P \n${trimmed} `;
             } else {
                 // Normal paragraph
                 result += `$P \n${trimmed} `;
