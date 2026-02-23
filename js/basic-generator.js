@@ -8,15 +8,15 @@ import { ScreenNode, NodeReference } from './nodes.js';
 // Helper: Resolve a node ID to its actual target (following references)
 function resolveNodeId(nodeId, nodes) {
     if (!nodeId) return null;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return null;
-    
+
     // If it's a reference, follow it to the target
     if (node instanceof NodeReference) {
         return resolveNodeId(node.targetNodeId, nodes);
     }
-    
+
     return nodeId;
 }
 
@@ -92,6 +92,15 @@ export function generateBasic(nodes, globalConfig = null) {
                         allFlags.add(parts[1]);
                     }
                 }
+
+                // Flags from setFlags actions
+                if (cp.setFlags && cp.setFlags.length > 0) {
+                    cp.setFlags.forEach(sf => {
+                        if (sf.flag && sf.flag.trim()) {
+                            allFlags.add(sf.flag);
+                        }
+                    });
+                }
             });
         }
     });
@@ -114,15 +123,15 @@ export function generateBasic(nodes, globalConfig = null) {
 
     // 2. Generate Header
     const startNode = screenNodes[0]; // Simplification: First node is start
-    
+
     // Get page configuration for the first node to apply before initial CLS
-    const firstPageConfig = (startNode.useCustomConfig && startNode.pageConfig) 
-        ? startNode.pageConfig 
+    const firstPageConfig = (startNode.useCustomConfig && startNode.pageConfig)
+        ? startNode.pageConfig
         : globalConfig.page;
-    
+
     basicCode += `10 INK ${colorToZX(firstPageConfig.ink)}: PAPER ${colorToZX(firstPageConfig.paper)}: BRIGHT ${firstPageConfig.bright ? 1 : 0}: FLASH ${firstPageConfig.flash ? 1 : 0}\n`;
     basicCode += `20 CLS\n`;
-    
+
     // Initialize flag variables (LET f=0)
     if (allFlags.size > 0) {
         let flagLine = 30;
@@ -147,21 +156,21 @@ export function generateBasic(nodes, globalConfig = null) {
         currentLine += 10;
 
         // Get page configuration (use node config if exists, else global)
-        const pageConfig = (node.useCustomConfig && node.pageConfig) 
-            ? node.pageConfig 
+        const pageConfig = (node.useCustomConfig && node.pageConfig)
+            ? node.pageConfig
             : globalConfig.page;
         const pageInk = pageConfig.ink;
         const pagePaper = pageConfig.paper;
         const pageBright = pageConfig.bright;
         const pageFlash = pageConfig.flash;
-        
+
         // Always set colors and clear screen at the start of each node
         // This ensures we have a clean state even if image loading fails
         basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
         currentLine += 10;
         basicCode += `${currentLine} CLS\n`;
         currentLine += 10;
-        
+
         // Check if there are images
         const hasParagraphImages = node.paragraphImages && node.paragraphImages.length > 0;
 
@@ -201,16 +210,16 @@ export function generateBasic(nodes, globalConfig = null) {
         };
 
         const safeText = wrapText(node.text || "");
-        
+
         // Split text into paragraphs (separated by double newlines in the original text)
         // When there are images, preserve empty lines; otherwise filter them out
-        const rawParagraphs = hasParagraphImages 
+        const rawParagraphs = hasParagraphImages
             ? (node.text || "").split('\n\n')  // Keep all paragraphs including empty ones
             : (node.text || "").split('\n\n').filter(p => p.trim());  // Filter empty ones when no images
-        
+
         // Check if there are conditional paragraphs
         const hasConditionalParagraphs = node.conditionalParagraphs && node.conditionalParagraphs.length > 0;
-        
+
         // If there's no text at all
         if (!node.text || node.text.trim().length === 0) {
             // Check if there are images to show even without text
@@ -241,10 +250,10 @@ export function generateBasic(nodes, globalConfig = null) {
             // Print each paragraph, checking if it's conditional or has an image
             rawParagraphs.forEach((paragraph, idx) => {
                 const conditional = hasConditionalParagraphs ? node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx) : null;
-                
+
                 // Check if there's an image for this paragraph
                 const imageData = hasParagraphImages ? node.paragraphImages.find(pi => pi.paragraphIndex === idx) : null;
-                
+
                 // If there's an image, load it first
                 if (imageData && imageData.imageName) {
                     // Remove .scr extension, convert to uppercase, and replace quotes for LOAD command
@@ -258,7 +267,7 @@ export function generateBasic(nodes, globalConfig = null) {
                     basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
                     currentLine += 10;
                 }
-                
+
                 // Then print the paragraph text (either over the image or on clean screen)
                 // When there's an image, preserve ALL newlines including empty ones
                 if (imageData && imageData.imageName && paragraph) {
@@ -276,14 +285,16 @@ export function generateBasic(nodes, globalConfig = null) {
                             currentLine += 10;
                         }
                     });
-                } else if (conditional && (conditional.conditions || conditional.flag)) {
-                    // This paragraph is conditional
+                } else if (conditional && (conditional.conditions || conditional.flag || (conditional.setFlags && conditional.setFlags.length > 0))) {
+                    // This paragraph is conditional or sets flags
                     const wrappedPara = wrapText(paragraph);
                     let conditionExpression = '';
-                    
+
                     if (conditional.conditions && conditional.conditions.length > 0) {
                         // New format: multiple conditions combined with AND
                         const conditions = conditional.conditions.map(cond => {
+                            if (cond.type === 'custom') return cond.flag;
+                            if (cond.type === 'rnd') return `INT(RND * 256) < ${cond.flag}`;
                             const varName = `f${cond.flag}`;
                             return cond.type === 'has' ? `${varName}=1` : `${varName}=0`;
                         });
@@ -298,15 +309,42 @@ export function generateBasic(nodes, globalConfig = null) {
                             conditionExpression = condition === 'has' ? `${varName}=1` : `${varName}=0`;
                         }
                     }
-                    
+
+                    let setFlagsStatement = '';
+                    if (conditional.setFlags && conditional.setFlags.length > 0) {
+                        const setFlagsCode = conditional.setFlags.map(sf => {
+                            if (sf.type === 'custom') return sf.flag;
+                            const varName = `f${sf.flag}`;
+                            if (sf.type === 'toggle') return `LET ${varName}=1-${varName}`;
+                            const val = sf.type === 'set' ? '1' : '0';
+                            return `LET ${varName}=${val}`;
+                        });
+                        setFlagsStatement = setFlagsCode.join(': ');
+                    }
+
                     if (conditionExpression) {
-                        // Generate IF statement to print paragraph
-                        basicCode += `${currentLine} IF ${conditionExpression} THEN PRINT "${wrappedPara}"\n`;
+                        // Generate IF statement to print paragraph and set flags
+                        let lineCmd = `IF ${conditionExpression} THEN PRINT "${wrappedPara}"`;
+                        if (setFlagsStatement) {
+                            lineCmd += `: ${setFlagsStatement}`;
+                        }
+                        basicCode += `${currentLine} ${lineCmd}\n`;
                         currentLine += 10;
-                        
+
                         // Add blank line separator after conditional paragraph
                         if (idx < rawParagraphs.length - 1) {
                             basicCode += `${currentLine} IF ${conditionExpression} THEN PRINT ""\n`;
+                            currentLine += 10;
+                        }
+                    } else if (setFlagsStatement) {
+                        // No conditions, but it sets flags when this paragraph is shown
+                        basicCode += `${currentLine} PRINT "${wrappedPara}"\n`;
+                        currentLine += 10;
+                        basicCode += `${currentLine} ${setFlagsStatement}\n`;
+                        currentLine += 10;
+
+                        if (idx < rawParagraphs.length - 1) {
+                            basicCode += `${currentLine} PRINT ""\n`;
                             currentLine += 10;
                         }
                     }
@@ -315,7 +353,7 @@ export function generateBasic(nodes, globalConfig = null) {
                     const wrappedPara = wrapText(paragraph);
                     basicCode += `${currentLine} PRINT "${wrappedPara}"\n`;
                     currentLine += 10;
-                    
+
                     // Add blank line separator between paragraphs
                     if (idx < rawParagraphs.length - 1) {
                         basicCode += `${currentLine} PRINT ""\n`;
@@ -332,41 +370,41 @@ export function generateBasic(nodes, globalConfig = null) {
         // Always show menu with options
         // If it's a last node (no outputs or no target), create a "Play again" option
         const target = node.outputs[0]?.target;
-        const effectiveOutputs = (node.outputs.length === 0 || !target) 
+        const effectiveOutputs = (node.outputs.length === 0 || !target)
             ? [{ label: "Jugar otro juego", target: startNode.id }]
             : node.outputs;
-        
+
         // Get separator configuration (use node config if exists, else global)
-        const sepConfig = (node.useCustomConfig && node.separatorConfig) 
-            ? node.separatorConfig 
-                : globalConfig.separator;
-            const sepInk = sepConfig.ink;
-            const sepPaper = sepConfig.paper;
-            const sepBright = sepConfig.bright;
-            const sepFlash = sepConfig.flash;
-            
-            // Get interface configuration (use node config if exists, else global)
-            const intConfig = (node.useCustomConfig && node.interfaceConfig) 
-                ? node.interfaceConfig 
-                : globalConfig.interface;
-            const intInk = intConfig.ink;
-            const intPaper = intConfig.paper;
-            const intBright = intConfig.bright;
-            const intFlash = intConfig.flash;
-        
+        const sepConfig = (node.useCustomConfig && node.separatorConfig)
+            ? node.separatorConfig
+            : globalConfig.separator;
+        const sepInk = sepConfig.ink;
+        const sepPaper = sepConfig.paper;
+        const sepBright = sepConfig.bright;
+        const sepFlash = sepConfig.flash;
+
+        // Get interface configuration (use node config if exists, else global)
+        const intConfig = (node.useCustomConfig && node.interfaceConfig)
+            ? node.interfaceConfig
+            : globalConfig.interface;
+        const intInk = intConfig.ink;
+        const intPaper = intConfig.paper;
+        const intBright = intConfig.bright;
+        const intFlash = intConfig.flash;
+
         // Calculate screen position: separator + options should be at bottom
         // ZX Spectrum has 24 lines (0-23), but lines 22-23 are INPUT area
         // We need: 1 line for separator + effectiveOutputs.length lines for options
         // Options should end at line 21 maximum
         const totalLines = 1 + effectiveOutputs.length; // separator + options
         const startLine = 21 - totalLines + 1; // Start position for separator
-        
+
         // Apply separator attributes and print separator at calculated position
         basicCode += `${currentLine} INK ${colorToZX(sepInk)}: PAPER ${colorToZX(sepPaper)}: BRIGHT ${sepBright ? 1 : 0}: FLASH ${sepFlash ? 1 : 0}\n`;
         currentLine += 10;
         basicCode += `${currentLine} PRINT AT ${startLine},0;"--------------------------------"\n`;
         currentLine += 10;
-        
+
         // Apply interface attributes
         basicCode += `${currentLine} INK ${colorToZX(intInk)}: PAPER ${colorToZX(intPaper)}: BRIGHT ${intBright ? 1 : 0}: FLASH ${intFlash ? 1 : 0}\n`;
         currentLine += 10;
@@ -392,21 +430,28 @@ export function generateBasic(nodes, globalConfig = null) {
                 const resolvedTarget = resolveNodeId(opt.target, nodes);
                 if (resolvedTarget) {
                     const targetLine = nodeLines.get(resolvedTarget);
-                    
+
                     // Check if this option has a flag action
                     if (opt.flag && opt.flag.trim()) {
                         const parts = opt.flag.split(':');
-                        if (parts.length === 2) {
-                            const action = parts[0]; // "set" or "clear"
-                            const flagName = parts[1];
-                            const varName = `f${flagName}`;
-                            
-                            // Generate: IF A$="1" THEN LET fkey=1: GO TO 2000
-                            const flagValue = action === 'set' ? 1 : 0;
-                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN LET ${varName}=${flagValue}: GO TO ${targetLine}\n`;
+                        if (parts.length >= 2 && ['set', 'clear', 'toggle', 'custom'].includes(parts[0])) {
+                            const action = parts[0]; // "set", "clear", "toggle", "custom"
+                            const flagName = parts.slice(1).join(':');
+
+                            if (action === 'custom') {
+                                basicCode += `${currentLine} IF A$="${idx + 1}" THEN ${flagName}: GO TO ${targetLine}\n`;
+                            } else {
+                                const varName = `f${flagName}`;
+                                let flagValueCode = '';
+                                if (action === 'set') flagValueCode = '1';
+                                else if (action === 'clear') flagValueCode = '0';
+                                else if (action === 'toggle') flagValueCode = `1-${varName}`;
+
+                                basicCode += `${currentLine} IF A$="${idx + 1}" THEN LET ${varName}=${flagValueCode}: GO TO ${targetLine}\n`;
+                            }
                             currentLine += 10;
                         } else {
-                            // No flag action, just jump
+                            // No valid flag action syntax recognized, just jump
                             basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
                             currentLine += 10;
                         }

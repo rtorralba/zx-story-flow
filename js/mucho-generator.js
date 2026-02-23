@@ -8,15 +8,15 @@ import { ScreenNode, NodeReference } from './nodes.js';
 // Helper: Resolve a node ID to its actual target (following references)
 function resolveNodeId(nodeId, nodes) {
     if (!nodeId) return null;
-    
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return null;
-    
+
     // If it's a reference, follow it to the target
     if (node instanceof NodeReference) {
         return resolveNodeId(node.targetNodeId, nodes);
     }
-    
+
     return nodeId;
 }
 
@@ -72,50 +72,64 @@ export function generateMucho(nodes, globalConfig = null) {
     });
 
     let muchoCode = "";
-    
+
     // Function to format text with paragraphs, conditional markers and images
     const formatTextWithParagraphs = (text, conditionalParagraphs = [], paragraphImages = []) => {
         if (!text) return "";
-        
+
         // Split text into paragraphs (by double line breaks)
         const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
-        
+
         // Format each paragraph with $P, conditional markers, and image markers
         return paragraphs.map((p, idx) => {
             const trimmed = p.trim();
             let result = '';
-            
+
             // Check if this paragraph has an image
             const imageData = paragraphImages.find(pi => pi.paragraphIndex === idx);
             if (imageData && imageData.imageName) {
                 // Add $I marker for images (SCREEN$ files)
                 result += `$I ${imageData.imageName}\n`;
             }
-            
+
             // Check if this paragraph is conditional
             const conditional = conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
-            
-            if (conditional && (conditional.conditions || conditional.flag)) {
+
+            if (conditional && ((conditional.conditions && conditional.conditions.length > 0) || conditional.flag)) {
                 // Add $O marker for conditional paragraphs
                 let conditionStr = '';
-                
+
                 if (conditional.conditions && conditional.conditions.length > 0) {
                     // New format: multiple conditions combined with AND
                     // Format for MUCHO: $O has:key AND not:door
                     conditionStr = conditional.conditions
-                        .map(cond => `${cond.type}:${cond.flag}`)
+                        .map(cond => cond.type === 'custom' ? cond.flag : `${cond.type}:${cond.flag}`)
                         .join(' AND ');
                 } else if (conditional.flag) {
                     // Old format: single condition (backward compatibility)
                     conditionStr = conditional.flag;
                 }
-                
-                result += `$O ${conditionStr}\n$P \n${trimmed} `;
+
+                // Process setFlags
+                let setFlagsStr = '';
+                if (conditional.setFlags && conditional.setFlags.length > 0) {
+                    setFlagsStr = ' ' + conditional.setFlags
+                        .map(sf => sf.type === 'custom' ? sf.flag : `${sf.type}:${sf.flag}`)
+                        .join(' ');
+                }
+
+                result += `$O ${conditionStr}\n$P${setFlagsStr} \n${trimmed} `;
+            } else if (conditional && conditional.setFlags && conditional.setFlags.length > 0) {
+                // Paragraph without conditions, but with setFlags
+                const setFlagsStr = conditional.setFlags
+                    .map(sf => sf.type === 'custom' ? sf.flag : `${sf.type}:${sf.flag}`)
+                    .join(' ');
+                result += `$P ${setFlagsStr}\n${trimmed} `;
             } else {
                 // Normal paragraph
                 result += `$P \n${trimmed} `;
             }
-            
+
             return result;
         }).join('\n');
     };
@@ -127,20 +141,20 @@ export function generateMucho(nodes, globalConfig = null) {
 
         // Calculate attributes
         // Page attributes (use node config if exists, else global)
-        const pageConfig = (node.useCustomConfig && node.pageConfig) 
-            ? node.pageConfig 
+        const pageConfig = (node.useCustomConfig && node.pageConfig)
+            ? node.pageConfig
             : globalConfig.page;
         const pageAttr = calculateAttribute(pageConfig.ink, pageConfig.paper, pageConfig.bright, pageConfig.flash);
-        
+
         // Separator attributes (use node config if exists, else global)
-        const sepConfig = (node.useCustomConfig && node.separatorConfig) 
-            ? node.separatorConfig 
+        const sepConfig = (node.useCustomConfig && node.separatorConfig)
+            ? node.separatorConfig
             : globalConfig.separator;
         const sepAttr = calculateAttribute(sepConfig.ink, sepConfig.paper, sepConfig.bright, sepConfig.flash);
-        
+
         // Interface attributes (use node config if exists, else global)
-        const intConfig = (node.useCustomConfig && node.interfaceConfig) 
-            ? node.interfaceConfig 
+        const intConfig = (node.useCustomConfig && node.interfaceConfig)
+            ? node.interfaceConfig
             : globalConfig.interface;
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
 
@@ -156,9 +170,17 @@ export function generateMucho(nodes, globalConfig = null) {
                     // Use the label from the map for the target node
                     const targetLabel = labelMap[resolvedTarget] || ("N" + resolvedTarget);
                     const choiceText = opt.label.replace(/\n/g, " ").trim();
-                    
+
                     // Add flag if present
-                    const flagPart = opt.flag ? ` ${opt.flag}` : '';
+                    let flagPart = '';
+                    if (opt.flag) {
+                        const parts = opt.flag.split(':');
+                        if (parts.length >= 2 && parts[0] === 'custom') {
+                            flagPart = ' ' + parts.slice(1).join(':');
+                        } else {
+                            flagPart = ' ' + opt.flag;
+                        }
+                    }
                     muchoCode += `$A ${targetLabel}${flagPart}\n${choiceText}\n`;
                 }
             }

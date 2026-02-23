@@ -665,6 +665,35 @@ document.addEventListener('DOMContentLoaded', () => {
         // Otherwise, it's a normal node
         const node = nodeOrGroup;
 
+        // Create/Update global datalist for flags
+        let datalistId = 'globalFlagsDatalist';
+        let flagDatalist = document.getElementById(datalistId);
+        if (!flagDatalist) {
+            flagDatalist = document.createElement('datalist');
+            flagDatalist.id = datalistId;
+            document.body.appendChild(flagDatalist);
+        }
+        flagDatalist.innerHTML = '';
+
+        const allAvailableFlags = new Set();
+        editor.nodes.forEach(n => {
+            if (n.outputs) {
+                n.outputs.forEach(opt => {
+                    if (opt.flag && opt.flag.trim()) {
+                        const parts = opt.flag.split(':');
+                        const name = parts.length === 2 ? parts[1] : opt.flag;
+                        allAvailableFlags.add(name);
+                    }
+                });
+            }
+        });
+
+        allAvailableFlags.forEach(flag => {
+            const opt = document.createElement('option');
+            opt.value = flag;
+            flagDatalist.appendChild(opt);
+        });
+
         const createInput = (label, value, onChange) => {
             const group = document.createElement('div');
             group.className = 'form-group';
@@ -896,6 +925,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 conditionalData.conditions = [];
             }
 
+            // Gather available flags for both conditions and setFlags - THIS IS NOW GLOBAL
+            // const availableFlags = new Set();
+            // editor.nodes.forEach(n => {
+            //     if (n.outputs) {
+            //         n.outputs.forEach(opt => {
+            //             if (opt.flag && opt.flag.trim()) {
+            //                 const parts = opt.flag.split(':');
+            //                 const name = parts.length === 2 ? parts[1] : opt.flag;
+            //                 availableFlags.add(name);
+            //             }
+            //         });
+            //     }
+            // });
+
             const conditionsContainer = document.createElement('div');
 
             const renderConditions = () => {
@@ -919,56 +962,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // Type select
                         const typeSelect = document.createElement('select');
-                        ['has', 'not'].forEach(type => {
+                        [
+                            { val: 'has', text: 'Tiene' },
+                            { val: 'not', text: 'No tiene' },
+                            { val: 'rnd', text: 'Aleatorio (0-255)' },
+                            { val: 'custom', text: 'Expresión libre' }
+                        ].forEach(t => {
                             const opt = document.createElement('option');
-                            opt.value = type;
-                            opt.textContent = type === 'has' ? 'Tiene' : 'No tiene';
-                            if (condition.type === type) opt.selected = true;
+                            opt.value = t.val;
+                            opt.textContent = t.text;
+                            if (condition.type === t.val) opt.selected = true;
                             typeSelect.appendChild(opt);
                         });
                         typeSelect.addEventListener('change', (e) => {
                             condition.type = e.target.value;
                         });
 
-                        // Flag select/input
-                        const availableFlags = new Set();
-                        editor.nodes.forEach(n => {
-                            if (n.outputs) {
-                                n.outputs.forEach(opt => {
-                                    if (opt.flag && opt.flag.trim()) {
-                                        const parts = opt.flag.split(':');
-                                        const name = parts.length === 2 ? parts[1] : opt.flag;
-                                        availableFlags.add(name);
-                                    }
-                                });
-                            }
-                        });
+                        // Flag input with datalist
+                        const flagSelect = document.createElement('input');
+                        flagSelect.type = 'text';
+                        flagSelect.setAttribute('list', 'globalFlagsDatalist');
+                        flagSelect.value = condition.flag || '';
+                        flagSelect.placeholder = 'Nombre flag';
+                        flagSelect.title = 'Nombre del flag';
+                        flagSelect.style.width = '100px';
+                        flagSelect.style.fontSize = '12px';
+                        flagSelect.style.padding = '2px';
 
-                        const flagSelect = document.createElement('select');
-                        const emptyOpt = document.createElement('option');
-                        emptyOpt.value = '';
-                        emptyOpt.textContent = '-- Flag --';
-                        flagSelect.appendChild(emptyOpt);
-
-                        Array.from(availableFlags).forEach(flag => {
-                            const opt = document.createElement('option');
-                            opt.value = flag;
-                            opt.textContent = flag;
-                            if (condition.flag === flag) opt.selected = true;
-                            flagSelect.appendChild(opt);
-                        });
-
-                        // Add custom option if current flag is not in list
-                        if (condition.flag && !availableFlags.has(condition.flag)) {
-                            const customOpt = document.createElement('option');
-                            customOpt.value = condition.flag;
-                            customOpt.textContent = condition.flag + ' (custom)';
-                            customOpt.selected = true;
-                            flagSelect.appendChild(customOpt);
-                        }
-
-                        flagSelect.addEventListener('change', (e) => {
-                            condition.flag = e.target.value;
+                        flagSelect.addEventListener('input', (e) => {
+                            condition.flag = e.target.value.trim();
                         });
 
                         // Remove button
@@ -1015,11 +1037,122 @@ document.addEventListener('DOMContentLoaded', () => {
                 removeAllBtn.style.color = 'white';
                 removeAllBtn.addEventListener('click', () => {
                     conditionalData.conditions = [];
-                    node.conditionalParagraphs = node.conditionalParagraphs.filter(cp => cp.paragraphIndex !== idx);
+                    // Keep the entry, just clear conditions
                     renderConditions();
+                    renderSetFlags();
                 });
                 sidebarContent.appendChild(removeAllBtn);
             }
+
+            // Set flags section
+            const setFlagsTitle = document.createElement('h5');
+            setFlagsTitle.textContent = 'Modificar Flags';
+            setFlagsTitle.style.margin = '20px 0 10px 0';
+            setFlagsTitle.style.color = '#4a9eff';
+            setFlagsTitle.style.fontSize = '13px';
+            sidebarContent.appendChild(setFlagsTitle);
+
+            const setFlagsInfo = document.createElement('div');
+            setFlagsInfo.style.fontSize = '10px';
+            setFlagsInfo.style.marginBottom = '10px';
+            setFlagsInfo.style.color = '#888';
+            setFlagsInfo.textContent = 'Al mostrarse este párrafo, se modificarán los siguientes flags.';
+            sidebarContent.appendChild(setFlagsInfo);
+
+            if (!conditionalData.setFlags) {
+                conditionalData.setFlags = [];
+            }
+
+            const setFlagsContainer = document.createElement('div');
+
+            const renderSetFlags = () => {
+                setFlagsContainer.innerHTML = '';
+
+                if (conditionalData.setFlags.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.style.fontSize = '11px';
+                    emptyMsg.style.color = '#666';
+                    emptyMsg.style.padding = '10px';
+                    emptyMsg.style.textAlign = 'center';
+                    emptyMsg.textContent = 'Sin modificaciones de flags';
+                    setFlagsContainer.appendChild(emptyMsg);
+                } else {
+                    conditionalData.setFlags.forEach((setFlag, idx) => {
+                        const condItem = document.createElement('div');
+                        condItem.className = 'condition-item';
+
+                        const condRow = document.createElement('div');
+                        condRow.className = 'condition-row';
+
+                        // Type select
+                        const typeSelect = document.createElement('select');
+                        [
+                            { val: 'set', text: 'Setear' },
+                            { val: 'clear', text: 'Limpiar' },
+                            { val: 'toggle', text: 'Alternar' },
+                            { val: 'custom', text: 'Expresión libre' }
+                        ].forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t.val;
+                            opt.textContent = t.text;
+                            if (setFlag.type === t.val) opt.selected = true;
+                            typeSelect.appendChild(opt);
+                        });
+                        typeSelect.addEventListener('change', (e) => {
+                            setFlag.type = e.target.value;
+                        });
+
+                        // Flag select/input
+                        const flagSelect = document.createElement('input');
+                        flagSelect.type = 'text';
+                        flagSelect.setAttribute('list', 'globalFlagsDatalist');
+                        flagSelect.value = setFlag.flag || '';
+                        flagSelect.placeholder = 'Nombre flag';
+                        flagSelect.title = 'Nombre del flag';
+                        flagSelect.style.width = '100px';
+                        flagSelect.style.fontSize = '12px';
+                        flagSelect.style.padding = '2px';
+
+                        flagSelect.addEventListener('input', (e) => {
+                            setFlag.flag = e.target.value.trim();
+                        });
+
+                        // Remove button
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'condition-remove';
+                        removeBtn.textContent = '✕';
+                        removeBtn.addEventListener('click', () => {
+                            conditionalData.setFlags.splice(idx, 1);
+                            renderSetFlags();
+                        });
+
+                        condRow.appendChild(typeSelect);
+                        condRow.appendChild(flagSelect);
+                        condRow.appendChild(removeBtn);
+                        condItem.appendChild(condRow);
+                        setFlagsContainer.appendChild(condItem);
+                    });
+                }
+            };
+
+            renderSetFlags();
+            sidebarContent.appendChild(setFlagsContainer);
+
+            // Add setFlag button
+            const addSetFlagBtn = document.createElement('button');
+            addSetFlagBtn.className = 'add-condition-btn';
+            addSetFlagBtn.textContent = '+ Modificar flag';
+            addSetFlagBtn.addEventListener('click', () => {
+                conditionalData.setFlags.push({
+                    type: 'set',
+                    flag: ''
+                });
+                renderSetFlags();
+            });
+            sidebarContent.appendChild(addSetFlagBtn);
+
+
+
 
             // Separator
             const separator = document.createElement('div');
@@ -1188,14 +1321,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     editor.draw();
                 });
 
-                // Parse current flag (e.g., "set:key" or "clear:key")
+                // Parse current flag (e.g., "set:key", "toggle:key", "custom:expression")
                 let flagAction = 'set';
                 let flagName = '';
                 if (opt.flag) {
                     const parts = opt.flag.split(':');
-                    if (parts.length === 2 && (parts[0] === 'set' || parts[0] === 'clear')) {
+                    if (parts.length >= 2 && ['set', 'clear', 'toggle', 'custom'].includes(parts[0])) {
                         flagAction = parts[0];
-                        flagName = parts[1];
+                        flagName = parts.slice(1).join(':'); // In case custom expression has colons
                     } else {
                         flagName = opt.flag;
                     }
@@ -1205,20 +1338,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const flagActionSelect = document.createElement('select');
                 flagActionSelect.style.flex = "0 0 auto";
 
-                const setOption = document.createElement('option');
-                setOption.value = 'set';
-                setOption.textContent = 'set';
-                flagActionSelect.appendChild(setOption);
-
-                const unsetOption = document.createElement('option');
-                unsetOption.value = 'clear';
-                unsetOption.textContent = 'clear';
-                flagActionSelect.appendChild(unsetOption);
+                [
+                    { val: 'set', text: 'set' },
+                    { val: 'clear', text: 'clear' },
+                    { val: 'toggle', text: 'toggle' },
+                    { val: 'custom', text: 'custom' }
+                ].forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.val;
+                    option.textContent = t.text;
+                    flagActionSelect.appendChild(option);
+                });
 
                 flagActionSelect.value = flagAction;
 
                 // Flag name input
                 const flagInp = document.createElement('input');
+                flagInp.type = 'text';
+                flagInp.setAttribute('list', 'globalFlagsDatalist');
                 flagInp.value = flagName;
                 flagInp.placeholder = 'nombre flag (ej: key)';
                 flagInp.style.flex = "1";
