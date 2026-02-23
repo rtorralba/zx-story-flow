@@ -112,22 +112,85 @@ document.addEventListener('DOMContentLoaded', () => {
     const nodeEditModalTitle = document.getElementById('node-edit-modal-title');
     let currentEditingNode = null;
 
+    function setupEditableModalTitle(fallbackText, obj, prop) {
+        nodeEditModalTitle.innerHTML = '';
+
+        let titleText = obj[prop] || fallbackText;
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = titleText;
+        titleSpan.style.marginRight = '10px';
+        titleSpan.style.cursor = 'pointer';
+
+        const editIcon = document.createElement('span');
+        editIcon.textContent = '✏️';
+        editIcon.style.cursor = 'pointer';
+        editIcon.style.fontSize = '0.8em';
+
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.value = obj[prop] || '';
+        inputField.style.display = 'none';
+        inputField.style.fontSize = 'inherit';
+        inputField.style.fontFamily = 'inherit';
+        inputField.style.fontWeight = 'inherit';
+        inputField.style.width = '200px';
+        inputField.style.padding = '2px 5px';
+
+        const updateTitle = () => {
+            obj[prop] = inputField.value;
+            titleSpan.textContent = obj[prop] || fallbackText;
+            editor.draw();
+        };
+
+        const startEditing = () => {
+            titleSpan.style.display = 'none';
+            editIcon.style.display = 'none';
+            inputField.style.display = 'inline-block';
+            inputField.focus();
+        };
+
+        const stopEditing = () => {
+            updateTitle();
+            titleSpan.style.display = 'inline-block';
+            editIcon.style.display = 'inline-block';
+            inputField.style.display = 'none';
+        };
+
+        editIcon.addEventListener('click', startEditing);
+        titleSpan.addEventListener('click', startEditing);
+
+        inputField.addEventListener('blur', stopEditing);
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') stopEditing();
+            if (e.key === 'Escape') {
+                inputField.value = obj[prop] || ''; // cancel
+                stopEditing();
+            }
+        });
+
+        nodeEditModalTitle.appendChild(titleSpan);
+        nodeEditModalTitle.appendChild(editIcon);
+        nodeEditModalTitle.appendChild(inputField);
+    }
+
     function openNodeEditModal(nodeOrGroup) {
         if (!nodeOrGroup) return;
         currentEditingNode = nodeOrGroup;
-        
+
         // Actualizar título del modal
         if (nodeOrGroup instanceof Group) {
-            nodeEditModalTitle.textContent = 'Editar Grupo';
+            setupEditableModalTitle('Editar Grupo', nodeOrGroup, 'name');
         } else if (nodeOrGroup instanceof NodeReference) {
+            nodeEditModalTitle.innerHTML = '';
             nodeEditModalTitle.textContent = 'Editar Referencia';
         } else {
-            nodeEditModalTitle.textContent = 'Editar Nodo';
+            setupEditableModalTitle('Nodo Sin Título', nodeOrGroup, 'title');
         }
-        
+
         // Limpiar contenido anterior
         nodeEditModalContent.innerHTML = '';
-        
+
         // Generar contenido según el tipo
         if (nodeOrGroup instanceof Group) {
             updateGroupProperties(nodeOrGroup, nodeEditModalContent);
@@ -136,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             updateNodeProperties(nodeOrGroup, nodeEditModalContent);
         }
-        
+
         // Mostrar modal
         nodeEditModal.style.display = 'flex';
     }
@@ -213,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
             const basicCode = generateBasic(editor.nodes, globalConfig);
-            
+
             // Collect all images from nodes
             const screenImages = [];
             editor.nodes.forEach(node => {
@@ -231,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             });
-            
+
             const tapData = generateTapFromBasic(basicCode, "adventure", screenImages);
 
             const blob = new Blob([tapData], { type: 'application/x-tap' });
@@ -242,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
             a.click();
             URL.revokeObjectURL(url);
             console.log("TAP Export successful");
-            
+
             if (screenImages.length > 0) {
                 console.log(`Included ${screenImages.length} SCREEN$ images in TAP`);
             }
@@ -293,22 +356,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         text: n.text,
                         outputs: n.outputs
                     };
-                    
+
                     // Si es una referencia, guardar el targetNodeId
                     if (n instanceof NodeReference) {
                         nodeData.targetNodeId = n.targetNodeId;
                     }
-                    
+
                     // Guardar párrafos condicionales si existen
                     if (n.conditionalParagraphs && n.conditionalParagraphs.length > 0) {
                         nodeData.conditionalParagraphs = n.conditionalParagraphs;
                     }
-                    
+
                     // Guardar imágenes de párrafos si existen
                     if (n.paragraphImages && n.paragraphImages.length > 0) {
                         nodeData.paragraphImages = n.paragraphImages;
                     }
-                    
+
                     // Solo guardar configuración específica si está activada
                     if (n.useCustomConfig) {
                         nodeData.useCustomConfig = true;
@@ -382,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.nodes) {
                     data.nodes.forEach(n => {
                         let newNode;
-                        
+
                         // Check if it's a Reference
                         if (n.type === 'Reference') {
                             newNode = new NodeReference(n.id, n.x, n.y, n.targetNodeId);
@@ -401,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (n.conditionalParagraphs) {
                                 newNode.conditionalParagraphs = n.conditionalParagraphs;
                             }
-                            
+
                             if (n.paragraphImages) {
                                 newNode.paragraphImages = n.paragraphImages;
                             }
@@ -501,11 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return formGroup;
         };
 
-        const nameInput = createInput('Group Name', group.name, (val) => {
-            group.name = val;
-            editor.draw();
-        });
-        targetContainer.appendChild(nameInput);
+
 
         const colorInput = createColorInput('Group Color', group.color, (val) => {
             group.color = val;
@@ -552,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formGroup.appendChild(label);
 
         const select = document.createElement('select');
-        
+
         // Add "None" option
         const noneOption = document.createElement('option');
         noneOption.value = '';
@@ -637,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
             inputEl.style.width = '100%';
             inputEl.style.resize = 'vertical';
             inputEl.addEventListener('input', (e) => onChange(e.target.value));
-            
+
             if (onCursorChange) {
                 inputEl.addEventListener('click', onCursorChange);
                 inputEl.addEventListener('keyup', onCursorChange);
@@ -662,7 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (cp.flag) {
                     const parts = cp.flag.split(':');
                     if (parts.length === 2) {
-                        cp.conditions.push({type: parts[0], flag: parts[1]});
+                        cp.conditions.push({ type: parts[0], flag: parts[1] });
                     }
                 }
                 delete cp.flag;
@@ -675,12 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
             node.paragraphImages = [];
         }
 
-        // Title input at the top
-        const titleInput = createInput('Node Title', node.title, (val) => {
-            node.title = val;
-            editor.draw();
-        });
-        targetContainer.appendChild(titleInput);
+
 
         // Create two-column layout
         const editorLayout = document.createElement('div');
@@ -693,7 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Sidebar column (right) - for paragraph details
         const sidebarColumn = document.createElement('div');
         sidebarColumn.className = 'node-editor-sidebar';
-        
+
         const sidebarTitle = document.createElement('h4');
         sidebarTitle.textContent = 'Detalles del Párrafo';
         sidebarColumn.appendChild(sidebarTitle);
@@ -710,60 +764,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const getParagraphIndexFromCursor = (textarea) => {
             const cursorPos = textarea.selectionStart;
             const text = textarea.value;
-            
+
             // Find all double newline positions
             const regex = /\n\n+/g;
             const separators = [];
             let match;
-            
+
             while ((match = regex.exec(text)) !== null) {
                 separators.push({
                     start: match.index,
                     end: match.index + match[0].length
                 });
             }
-            
+
             // Determine which paragraph the cursor is in
             let paragraphIndex = 0;
             let lastEnd = 0;
-            
+
             for (let i = 0; i < separators.length; i++) {
                 if (cursorPos >= lastEnd && cursorPos <= separators[i].start) {
                     // Cursor is in paragraph i
                     return paragraphIndex;
                 }
-                
+
                 // Check if there's actual content between lastEnd and separator start
                 const content = text.substring(lastEnd, separators[i].start).trim();
                 if (content.length > 0) {
                     paragraphIndex++;
                 }
-                
+
                 lastEnd = separators[i].end;
             }
-            
+
             // Check if cursor is in the last paragraph
             const lastContent = text.substring(lastEnd).trim();
             if (lastContent.length > 0 && cursorPos >= lastEnd) {
                 return paragraphIndex;
             }
-            
+
             return Math.max(0, paragraphIndex);
         };
 
         // Function to update paragraph info display
         const updateParagraphInfo = () => {
             if (!textareaElement) return;
-            
+
             const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
             if (paragraphs.length === 0) {
                 selectedParagraphIndex = null;
                 sidebarContent.innerHTML = '<p style="color: #888; font-size: 12px;">Escribe texto y separa párrafos con doble salto de línea.</p>';
                 return;
             }
-            
+
             const idx = getParagraphIndexFromCursor(textareaElement);
-            
+
             // Only update if paragraph changed
             if (idx !== selectedParagraphIndex && idx < paragraphs.length) {
                 selectedParagraphIndex = idx;
@@ -772,12 +826,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // Text editor in main column with cursor change handler
-        const textInputData = createTextarea('Screen Text', node.text, (val) => {
+        const textInputData = createTextarea('', node.text, (val) => {
             node.text = val;
             editor.draw();
             updateParagraphInfo();
         }, updateParagraphInfo);
-        
+
         textareaElement = textInputData.inputEl;
         mainColumn.appendChild(textInputData.group);
 
@@ -843,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const conditionsContainer = document.createElement('div');
-            
+
             const renderConditions = () => {
                 conditionsContainer.innerHTML = '';
 
@@ -1042,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (file) {
                         imageData.imageName = file.name;
                         imgInput.value = file.name;
-                        
+
                         const reader = new FileReader();
                         reader.onload = (event) => {
                             imageData.imageData = event.target.result;
@@ -1150,17 +1204,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Flag action dropdown
                 const flagActionSelect = document.createElement('select');
                 flagActionSelect.style.flex = "0 0 auto";
-                
+
                 const setOption = document.createElement('option');
                 setOption.value = 'set';
                 setOption.textContent = 'set';
                 flagActionSelect.appendChild(setOption);
-                
+
                 const unsetOption = document.createElement('option');
                 unsetOption.value = 'clear';
                 unsetOption.textContent = 'clear';
                 flagActionSelect.appendChild(unsetOption);
-                
+
                 flagActionSelect.value = flagAction;
 
                 // Flag name input
@@ -1252,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         colorConfigTitle.style.color = '#4a9eff';
         colorConfigTitle.style.cursor = 'pointer';
         colorConfigTitle.style.userSelect = 'none';
-        
+
         const colorConfigContent = document.createElement('div');
         colorConfigContent.style.display = 'block';
 
@@ -1267,20 +1321,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Use custom config checkbox
         const useCustomRow = document.createElement('div');
         useCustomRow.style.marginBottom = '10px';
-        
+
         const useCustomLabel = document.createElement('label');
         useCustomLabel.style.display = 'flex';
         useCustomLabel.style.alignItems = 'center';
         useCustomLabel.style.cursor = 'pointer';
-        
+
         const useCustomCheckbox = document.createElement('input');
         useCustomCheckbox.type = 'checkbox';
         useCustomCheckbox.checked = node.useCustomConfig || false;
         useCustomCheckbox.style.marginRight = '8px';
-        
+
         const useCustomText = document.createElement('span');
         useCustomText.textContent = 'Usar configuración específica para este nodo';
-        
+
         useCustomLabel.appendChild(useCustomCheckbox);
         useCustomLabel.appendChild(useCustomText);
         useCustomRow.appendChild(useCustomLabel);
@@ -1305,8 +1359,8 @@ document.addEventListener('DOMContentLoaded', () => {
             section.appendChild(title);
 
             // Get current config or defaults
-            const currentConfig = node.useCustomConfig && node[configKey] 
-                ? node[configKey] 
+            const currentConfig = node.useCustomConfig && node[configKey]
+                ? node[configKey]
                 : globalConfig[configKey.replace('Config', '')];
 
             // INK and PAPER row
@@ -1319,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const inkLabel = document.createElement('label');
             inkLabel.textContent = 'INK:';
             inkLabel.style.minWidth = '40px';
-            
+
             const inkSelect = document.createElement('select');
             inkSelect.style.flex = '1';
             ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
@@ -1334,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             paperLabel.textContent = 'PAPER:';
             paperLabel.style.minWidth = '50px';
             paperLabel.style.marginLeft = '5px';
-            
+
             const paperSelect = document.createElement('select');
             paperSelect.style.flex = '1';
             ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
@@ -1361,15 +1415,15 @@ document.addEventListener('DOMContentLoaded', () => {
             brightLabel.style.display = 'flex';
             brightLabel.style.alignItems = 'center';
             brightLabel.style.cursor = 'pointer';
-            
+
             const brightCheckbox = document.createElement('input');
             brightCheckbox.type = 'checkbox';
             brightCheckbox.checked = currentConfig.bright || false;
             brightCheckbox.style.marginRight = '5px';
-            
+
             const brightText = document.createElement('span');
             brightText.textContent = 'Bright';
-            
+
             brightLabel.appendChild(brightCheckbox);
             brightLabel.appendChild(brightText);
 
@@ -1377,15 +1431,15 @@ document.addEventListener('DOMContentLoaded', () => {
             flashLabel.style.display = 'flex';
             flashLabel.style.alignItems = 'center';
             flashLabel.style.cursor = 'pointer';
-            
+
             const flashCheckbox = document.createElement('input');
             flashCheckbox.type = 'checkbox';
             flashCheckbox.checked = currentConfig.flash || false;
             flashCheckbox.style.marginRight = '5px';
-            
+
             const flashText = document.createElement('span');
             flashText.textContent = 'Flash';
-            
+
             flashLabel.appendChild(flashCheckbox);
             flashLabel.appendChild(flashText);
 
@@ -1423,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         useCustomCheckbox.addEventListener('change', (e) => {
             node.useCustomConfig = e.target.checked;
             customConfigContainer.style.display = e.target.checked ? 'block' : 'none';
-            
+
             if (e.target.checked) {
                 // Initialize with current global values
                 node.pageConfig = {
