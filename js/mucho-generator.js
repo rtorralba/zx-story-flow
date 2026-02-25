@@ -73,54 +73,6 @@ export function generateMucho(nodes, globalConfig = null) {
 
     let muchoCode = "";
 
-    // Function to format text with paragraphs, conditional markers and images
-    const formatTextWithParagraphs = (text, conditionalParagraphs = [], paragraphImages = []) => {
-        if (!text) return "";
-
-        // Split text into paragraphs (by double line breaks)
-        const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
-
-        // Format each paragraph with $P, conditional markers, and image markers
-        return paragraphs.map((p, idx) => {
-            const trimmed = p.trim();
-            let result = '';
-
-            // Check if this paragraph has an image
-            const imageData = paragraphImages.find(pi => pi.paragraphIndex === idx);
-            if (imageData && imageData.imageName) {
-                // Add $I marker for images (SCREEN$ files)
-                result += `$I ${imageData.imageName}\n`;
-            }
-
-            // Check if this paragraph is conditional
-            const conditional = conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
-
-            if (conditional && ((conditional.conditions && conditional.conditions.length > 0) || conditional.flag)) {
-                // Add $O marker for conditional paragraphs
-                let conditionStr = '';
-
-                if (conditional.conditions && conditional.conditions.length > 0) {
-                    // New format: multiple conditions combined with AND
-                    // Format for MUCHO: $O has:key AND not:door
-                    conditionStr = conditional.conditions
-                        .map(cond => cond.type === 'custom' ? cond.flag : `${cond.type}:${cond.flag}`)
-                        .join(' AND ');
-                } else if (conditional.flag) {
-                    // Old format: single condition (backward compatibility)
-                    conditionStr = conditional.flag;
-                }
-
-                // Generar siempre $P implicito despues del condicional
-                result += `$O ${conditionStr}\n$P \n${trimmed} `;
-            } else {
-                // Normal paragraph (implicito, siempre lleva $P)
-                result += `$P \n${trimmed} `;
-            }
-
-            return result;
-        }).join('\n');
-    };
-
     screenNodes.forEach(node => {
         const label = labelMap[node.id];
         let description = node.text || "";
@@ -148,8 +100,7 @@ export function generateMucho(nodes, globalConfig = null) {
         // Build $Q line, appending any node-level actions
         const actionsStr = node.actions && node.actions.trim() ? ' ' + node.actions.trim() : '';
         muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}${actionsStr}\n`;
-        muchoCode += formatTextWithParagraphs(description, node.conditionalParagraphs || [], node.paragraphImages || []);
-        if (description) muchoCode += '\n';
+        muchoCode += description + '\n';
 
         // Iterate all options
         node.outputs.forEach((opt) => {

@@ -98,75 +98,20 @@ export class MuchoEditor {
 
     // Helper to generate MuCho representation from a node's data
     static generateFromNode(node) {
-        if (!node.text && (!node.paragraphImages || node.paragraphImages.length === 0)) return "";
-
-        // Split text, but keep empty paragraphs if they have images
-        const paragraphs = node.text ? node.text.split(/\n\n+/) : [];
-        const conds = node.conditionalParagraphs || [];
-        const imgs = node.paragraphImages || [];
-
-        // Create an array large enough to cover all paragraphs and images
-        const maxIdx = Math.max(
-            paragraphs.length - 1,
-            imgs.length > 0 ? Math.max(...imgs.map(i => i.paragraphIndex)) : -1,
-            conds.length > 0 ? Math.max(...conds.map(c => c.paragraphIndex)) : -1
-        );
-
-        const resultParagraphs = [];
-
-        for (let idx = 0; idx <= maxIdx; idx++) {
-            let result = '';
-
-            const img = imgs.find(i => i.paragraphIndex === idx);
-            if (img && img.imageName) {
-                result += `$I ${img.imageName}\n`;
-            }
-
-            const cond = conds.find(c => c.paragraphIndex === idx);
-            let hasCondition = false;
-            let hasSetFlags = false;
-
-            if (cond) {
-                if ((cond.conditions && cond.conditions.length > 0) || cond.flag) {
-                    hasCondition = true;
-                    let conditionStr = '';
-                    if (cond.conditions && cond.conditions.length > 0) {
-                        conditionStr = cond.conditions
-                            .map(c => c.type === 'custom' ? c.flag : `${c.type}:${c.flag}`)
-                            .join(' AND ');
-                    } else if (cond.flag) {
-                        conditionStr = cond.flag;
-                    }
-                    result += `$O ${conditionStr}\n`;
-                }
-
-                // Note: since $P is deprecated, flag mutations ($P set:flag) should be handled visually in the old UI 
-                // or via a new specific tag if needed in the future. For now, we omit them entirely from the text.
-            }
-
-            // Text for this paragraph
-            const pText = idx < paragraphs.length ? paragraphs[idx] : "";
-
-            // Only output $P if it has setFlags, else we drop it entirely for cleanliness
-            result += pText.trim();
-            resultParagraphs.push(result);
-        }
-
-        return resultParagraphs.join('\n\n').trim();
+        return node.text || "";
     }
 
     // Helper to parse MuCho text back into a node's data
     static parseToNode(text, node) {
-        // Split by double newline preserving structure
-        const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
-        const newText = [];
+        node.text = text;
+
+        // Split by double newline preserving structure for background sync
+        const paragraphs = text.split(/\n\n+/);
         const newConds = [];
         const newImgs = [];
 
         paragraphs.forEach((p, idx) => {
             const lines = p.split('\n');
-            const cleanLines = [];
-
             let conditionData = null;
             let imageData = null;
 
@@ -190,16 +135,10 @@ export class MuchoEditor {
                             }
                         });
                     }
-                } else if (trimmed.startsWith('$P')) {
-                    // Completamente ignorado por orden del usuario para compatibilidad.
-                    // Si se usaban para setFlags, esa info deberia persistirse en el frontend visual en vez del editor de texto.
-                } else {
-                    cleanLines.push(line);
                 }
             });
 
-            newText.push(cleanLines.join('\n'));
-            if (conditionData && (conditionData.conditions.length > 0 || conditionData.setFlags.length > 0)) {
+            if (conditionData && conditionData.conditions.length > 0) {
                 newConds.push(conditionData);
             }
             if (imageData) {
@@ -207,7 +146,6 @@ export class MuchoEditor {
             }
         });
 
-        node.text = newText.join('\n\n');
         node.conditionalParagraphs = newConds;
         node.paragraphImages = newImgs;
     }

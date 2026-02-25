@@ -180,11 +180,16 @@ export function generateBasic(nodes, globalConfig = null) {
         // 3. Use BASIC newline separator (' in PRINT)
 
         const wrapText = (text, maxWidth = 32) => {
-            // First replace quotes
-            text = text.replace(/"/g, "'");
+            // First strip MuCho lines (lines starting with $)
+            const cleanText = text.split('\n')
+                .filter(line => !line.trim().startsWith('$'))
+                .join('\n');
+
+            // Then replace quotes
+            const finalRawText = cleanText.replace(/"/g, "'");
 
             // Split by explicit newlines first
-            const paragraphs = text.split('\n');
+            const paragraphs = finalRawText.split('\n');
             const wrappedLines = [];
 
             paragraphs.forEach(para => {
