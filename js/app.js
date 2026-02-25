@@ -1145,6 +1145,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 flagInp.style.fontFamily = 'Courier New, monospace';
                 flagInp.style.fontSize = '12px';
                 flagInp.style.color = '#f1fa8c';
+                flagInp.style.backgroundColor = '#000';
+                flagInp.style.border = '1px solid #555';
+                flagInp.style.borderRadius = '3px';
                 flagInp.title = 'Acciones al elegir esta opción';
                 flagInp.classList.add('advanced-only-flags');
                 flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
