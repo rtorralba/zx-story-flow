@@ -431,30 +431,32 @@ export function generateBasic(nodes, globalConfig = null) {
                 if (resolvedTarget) {
                     const targetLine = nodeLines.get(resolvedTarget);
 
-                    // Check if this option has a flag action
+                    // Check if this option has flag actions (can be space-separated list like "set:key clear:lock")
                     if (opt.flag && opt.flag.trim()) {
-                        const parts = opt.flag.split(':');
-                        if (parts.length >= 2 && ['set', 'clear', 'toggle', 'custom'].includes(parts[0])) {
-                            const action = parts[0]; // "set", "clear", "toggle", "custom"
-                            const flagName = parts.slice(1).join(':');
+                        const flagTokens = opt.flag.trim().split(/\s+/);
+                        const flagStatements = [];
 
-                            if (action === 'custom') {
-                                basicCode += `${currentLine} IF A$="${idx + 1}" THEN ${flagName}: GO TO ${targetLine}\n`;
-                            } else {
-                                const varName = `f${flagName}`;
-                                let flagValueCode = '';
-                                if (action === 'set') flagValueCode = '1';
-                                else if (action === 'clear') flagValueCode = '0';
-                                else if (action === 'toggle') flagValueCode = `1-${varName}`;
-
-                                basicCode += `${currentLine} IF A$="${idx + 1}" THEN LET ${varName}=${flagValueCode}: GO TO ${targetLine}\n`;
+                        for (const token of flagTokens) {
+                            const parts = token.split(':');
+                            if (parts.length >= 2 && ['set', 'clear', 'toggle', 'custom'].includes(parts[0])) {
+                                const action = parts[0];
+                                const flagName = parts.slice(1).join(':');
+                                if (action === 'custom') {
+                                    flagStatements.push(flagName);
+                                } else {
+                                    const varName = `f${flagName}`;
+                                    let val = action === 'set' ? '1' : action === 'clear' ? '0' : `1-${varName}`;
+                                    flagStatements.push(`LET ${varName}=${val}`);
+                                }
                             }
-                            currentLine += 10;
-                        } else {
-                            // No valid flag action syntax recognized, just jump
-                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
-                            currentLine += 10;
                         }
+
+                        if (flagStatements.length > 0) {
+                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN ${flagStatements.join(': ')}: GO TO ${targetLine}\n`;
+                        } else {
+                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
+                        }
+                        currentLine += 10;
                     } else {
                         // No flag, just jump
                         basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;

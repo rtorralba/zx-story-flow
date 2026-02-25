@@ -110,23 +110,10 @@ export function generateMucho(nodes, globalConfig = null) {
                     conditionStr = conditional.flag;
                 }
 
-                // Process setFlags
-                let setFlagsStr = '';
-                if (conditional.setFlags && conditional.setFlags.length > 0) {
-                    setFlagsStr = ' ' + conditional.setFlags
-                        .map(sf => sf.type === 'custom' ? sf.flag : `${sf.type}:${sf.flag}`)
-                        .join(' ');
-                }
-
-                result += `$O ${conditionStr}\n$P${setFlagsStr} \n${trimmed} `;
-            } else if (conditional && conditional.setFlags && conditional.setFlags.length > 0) {
-                // Paragraph without conditions, but with setFlags
-                const setFlagsStr = conditional.setFlags
-                    .map(sf => sf.type === 'custom' ? sf.flag : `${sf.type}:${sf.flag}`)
-                    .join(' ');
-                result += `$P ${setFlagsStr}\n${trimmed} `;
+                // Generar siempre $P implicito despues del condicional
+                result += `$O ${conditionStr}\n$P \n${trimmed} `;
             } else {
-                // Normal paragraph
+                // Normal paragraph (implicito, siempre lleva $P)
                 result += `$P \n${trimmed} `;
             }
 
@@ -158,7 +145,9 @@ export function generateMucho(nodes, globalConfig = null) {
             : globalConfig.interface;
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
 
-        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}\n`;
+        // Build $Q line, appending any node-level actions
+        const actionsStr = node.actions && node.actions.trim() ? ' ' + node.actions.trim() : '';
+        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}${actionsStr}\n`;
         muchoCode += formatTextWithParagraphs(description, node.conditionalParagraphs || [], node.paragraphImages || []);
         if (description) muchoCode += '\n';
 

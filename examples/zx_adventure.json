@@ -104,18 +104,11 @@
       "y": 193,
       "type": "Screen",
       "title": "Silencio",
-      "text": "Giraste el tornillo demasiado. El cabezal esta desalineado.\nRompiste el datasette.\n\nAhora tienes que escuchar a tus padres hablar de politica en vez de jugar.",
+      "text": "Giraste el tornillo demasiado. El cabezal esta desalineado.\nRompiste el datasette.\n\n$O has:key\nAhora tienes que escuchar a tus padres hablar de politica en vez de jugar.",
       "outputs": [
         {
           "label": "Irse a dormir",
           "target": "ref_1771608889239"
-        }
-      ],
-      "conditionalParagraphs": [
-        {
-          "paragraphIndex": 1,
-          "flag": "has:key",
-          "inverted": false
         }
       ]
     },

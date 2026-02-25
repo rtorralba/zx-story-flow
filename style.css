@@ -149,7 +149,8 @@ main {
 }
 
 #property-panel {
-    display: none; /* Panel lateral oculto - se usa modal en su lugar */
+    display: none;
+    /* Panel lateral oculto - se usa modal en su lugar */
 }
 
 #property-panel.hidden {
@@ -227,12 +228,17 @@ canvas {
 
 /* Contenido del modal de edición de nodos */
 #node-edit-modal .modal-content {
-    max-width: 2200px;
-    width: 98%;
+    max-width: 1600px;
+    width: 80%;
     max-height: 90vh;
     overflow-y: visible;
     align-items: stretch;
     justify-content: flex-start;
+}
+
+#node-edit-modal .modal-content.modal-simple-view {
+    max-width: 600px;
+    width: auto;
 }
 
 #node-edit-modal-content {
@@ -260,18 +266,137 @@ canvas {
 }
 
 .node-editor-sidebar {
-    width: 380px;
+    flex: 1;
     flex-shrink: 0;
     overflow-y: auto;
     background-color: #1a1a1a;
     border-radius: 8px;
     padding: 15px;
+    min-width: 0;
 }
 
 .node-editor-sidebar h4 {
     margin: 0 0 15px 0;
     color: #4a9eff;
     font-size: 14px;
+}
+
+/* Panel de Ayuda MuCho */
+.mucho-help-panel h5 {
+    color: #4a9eff;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+}
+
+.mucho-help-section {
+    margin-bottom: 15px;
+}
+
+.mucho-help-section h6 {
+    color: #f1fa8c;
+    margin: 0 0 5px 0;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mucho-help-panel ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.mucho-help-panel li {
+    font-size: 12px;
+    color: #ccc;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.mucho-help-panel code {
+    background-color: #000;
+    color: #50fa7b;
+    padding: 2px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+.mucho-help-panel code:hover {
+    background-color: #333;
+    color: #fff;
+}
+
+/* Switch Toggle */
+.switch-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    cursor: pointer;
+}
+
+.switch-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.switch-label.active {
+    color: #4a9eff;
+    font-weight: bold;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 18px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .3s;
+    border-radius: 18px;
+    border: 1px solid #555;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #aaa;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #2a5a8a;
+    border-color: #4a9eff;
+}
+
+input:checked+.slider:before {
+    transform: translateX(14px);
+    background-color: #fff;
 }
 
 /* Párrafos en el editor */
@@ -415,7 +540,6 @@ canvas {
     font-size: 14px;
     background-color: #222;
     color: var(--text-color);
-    border: 1px solid #555;
     resize: vertical;
     outline: none;
 }
@@ -484,10 +608,10 @@ canvas {
     position: relative;
     display: inline-block;
     padding: 50px 60px 70px 60px;
-    background: 
+    background:
         linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
     border-radius: 8px;
-    box-shadow: 
+    box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.8),
         inset 0 2px 5px rgba(255, 255, 255, 0.05),
         inset 0 -2px 8px rgba(0, 0, 0, 0.8);
@@ -502,7 +626,7 @@ canvas {
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
+    background:
         radial-gradient(ellipse at top, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
     border-radius: 8px;
     pointer-events: none;
@@ -517,16 +641,14 @@ canvas {
     transform: translateX(-50%);
     width: 60%;
     height: 30px;
-    background: 
-        repeating-linear-gradient(
-            90deg,
+    background:
+        repeating-linear-gradient(90deg,
             #0a0a0a 0px,
             #0a0a0a 2px,
             #1a1a1a 2px,
-            #1a1a1a 4px
-        );
+            #1a1a1a 4px);
     border-radius: 3px;
-    box-shadow: 
+    box-shadow:
         inset 0 2px 4px rgba(0, 0, 0, 0.8);
     opacity: 0.5;
 }
@@ -537,7 +659,7 @@ canvas {
     display: inline-block;
     background: #000;
     border-radius: 4px;
-    box-shadow: 
+    box-shadow:
         inset 0 0 30px rgba(0, 0, 0, 0.9),
         0 0 20px rgba(0, 0, 0, 0.5);
     padding: 0;
@@ -553,14 +675,12 @@ canvas {
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
-        repeating-linear-gradient(
-            0deg,
+    background:
+        repeating-linear-gradient(0deg,
             rgba(0, 0, 0, 0.15) 0px,
             transparent 1px,
             transparent 2px,
-            rgba(0, 0, 0, 0.15) 3px
-        );
+            rgba(0, 0, 0, 0.15) 3px);
     pointer-events: none;
     z-index: 2;
     border-radius: 4px;
@@ -574,7 +694,7 @@ canvas {
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
+    background:
         radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.3) 100%),
         linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 30%, transparent 70%, rgba(255, 255, 255, 0.03) 100%);
     pointer-events: none;
@@ -612,10 +732,14 @@ canvas {
 
 /* Flash animation for ZX Spectrum FLASH attribute */
 @keyframes flash-effect {
-    0%, 49% {
+
+    0%,
+    49% {
         filter: invert(0);
     }
-    50%, 100% {
+
+    50%,
+    100% {
         filter: invert(1);
     }
 }
@@ -629,8 +753,159 @@ canvas {
     line-height: 0.45 !important;
 }
 
-.spectrum-options > div {
+.spectrum-options>div {
     margin: 0 !important;
     padding: 0 !important;
     line-height: 0.45 !important;
+}
+
+/* MuCho Syntax Editor — Zero-Offset Shadow Overlay */
+.mucho-editor-container {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    background-color: #111;
+    border-left: 4px solid #444;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    padding: 12px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Identical styles for both layers to ensure perfect overlap */
+.mucho-backdrop,
+.mucho-textarea {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: Consolas, 'Courier New', monospace !important;
+    font-size: 15px !important;
+    line-height: 22px !important;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    tab-size: 4;
+    letter-spacing: normal !important;
+    word-spacing: normal !important;
+    font-feature-settings: normal !important;
+    font-variant-ligatures: none !important;
+    text-rendering: auto !important;
+}
+
+.mucho-backdrop {
+    z-index: 1;
+    color: #eee;
+    /* Light gray/white for visibility on black */
+    overflow-y: hidden;
+    pointer-events: none;
+}
+
+.mucho-textarea {
+    z-index: 2;
+    background-color: transparent !important;
+    color: transparent !important;
+    caret-color: #fffa65;
+    /* Bright yellow/green Spectrum cursor */
+    overflow-y: auto;
+    resize: none;
+    scrollbar-width: none;
+}
+
+.mucho-textarea::-webkit-scrollbar {
+    display: none;
+}
+
+.mucho-editor-container:focus-within {
+    border-color: var(--accent-color);
+    outline: none;
+    /* Ensure no second browser frame */
+}
+
+/* MuCho syntax highlight tokens */
+.mucho-kw-image {
+    color: #50fa7b;
+}
+
+.mucho-image-name {
+    color: #8be9fd;
+}
+
+.mucho-kw-cond {
+    color: #ffb86c;
+}
+
+/* $O — naranja */
+.mucho-cond-type {
+    color: #ff79c6;
+}
+
+/* has / not / set… — rosa */
+.mucho-colon {
+    color: #6272a4;
+}
+
+/* el dos puntos */
+.mucho-cond-flag {
+    color: #f1fa8c;
+}
+
+/* nombre del flag — amarillo */
+.mucho-and {
+    color: #bd93f9;
+}
+
+/* AND — violeta */
+
+.mucho-kw-legacy {
+    color: #44475a;
+    text-decoration: line-through;
+}
+
+/* $P ignorado */
+.mucho-text {
+    color: #f8f8f2;
+}
+
+/* texto normal */
+
+.mucho-help-panel {
+    background: #2a2a2a;
+    padding: 15px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #ccc;
+    border-left: 3px solid #4a9eff;
+}
+
+.mucho-help-panel h5 {
+    margin: 0 0 10px 0;
+    color: #4a9eff;
+    font-size: 14px;
+}
+
+.mucho-help-panel ul {
+    padding-left: 20px;
+    margin: 0;
+}
+
+.mucho-help-panel li {
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.mucho-help-panel code {
+    color: #f1fa8c;
+    background: #111;
+    padding: 2px 4px;
+    border-radius: 3px;
+    user-select: all;
+    font-family: 'Courier New', monospace;
 }

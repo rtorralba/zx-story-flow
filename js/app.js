@@ -8,6 +8,7 @@ import { ScreenNode, Group, NodeReference } from './nodes.js';
 import { generateBasic } from './basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
 import { generateTapFromBasic } from './tap-generator.js';
+import { MuchoEditor } from './mucho-editor.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('node-canvas');
@@ -111,9 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const nodeEditModalContent = document.getElementById('node-edit-modal-content');
     const nodeEditModalTitle = document.getElementById('node-edit-modal-title');
     let currentEditingNode = null;
+    let editorViewMode = 'simple'; // 'simple' or 'advanced'
 
     function setupEditableModalTitle(fallbackText, obj, prop) {
         nodeEditModalTitle.innerHTML = '';
+        nodeEditModalTitle.style.display = 'flex';
+        nodeEditModalTitle.style.alignItems = 'center';
+        nodeEditModalTitle.style.width = '100%';
 
         let titleText = obj[prop] || fallbackText;
 
@@ -174,6 +179,91 @@ document.addEventListener('DOMContentLoaded', () => {
         nodeEditModalTitle.appendChild(inputField);
     }
 
+    function setupViewToggle() {
+        // Remove existing toggle if any
+        const existing = document.getElementById('editor-view-mode-container');
+        if (existing) existing.remove();
+
+        // Add View Toggle Switch
+        const container = document.createElement('label');
+        container.id = 'editor-view-mode-container';
+        container.className = 'switch-container';
+        container.style.marginLeft = 'auto';
+
+        const labelSimple = document.createElement('span');
+        labelSimple.className = 'switch-label';
+        labelSimple.textContent = 'Sencilla';
+        if (editorViewMode === 'simple') labelSimple.classList.add('active');
+
+        const switchDiv = document.createElement('div');
+        switchDiv.className = 'switch';
+
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = editorViewMode === 'advanced';
+
+        const slider = document.createElement('span');
+        slider.className = 'slider';
+
+        switchDiv.appendChild(input);
+        switchDiv.appendChild(slider);
+
+        const labelAdvanced = document.createElement('span');
+        labelAdvanced.className = 'switch-label';
+        labelAdvanced.textContent = 'Avanzada';
+        if (editorViewMode === 'advanced') labelAdvanced.classList.add('active');
+
+        input.addEventListener('change', (e) => {
+            editorViewMode = e.target.checked ? 'advanced' : 'simple';
+
+            // Update labels active state
+            if (editorViewMode === 'simple') {
+                labelSimple.classList.add('active');
+                labelAdvanced.classList.remove('active');
+            } else {
+                labelSimple.classList.remove('active');
+                labelAdvanced.classList.add('active');
+            }
+
+            applyViewMode();
+        });
+
+        container.appendChild(labelSimple);
+        container.appendChild(switchDiv);
+        container.appendChild(labelAdvanced);
+        nodeEditModalTitle.appendChild(container);
+    }
+
+    function applyViewMode() {
+        const isAdvanced = editorViewMode === 'advanced';
+        const modalContent = nodeEditModal.querySelector('.modal-content');
+
+        // Toggle Modal Width
+        if (isAdvanced) {
+            modalContent.classList.remove('modal-simple-view');
+        } else {
+            modalContent.classList.add('modal-simple-view');
+        }
+
+        // Toggle Help Panel (Sidebar Column)
+        const sidebarColumn = nodeEditModalContent.querySelector('.node-editor-sidebar');
+        if (sidebarColumn) {
+            sidebarColumn.style.display = isAdvanced ? 'block' : 'none';
+        }
+
+        // Toggle Tags (Title Actions)
+        const tagsInput = nodeEditModalTitle.querySelector('.advanced-only');
+        if (tagsInput) {
+            tagsInput.style.display = isAdvanced ? 'block' : 'none';
+        }
+
+        // Toggle Flags (Option Actions)
+        const flagsInputs = nodeEditModalContent.querySelectorAll('.advanced-only-flags');
+        flagsInputs.forEach(el => {
+            el.style.display = isAdvanced ? 'block' : 'none';
+        });
+    }
+
     function openNodeEditModal(nodeOrGroup) {
         if (!nodeOrGroup) return;
         currentEditingNode = nodeOrGroup;
@@ -181,11 +271,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Actualizar título del modal
         if (nodeOrGroup instanceof Group) {
             setupEditableModalTitle('Editar Grupo', nodeOrGroup, 'name');
+            setupViewToggle();
         } else if (nodeOrGroup instanceof NodeReference) {
             nodeEditModalTitle.innerHTML = '';
             nodeEditModalTitle.textContent = 'Editar Referencia';
+            setupViewToggle();
         } else {
             setupEditableModalTitle('Nodo Sin Título', nodeOrGroup, 'title');
+
+            // Add actions input next to the title
+            const actionsInput = document.createElement('input');
+            actionsInput.type = 'text';
+            actionsInput.value = nodeOrGroup.actions || '';
+            actionsInput.placeholder = 'ej: set:key clear:lock rnd:50';
+            actionsInput.title = 'Acciones MuCho que van junto al $Q';
+            actionsInput.style.marginLeft = '12px';
+            actionsInput.style.fontSize = '14px';
+            actionsInput.style.fontFamily = 'Courier New, monospace';
+            actionsInput.style.padding = '4px 8px';
+            actionsInput.style.flex = '1';
+            actionsInput.style.maxWidth = '400px';
+            actionsInput.style.backgroundColor = '#1a1a1a';
+            actionsInput.style.border = '1px solid #555';
+            actionsInput.style.color = '#f1fa8c';
+            actionsInput.style.borderRadius = '3px';
+            actionsInput.addEventListener('input', (e) => {
+                nodeOrGroup.actions = e.target.value;
+            });
+            actionsInput.classList.add('advanced-only');
+            actionsInput.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+            nodeEditModalTitle.appendChild(actionsInput);
+
+            // Toggle must be added LAST
+            setupViewToggle();
         }
 
         // Limpiar contenido anterior
@@ -202,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Mostrar modal
         nodeEditModal.style.display = 'flex';
+        applyViewMode();
     }
 
     function closeNodeEditModal() {
@@ -773,506 +892,160 @@ document.addEventListener('DOMContentLoaded', () => {
         const mainColumn = document.createElement('div');
         mainColumn.className = 'node-editor-main';
 
-        // Sidebar column (right) - for paragraph details
+        // Dummy variable to prevent ReferenceError in older code that checked this
+        const renderConditionalParagraphs = null;
+
+        // Initialize Mucho Editor
+
+        // Toolbar for Editor
+        const editorToolbar = document.createElement('div');
+        editorToolbar.style.display = 'flex';
+        editorToolbar.style.gap = '5px';
+        editorToolbar.style.marginBottom = '5px';
+        editorToolbar.style.padding = '5px';
+        editorToolbar.style.backgroundColor = '#2a2a2a';
+        editorToolbar.style.borderRadius = '4px';
+
+        const insertImageBtn = document.createElement('button');
+        insertImageBtn.innerHTML = '🖼️ Insertar Imagen';
+        insertImageBtn.style.padding = '5px 10px';
+        insertImageBtn.style.fontSize = '12px';
+
+        const hiddenFileInput = document.createElement('input');
+        hiddenFileInput.type = 'file';
+        hiddenFileInput.accept = '.scr';
+        hiddenFileInput.style.display = 'none';
+
+        insertImageBtn.addEventListener('click', () => {
+            hiddenFileInput.click();
+        });
+
+        editorToolbar.appendChild(insertImageBtn);
+        editorToolbar.appendChild(hiddenFileInput);
+        mainColumn.appendChild(editorToolbar);
+
+        const editorContainer = document.createElement('div');
+        mainColumn.appendChild(editorContainer);
+
+        const initialMuchoText = MuchoEditor.generateFromNode(node);
+        const muchoEditor = new MuchoEditor(editorContainer, initialMuchoText, (newText) => {
+            MuchoEditor.parseToNode(newText, node);
+            editor.draw();
+        });
+
+        hiddenFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const ta = muchoEditor.textarea;
+                const start = ta.selectionStart;
+                const text = muchoEditor.value;
+
+                // Analizar el contexto alrededor del cursor para no meter saltos de linea de mas
+                const textBefore = text.substring(0, start);
+                const textAfter = text.substring(ta.selectionEnd);
+
+                let prepend = "";
+
+                if (textBefore.length > 0 && !textBefore.endsWith('\n')) {
+                    prepend = "\n";
+                }
+
+                // Siempre incluir salto de linea final
+                const insertText = prepend + "$I " + file.name + "\n";
+
+                muchoEditor.value = textBefore + insertText + textAfter;
+                ta.value = muchoEditor.value;
+                muchoEditor.updateHighlights();
+                MuchoEditor.parseToNode(muchoEditor.value, node);
+                editor.draw();
+
+                // Read the image file and attach to paragraphImages array based on parsed index
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const imageData = event.target.result;
+                    // Find the image node we just parsed to attach the raw data
+                    const imgObj = node.paragraphImages.find(img => img.imageName === file.name);
+                    if (imgObj) {
+                        imgObj.imageData = imageData;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Sidebar column (right) - for Help Panel
         const sidebarColumn = document.createElement('div');
         sidebarColumn.className = 'node-editor-sidebar';
 
-        const sidebarTitle = document.createElement('h4');
-        sidebarTitle.textContent = 'Detalles del Párrafo';
-        sidebarColumn.appendChild(sidebarTitle);
+        const helpPanel = document.createElement('div');
+        helpPanel.className = 'mucho-help-panel';
+        helpPanel.innerHTML = `
+            <h5>Ayuda Sintaxis MuCho</h5>
 
-        const sidebarContent = document.createElement('div');
-        sidebarContent.id = 'paragraph-details';
-        sidebarContent.innerHTML = '<p style="color: #888; font-size: 12px;">Haz clic en el texto para editar condiciones e imágenes del párrafo</p>';
-        sidebarColumn.appendChild(sidebarContent);
+            <div class="mucho-help-section">
+                <h6>Lógica de Flags</h6>
+                <ul>
+                    <li><code>has:name</code> (o <code>name</code>) Si tiene el flag.</li>
+                    <li><code>not:name</code> (o <code>!name</code>) Si NO lo tiene.</li>
+                    <li><code>rnd:128</code> Probabilidad (128 = 50%).</li>
+                    <li><code>AND</code> Combinar: <code>has:A AND has:B</code>.</li>
+                </ul>
+            </div>
 
-        let selectedParagraphIndex = null;
-        let textareaElement = null;
+            <div class="mucho-help-section">
+                <h6>Operaciones (Flags)</h6>
+                <ul>
+                    <li><code>set:flag</code> Activa un flag.</li>
+                    <li><code>clear:flag</code> (o <code>clr:</code>) Desactiva un flag.</li>
+                    <li><code>toggle:flag</code> Invierte el estado.</li>
+                </ul>
+            </div>
 
-        // Function to get paragraph index from cursor position
-        const getParagraphIndexFromCursor = (textarea) => {
-            const cursorPos = textarea.selectionStart;
-            const text = textarea.value;
+            <div class="mucho-help-section">
+                <h6>Números y Variables</h6>
+                <ul>
+                    <li><code>v=10</code> Asignar (0-255).</li>
+                    <li><code>v+5</code> / <code>v-2</code> Sumar o restar.</li>
+                    <li><code>v==10</code> / <code>v!=5</code> Comparación.</li>
+                    <li><code>v&gt;5</code> / <code>v&lt;=20</code> Comparación.</li>
+                    <li><code>&lt;&lt;v&gt;&gt;</code> Imprimir valor en el texto.</li>
+                </ul>
+            </div>
 
-            // Find all double newline positions
-            const regex = /\n\n+/g;
-            const separators = [];
-            let match;
+            <div class="mucho-help-section">
+                <h6>Pantalla y Estilo</h6>
+                <ul>
+                    <li><code>$I img.scr</code> Mostrar imagen (SCREEN$).</li>
+                    <li><code>attr:71</code> Color texto (White on Black).</li>
+                    <li><code>dattr:N</code> / <code>iattr:N</code> Divisor / Interfaz.</li>
+                    <li><code>border:N</code> Cambiar color del borde.</li>
+                    <li><code>cls:0</code> Limpiar la pantalla.</li>
+                </ul>
+            </div>
 
-            while ((match = regex.exec(text)) !== null) {
-                separators.push({
-                    start: match.index,
-                    end: match.index + match[0].length
-                });
-            }
+            <p style="margin-top:10px; font-size:11px; color:#888;">
+                <em>Haz clic en el código para insertarlo.</em>
+            </p>
+        `;
 
-            // Determine which paragraph the cursor is in
-            let paragraphIndex = 0;
-            let lastEnd = 0;
-
-            for (let i = 0; i < separators.length; i++) {
-                if (cursorPos >= lastEnd && cursorPos <= separators[i].start) {
-                    // Cursor is in paragraph i
-                    return paragraphIndex;
-                }
-
-                // Check if there's actual content between lastEnd and separator start
-                const content = text.substring(lastEnd, separators[i].start).trim();
-                if (content.length > 0) {
-                    paragraphIndex++;
-                }
-
-                lastEnd = separators[i].end;
-            }
-
-            // Check if cursor is in the last paragraph
-            const lastContent = text.substring(lastEnd).trim();
-            if (lastContent.length > 0 && cursorPos >= lastEnd) {
-                return paragraphIndex;
-            }
-
-            return Math.max(0, paragraphIndex);
-        };
-
-        // Function to update paragraph info display
-        const updateParagraphInfo = () => {
-            if (!textareaElement) return;
-
-            const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
-            if (paragraphs.length === 0) {
-                selectedParagraphIndex = null;
-                sidebarContent.innerHTML = '<p style="color: #888; font-size: 12px;">Escribe texto y separa párrafos con doble salto de línea.</p>';
-                return;
-            }
-
-            const idx = getParagraphIndexFromCursor(textareaElement);
-
-            // Only update if paragraph changed
-            if (idx !== selectedParagraphIndex && idx < paragraphs.length) {
-                selectedParagraphIndex = idx;
-                renderParagraphDetails(idx);
-            }
-        };
-
-        // Text editor in main column with cursor change handler
-        const textInputData = createTextarea('', node.text, (val) => {
-            node.text = val;
-            editor.draw();
-            updateParagraphInfo();
-        }, updateParagraphInfo);
-
-        textareaElement = textInputData.inputEl;
-        mainColumn.appendChild(textInputData.group);
-
-        const renderParagraphDetails = (idx) => {
-            sidebarContent.innerHTML = '';
-
-            const paragraphs = node.text.split(/\n\n+/).filter(p => p.trim());
-            if (idx >= paragraphs.length) {
-                sidebarContent.innerHTML = '<p style="color: #888; font-size: 12px;">Párrafo no encontrado</p>';
-                return;
-            }
-
-            const paragraph = paragraphs[idx];
-
-            // Show paragraph number
-            const header = document.createElement('div');
-            header.style.marginBottom = '15px';
-            header.style.paddingBottom = '10px';
-            header.style.borderBottom = '1px solid #333';
-
-            const title = document.createElement('h5');
-            title.textContent = `Párrafo §${idx + 1}`;
-            title.style.margin = '0 0 8px 0';
-            title.style.color = '#4a9eff';
-            header.appendChild(title);
-
-            const preview = document.createElement('div');
-            preview.style.fontSize = '11px';
-            preview.style.color = '#aaa';
-            preview.style.fontStyle = 'italic';
-            preview.textContent = paragraph.substring(0, 100) + (paragraph.length > 100 ? '...' : '');
-            header.appendChild(preview);
-
-            sidebarContent.appendChild(header);
-
-            // Conditions section
-            const conditionsTitle = document.createElement('h5');
-            conditionsTitle.textContent = 'Condiciones';
-            conditionsTitle.style.margin = '0 0 10px 0';
-            conditionsTitle.style.color = '#4a9eff';
-            conditionsTitle.style.fontSize = '13px';
-            sidebarContent.appendChild(conditionsTitle);
-
-            const conditionsInfo = document.createElement('div');
-            conditionsInfo.style.fontSize = '10px';
-            conditionsInfo.style.marginBottom = '10px';
-            conditionsInfo.style.color = '#888';
-            conditionsInfo.textContent = 'Este párrafo se mostrará solo si TODAS las condiciones se cumplen (AND lógico).';
-            sidebarContent.appendChild(conditionsInfo);
-
-            // Get or create conditional data
-            let conditionalData = node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx);
-            if (!conditionalData) {
-                conditionalData = {
-                    paragraphIndex: idx,
-                    conditions: []
-                };
-                node.conditionalParagraphs.push(conditionalData);
-            }
-
-            if (!conditionalData.conditions) {
-                conditionalData.conditions = [];
-            }
-
-            // Gather available flags for both conditions and setFlags - THIS IS NOW GLOBAL
-            // const availableFlags = new Set();
-            // editor.nodes.forEach(n => {
-            //     if (n.outputs) {
-            //         n.outputs.forEach(opt => {
-            //             if (opt.flag && opt.flag.trim()) {
-            //                 const parts = opt.flag.split(':');
-            //                 const name = parts.length === 2 ? parts[1] : opt.flag;
-            //                 availableFlags.add(name);
-            //             }
-            //         });
-            //     }
-            // });
-
-            const conditionsContainer = document.createElement('div');
-
-            const renderConditions = () => {
-                conditionsContainer.innerHTML = '';
-
-                if (conditionalData.conditions.length === 0) {
-                    const emptyMsg = document.createElement('div');
-                    emptyMsg.style.fontSize = '11px';
-                    emptyMsg.style.color = '#666';
-                    emptyMsg.style.padding = '10px';
-                    emptyMsg.style.textAlign = 'center';
-                    emptyMsg.textContent = 'Sin condiciones (siempre se muestra)';
-                    conditionsContainer.appendChild(emptyMsg);
-                } else {
-                    conditionalData.conditions.forEach((condition, condIdx) => {
-                        const condItem = document.createElement('div');
-                        condItem.className = 'condition-item';
-
-                        const condRow = document.createElement('div');
-                        condRow.className = 'condition-row';
-
-                        // Type select
-                        const typeSelect = document.createElement('select');
-                        [
-                            { val: 'has', text: 'Tiene' },
-                            { val: 'not', text: 'No tiene' },
-                            { val: 'rnd', text: 'Aleatorio (0-255)' },
-                            { val: 'custom', text: 'Expresión libre' }
-                        ].forEach(t => {
-                            const opt = document.createElement('option');
-                            opt.value = t.val;
-                            opt.textContent = t.text;
-                            if (condition.type === t.val) opt.selected = true;
-                            typeSelect.appendChild(opt);
-                        });
-                        typeSelect.addEventListener('change', (e) => {
-                            condition.type = e.target.value;
-                        });
-
-                        // Flag input with datalist
-                        const flagSelect = document.createElement('input');
-                        flagSelect.type = 'text';
-                        flagSelect.setAttribute('list', 'globalFlagsDatalist');
-                        flagSelect.value = condition.flag || '';
-                        flagSelect.placeholder = 'Nombre flag';
-                        flagSelect.title = 'Nombre del flag';
-                        flagSelect.style.width = '100px';
-                        flagSelect.style.fontSize = '12px';
-                        flagSelect.style.padding = '2px';
-
-                        flagSelect.addEventListener('input', (e) => {
-                            condition.flag = e.target.value.trim();
-                        });
-
-                        // Remove button
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'condition-remove';
-                        removeBtn.textContent = '✕';
-                        removeBtn.addEventListener('click', () => {
-                            conditionalData.conditions.splice(condIdx, 1);
-                            renderConditions();
-                        });
-
-                        condRow.appendChild(typeSelect);
-                        condRow.appendChild(flagSelect);
-                        condRow.appendChild(removeBtn);
-                        condItem.appendChild(condRow);
-                        conditionsContainer.appendChild(condItem);
-                    });
-                }
-            };
-
-            renderConditions();
-            sidebarContent.appendChild(conditionsContainer);
-
-            // Add condition button
-            const addBtn = document.createElement('button');
-            addBtn.className = 'add-condition-btn';
-            addBtn.textContent = '+ Añadir condición';
-            addBtn.addEventListener('click', () => {
-                conditionalData.conditions.push({
-                    type: 'has',
-                    flag: ''
-                });
-                renderConditions();
+        // Add click listeners to code tags to insert text
+        helpPanel.querySelectorAll('code').forEach(codeEl => {
+            codeEl.addEventListener('click', () => {
+                const insertText = codeEl.textContent + ' ';
+                const ta = muchoEditor.textarea;
+                const start = ta.selectionStart;
+                const end = ta.selectionEnd;
+                muchoEditor.value = muchoEditor.value.substring(0, start) + insertText + muchoEditor.value.substring(end);
+                ta.value = muchoEditor.value;
+                muchoEditor.updateHighlights();
+                MuchoEditor.parseToNode(muchoEditor.value, node);
+                editor.draw();
+                ta.focus();
+                ta.setSelectionRange(start + insertText.length, start + insertText.length);
             });
-            sidebarContent.appendChild(addBtn);
+        });
 
-            // Remove all conditions button
-            if (conditionalData.conditions.length > 0) {
-                const removeAllBtn = document.createElement('button');
-                removeAllBtn.textContent = 'Quitar todas las condiciones';
-                removeAllBtn.style.width = '100%';
-                removeAllBtn.style.marginTop = '10px';
-                removeAllBtn.style.backgroundColor = '#d00000';
-                removeAllBtn.style.color = 'white';
-                removeAllBtn.addEventListener('click', () => {
-                    conditionalData.conditions = [];
-                    // Keep the entry, just clear conditions
-                    renderConditions();
-                    renderSetFlags();
-                });
-                sidebarContent.appendChild(removeAllBtn);
-            }
-
-            // Set flags section
-            const setFlagsTitle = document.createElement('h5');
-            setFlagsTitle.textContent = 'Modificar Flags';
-            setFlagsTitle.style.margin = '20px 0 10px 0';
-            setFlagsTitle.style.color = '#4a9eff';
-            setFlagsTitle.style.fontSize = '13px';
-            sidebarContent.appendChild(setFlagsTitle);
-
-            const setFlagsInfo = document.createElement('div');
-            setFlagsInfo.style.fontSize = '10px';
-            setFlagsInfo.style.marginBottom = '10px';
-            setFlagsInfo.style.color = '#888';
-            setFlagsInfo.textContent = 'Al mostrarse este párrafo, se modificarán los siguientes flags.';
-            sidebarContent.appendChild(setFlagsInfo);
-
-            if (!conditionalData.setFlags) {
-                conditionalData.setFlags = [];
-            }
-
-            const setFlagsContainer = document.createElement('div');
-
-            const renderSetFlags = () => {
-                setFlagsContainer.innerHTML = '';
-
-                if (conditionalData.setFlags.length === 0) {
-                    const emptyMsg = document.createElement('div');
-                    emptyMsg.style.fontSize = '11px';
-                    emptyMsg.style.color = '#666';
-                    emptyMsg.style.padding = '10px';
-                    emptyMsg.style.textAlign = 'center';
-                    emptyMsg.textContent = 'Sin modificaciones de flags';
-                    setFlagsContainer.appendChild(emptyMsg);
-                } else {
-                    conditionalData.setFlags.forEach((setFlag, idx) => {
-                        const condItem = document.createElement('div');
-                        condItem.className = 'condition-item';
-
-                        const condRow = document.createElement('div');
-                        condRow.className = 'condition-row';
-
-                        // Type select
-                        const typeSelect = document.createElement('select');
-                        [
-                            { val: 'set', text: 'Setear' },
-                            { val: 'clear', text: 'Limpiar' },
-                            { val: 'toggle', text: 'Alternar' },
-                            { val: 'custom', text: 'Expresión libre' }
-                        ].forEach(t => {
-                            const opt = document.createElement('option');
-                            opt.value = t.val;
-                            opt.textContent = t.text;
-                            if (setFlag.type === t.val) opt.selected = true;
-                            typeSelect.appendChild(opt);
-                        });
-                        typeSelect.addEventListener('change', (e) => {
-                            setFlag.type = e.target.value;
-                        });
-
-                        // Flag select/input
-                        const flagSelect = document.createElement('input');
-                        flagSelect.type = 'text';
-                        flagSelect.setAttribute('list', 'globalFlagsDatalist');
-                        flagSelect.value = setFlag.flag || '';
-                        flagSelect.placeholder = 'Nombre flag';
-                        flagSelect.title = 'Nombre del flag';
-                        flagSelect.style.width = '100px';
-                        flagSelect.style.fontSize = '12px';
-                        flagSelect.style.padding = '2px';
-
-                        flagSelect.addEventListener('input', (e) => {
-                            setFlag.flag = e.target.value.trim();
-                        });
-
-                        // Remove button
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'condition-remove';
-                        removeBtn.textContent = '✕';
-                        removeBtn.addEventListener('click', () => {
-                            conditionalData.setFlags.splice(idx, 1);
-                            renderSetFlags();
-                        });
-
-                        condRow.appendChild(typeSelect);
-                        condRow.appendChild(flagSelect);
-                        condRow.appendChild(removeBtn);
-                        condItem.appendChild(condRow);
-                        setFlagsContainer.appendChild(condItem);
-                    });
-                }
-            };
-
-            renderSetFlags();
-            sidebarContent.appendChild(setFlagsContainer);
-
-            // Add setFlag button
-            const addSetFlagBtn = document.createElement('button');
-            addSetFlagBtn.className = 'add-condition-btn';
-            addSetFlagBtn.textContent = '+ Modificar flag';
-            addSetFlagBtn.addEventListener('click', () => {
-                conditionalData.setFlags.push({
-                    type: 'set',
-                    flag: ''
-                });
-                renderSetFlags();
-            });
-            sidebarContent.appendChild(addSetFlagBtn);
-
-
-
-
-            // Separator
-            const separator = document.createElement('div');
-            separator.style.height = '1px';
-            separator.style.backgroundColor = '#333';
-            separator.style.margin = '20px 0';
-            sidebarContent.appendChild(separator);
-
-            // Image section
-            const imageTitle = document.createElement('h5');
-            imageTitle.textContent = 'Imagen SCREEN$';
-            imageTitle.style.margin = '0 0 10px 0';
-            imageTitle.style.color = '#4a9eff';
-            imageTitle.style.fontSize = '13px';
-            sidebarContent.appendChild(imageTitle);
-
-            const imageInfo = document.createElement('div');
-            imageInfo.style.fontSize = '10px';
-            imageInfo.style.marginBottom = '10px';
-            imageInfo.style.color = '#888';
-            imageInfo.textContent = 'Añade una imagen .scr que se mostrará antes de este párrafo.';
-            sidebarContent.appendChild(imageInfo);
-
-            // Get or create image data for this paragraph
-            let imageData = node.paragraphImages.find(pi => pi.paragraphIndex === idx);
-
-            if (!imageData) {
-                // Show "add image" button
-                const addImgBtn = document.createElement('button');
-                addImgBtn.textContent = '+ Añadir imagen';
-                addImgBtn.style.width = '100%';
-                addImgBtn.style.padding = '8px';
-                addImgBtn.addEventListener('click', () => {
-                    node.paragraphImages.push({
-                        paragraphIndex: idx,
-                        imageName: ''
-                    });
-                    renderParagraphDetails(idx);
-                });
-                sidebarContent.appendChild(addImgBtn);
-            } else {
-                // Show image editor
-                const imgContainer = document.createElement('div');
-                imgContainer.style.backgroundColor = '#2a2a2a';
-                imgContainer.style.padding = '10px';
-                imgContainer.style.borderRadius = '4px';
-
-                const imgLabel = document.createElement('label');
-                imgLabel.textContent = 'Nombre del archivo:';
-                imgLabel.style.fontSize = '11px';
-                imgLabel.style.display = 'block';
-                imgLabel.style.marginBottom = '5px';
-                imgContainer.appendChild(imgLabel);
-
-                const imgInput = document.createElement('input');
-                imgInput.type = 'text';
-                imgInput.value = imageData.imageName || '';
-                imgInput.placeholder = 'nombre.scr';
-                imgInput.style.width = '100%';
-                imgInput.style.fontSize = '12px';
-                imgInput.style.marginBottom = '8px';
-                imgInput.addEventListener('input', (e) => {
-                    imageData.imageName = e.target.value;
-                });
-                imgContainer.appendChild(imgInput);
-
-                // Hidden file input
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.scr';
-                fileInput.style.display = 'none';
-                fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        imageData.imageName = file.name;
-                        imgInput.value = file.name;
-
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            imageData.imageData = event.target.result;
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-                imgContainer.appendChild(fileInput);
-
-                const buttonRow = document.createElement('div');
-                buttonRow.style.display = 'flex';
-                buttonRow.style.gap = '5px';
-
-                const browseBtn = document.createElement('button');
-                browseBtn.textContent = '📁 Examinar';
-                browseBtn.style.flex = '1';
-                browseBtn.style.padding = '6px 8px';
-                browseBtn.style.fontSize = '11px';
-                browseBtn.addEventListener('click', () => {
-                    fileInput.click();
-                });
-                buttonRow.appendChild(browseBtn);
-
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = 'Quitar';
-                removeBtn.style.flex = '1';
-                removeBtn.style.padding = '6px 8px';
-                removeBtn.style.fontSize = '11px';
-                removeBtn.style.backgroundColor = '#d00000';
-                removeBtn.style.color = 'white';
-                removeBtn.addEventListener('click', () => {
-                    node.paragraphImages = node.paragraphImages.filter(pi => pi !== imageData);
-                    renderParagraphDetails(idx);
-                });
-                buttonRow.appendChild(removeBtn);
-
-                imgContainer.appendChild(buttonRow);
-                sidebarContent.appendChild(imgContainer);
-            }
-        };
-
-        // Initialize paragraph display
-        setTimeout(() => updateParagraphInfo(), 0);
+        sidebarColumn.appendChild(helpPanel);
 
         editorLayout.appendChild(mainColumn);
         editorLayout.appendChild(sidebarColumn);
@@ -1306,7 +1079,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.style.backgroundColor = '#1a1a1a';
                 row.style.borderRadius = '4px';
 
-                // Label and Flag in the same row
+                // Label and actions in the same row
                 const inputsRow = document.createElement('div');
                 inputsRow.style.display = 'flex';
                 inputsRow.style.gap = '10px';
@@ -1321,68 +1094,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     editor.draw();
                 });
 
-                // Parse current flag (e.g., "set:key", "toggle:key", "custom:expression")
-                let flagAction = 'set';
-                let flagName = '';
-                if (opt.flag) {
-                    const parts = opt.flag.split(':');
-                    if (parts.length >= 2 && ['set', 'clear', 'toggle', 'custom'].includes(parts[0])) {
-                        flagAction = parts[0];
-                        flagName = parts.slice(1).join(':'); // In case custom expression has colons
-                    } else {
-                        flagName = opt.flag;
-                    }
-                }
-
-                // Flag action dropdown
-                const flagActionSelect = document.createElement('select');
-                flagActionSelect.style.flex = "0 0 auto";
-
-                [
-                    { val: 'set', text: 'set' },
-                    { val: 'clear', text: 'clear' },
-                    { val: 'toggle', text: 'toggle' },
-                    { val: 'custom', text: 'custom' }
-                ].forEach(t => {
-                    const option = document.createElement('option');
-                    option.value = t.val;
-                    option.textContent = t.text;
-                    flagActionSelect.appendChild(option);
-                });
-
-                flagActionSelect.value = flagAction;
-
-                // Flag name input
+                // Single freeform actions textbox (replaces old select + flag input)
                 const flagInp = document.createElement('input');
                 flagInp.type = 'text';
-                flagInp.setAttribute('list', 'globalFlagsDatalist');
-                flagInp.value = flagName;
-                flagInp.placeholder = 'nombre flag (ej: key)';
-                flagInp.style.flex = "1";
-                flagInp.title = 'Nombre del flag a set/clear';
-
-                // Update flag when either changes
-                const updateFlag = () => {
-                    const action = flagActionSelect.value;
-                    const name = flagInp.value.trim();
-                    if (name) {
-                        opt.flag = `${action}:${name}`;
-                    } else {
-                        opt.flag = undefined;
-                    }
+                flagInp.value = opt.flag || '';
+                flagInp.placeholder = 'ej: set:key clear:lock toggle:door';
+                flagInp.style.flex = "2";
+                flagInp.style.fontFamily = 'Courier New, monospace';
+                flagInp.style.fontSize = '12px';
+                flagInp.style.color = '#f1fa8c';
+                flagInp.title = 'Acciones al elegir esta opción';
+                flagInp.classList.add('advanced-only-flags');
+                flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+                flagInp.addEventListener('input', (e) => {
+                    opt.flag = e.target.value.trim() || undefined;
                     editor.draw();
-                    // Re-render conditional paragraphs to update flag dropdown
-                    if (renderConditionalParagraphs) {
-                        renderConditionalParagraphs();
-                    }
-                };
-
-                flagActionSelect.addEventListener('change', updateFlag);
-                flagInp.addEventListener('input', updateFlag);
-
-                inputsRow.appendChild(inp);
-                inputsRow.appendChild(flagActionSelect);
-                inputsRow.appendChild(flagInp);
+                });
 
                 // Delete button
                 const del = document.createElement('button');
@@ -1400,12 +1127,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     node.removeOption(idx);
                     editor.draw();
                     renderOptions();
-                    // Re-render conditional paragraphs to update flag dropdown
-                    if (renderConditionalParagraphs) {
-                        renderConditionalParagraphs();
-                    }
                 });
 
+                inputsRow.appendChild(inp);
+                inputsRow.appendChild(flagInp);
                 inputsRow.appendChild(del);
 
                 row.appendChild(inputsRow);
