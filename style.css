@@ -237,8 +237,7 @@ canvas {
 }
 
 #node-edit-modal .modal-content.modal-simple-view {
-    max-width: 600px;
-    width: auto;
+    max-width: 860px;
 }
 
 #node-edit-modal-content {
@@ -761,6 +760,9 @@ input:checked+.slider:before {
 
 /* MuCho Syntax Editor — Zero-Offset Shadow Overlay */
 .mucho-editor-container {
+    font-family: Consolas, 'Courier New', monospace !important;
+    font-size: 15px !important;
+    line-height: 22px !important;
     position: relative;
     width: 100%;
     min-height: 400px;
@@ -771,6 +773,24 @@ input:checked+.slider:before {
     padding: 12px;
     box-sizing: border-box;
     overflow: hidden;
+
+    /* Dynamic Ruler variables */
+    --ruler-width: 32ch;
+    --ruler-display: block;
+}
+
+/* 32-character ruler guide */
+.mucho-editor-container::after {
+    content: '';
+    position: absolute;
+    display: var(--ruler-display);
+    top: 0;
+    bottom: 0;
+    left: calc(12px + var(--ruler-width));
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.15);
+    pointer-events: none;
+    z-index: 10;
 }
 
 /* Identical styles for both layers to ensure perfect overlap */

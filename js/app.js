@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const nodeEditModalTitle = document.getElementById('node-edit-modal-title');
     let currentEditingNode = null;
     let editorViewMode = 'simple'; // 'simple' or 'advanced'
+    let editorRulerWidth = '32ch'; // '32ch', '28ch', '24ch', '20ch', or 'hidden'
 
     function setupEditableModalTitle(fallbackText, obj, prop) {
         nodeEditModalTitle.innerHTML = '';
@@ -922,9 +923,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         editorToolbar.appendChild(insertImageBtn);
         editorToolbar.appendChild(hiddenFileInput);
+
+        // Selector de Regla de Guía
+        const rulerSelect = document.createElement('select');
+        rulerSelect.style.marginLeft = 'auto';
+        rulerSelect.style.fontSize = '12px';
+        rulerSelect.style.padding = '2px 5px';
+        rulerSelect.style.backgroundColor = '#1a1a1a';
+        rulerSelect.style.color = '#eee';
+        rulerSelect.style.border = '1px solid #555';
+        rulerSelect.title = 'Regla de guía (ancho de columna)';
+
+        const rulerOptions = [
+            { label: '📏 Regla: Off', value: 'hidden' },
+            { label: '32 cols', value: '32ch' },
+            { label: '42 cols', value: '42ch' },
+            { label: '64 cols', value: '64ch' }
+        ];
+
+        rulerOptions.forEach(opt => {
+            const el = document.createElement('option');
+            el.value = opt.value;
+            el.textContent = opt.label;
+            if (opt.value === editorRulerWidth) el.selected = true;
+            rulerSelect.appendChild(el);
+        });
+
+        const updateRuler = (val) => {
+            editorRulerWidth = val;
+            if (val === 'hidden') {
+                editorContainer.style.setProperty('--ruler-display', 'none');
+            } else {
+                editorContainer.style.setProperty('--ruler-display', 'block');
+                editorContainer.style.setProperty('--ruler-width', val);
+            }
+        };
+
+        rulerSelect.addEventListener('change', (e) => updateRuler(e.target.value));
+        editorToolbar.appendChild(rulerSelect);
+
         mainColumn.appendChild(editorToolbar);
 
         const editorContainer = document.createElement('div');
+        // Aplicar estado inicial de la regla
+        updateRuler(editorRulerWidth);
         mainColumn.appendChild(editorContainer);
 
         const initialMuchoText = MuchoEditor.generateFromNode(node);
