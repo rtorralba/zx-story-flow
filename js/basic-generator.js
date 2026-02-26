@@ -279,7 +279,12 @@ export function generateBasic(nodes, globalConfig = null) {
                     // Split by single newlines to preserve empty lines
                     const lines = paragraph.split('\n');
                     lines.forEach(line => {
-                        if (line.trim().length === 0) {
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith('$')) {
+                            // Skip MuCho commands (like $I, $O, $P) from PRINT output
+                            return;
+                        }
+                        if (trimmed.length === 0) {
                             // Empty line - just print blank
                             basicCode += `${currentLine} PRINT ""\n`;
                             currentLine += 10;

@@ -28,7 +28,7 @@
       "y": 200,
       "type": "Screen",
       "title": "La Carga",
-      "text": "\n\n\n\n\n\n\n\n\n\nEs 1984. Estas sentado frente al televisor. Los chirridos de la cinta llenan la habitacion: 'BIIIP... screech... BIIP'.\n\nDe repente, el borde deja de parpadear colores.",
+      "text": "$I dark.scr\n\n\n\n\n\n\n\n\n\n\nEs 1984. Estas sentado frente al televisor. Los chirridos de la cinta llenan la habitacion: 'BIIIP... screech... BIIP'.\n\nDe repente, el borde deja de parpadear colores.",
       "outputs": [
         {
           "label": "Tocar el volumen",
