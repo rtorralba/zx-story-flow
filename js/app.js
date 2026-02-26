@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalConfig = {
         page: { ink: 'white', paper: 'black', bright: false, flash: false },
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
-        interface: { ink: 'white', paper: 'black', bright: false, flash: false }
+        interface: { ink: 'white', paper: 'black', bright: false, flash: false },
+        viewMode: 'simple'
     };
 
     // Referencias a la configuración global
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const globalInterfacePaper = document.getElementById('global-interface-paper');
     const globalInterfaceBright = document.getElementById('global-interface-bright');
     const globalInterfaceFlash = document.getElementById('global-interface-flash');
+    const globalViewMode = document.getElementById('global-view-mode');
 
     // Cargar configuración global en los controles
     function loadGlobalConfig() {
@@ -51,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         globalInterfacePaper.value = globalConfig.interface.paper;
         globalInterfaceBright.checked = globalConfig.interface.bright;
         globalInterfaceFlash.checked = globalConfig.interface.flash;
+        if (globalViewMode) globalViewMode.value = globalConfig.viewMode || 'simple';
     }
 
     // Guardar configuración global desde los controles
@@ -73,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bright: globalInterfaceBright.checked,
             flash: globalInterfaceFlash.checked
         };
+        if (globalViewMode) globalConfig.viewMode = globalViewMode.value;
     }
 
     // Abrir modal de configuración global
@@ -106,13 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
     globalInterfacePaper.addEventListener('change', saveGlobalConfig);
     globalInterfaceBright.addEventListener('change', saveGlobalConfig);
     globalInterfaceFlash.addEventListener('change', saveGlobalConfig);
+    if (globalViewMode) globalViewMode.addEventListener('change', saveGlobalConfig);
 
     // Funciones para el modal de edición de nodos
     const nodeEditModal = document.getElementById('node-edit-modal');
     const nodeEditModalContent = document.getElementById('node-edit-modal-content');
     const nodeEditModalTitle = document.getElementById('node-edit-modal-title');
     let currentEditingNode = null;
-    let editorViewMode = 'simple'; // 'simple' or 'advanced'
+    let editorViewMode = globalConfig.viewMode || 'simple'; // Use preference
     let editorRulerWidth = '32ch'; // '32ch', '28ch', '24ch', '20ch', or 'hidden'
 
     function setupEditableModalTitle(fallbackText, obj, prop) {
@@ -217,6 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('change', (e) => {
             editorViewMode = e.target.checked ? 'advanced' : 'simple';
 
+            // Sync with global config
+            globalConfig.viewMode = editorViewMode;
+            if (globalViewMode) globalViewMode.value = editorViewMode;
+
             // Update labels active state
             if (editorViewMode === 'simple') {
                 labelSimple.classList.add('active');
@@ -268,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openNodeEditModal(nodeOrGroup) {
         if (!nodeOrGroup) return;
         currentEditingNode = nodeOrGroup;
+        editorViewMode = globalConfig.viewMode || 'simple';
 
         // Actualizar título del modal
         if (nodeOrGroup instanceof Group) {
