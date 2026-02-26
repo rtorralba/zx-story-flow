@@ -1,0 +1,109 @@
+{
+    "menu": {
+        "screen": "📺 Screen",
+        "group": "📦 Group",
+        "reference": "🔗 Reference",
+        "project": "📁 Project",
+        "export": "📤 Export",
+        "config": "⚙️ Config",
+        "fullscreen": "⛶ Fullscreen"
+    },
+    "project": {
+        "new": "📄 New",
+        "save": "💾 Save",
+        "load": "📂 Load"
+    },
+    "export": {
+        "png": "🖼️ PNG Image",
+        "tap": "📼 .TAP",
+        "mucho": "📜 MuCho",
+        "basic": "⌨️ BASIC"
+    },
+    "properties": {
+        "title": "Properties",
+        "empty": "Select a node to edit properties.",
+        "specific_config": "Specific Configuration",
+        "page": "Page",
+        "separator": "Separator",
+        "options": "Options",
+        "ink": "INK",
+        "paper": "PAPER",
+        "bright": "BRIGHT",
+        "flash": "FLASH",
+        "group_color": "Group Color",
+        "contains_nodes": "Contains {n} node(s)",
+        "delete_group": "Delete Group",
+        "node_reference": "Node Reference",
+        "target_node": "Target Node:",
+        "none": "(None)"
+    },
+    "colors": {
+        "black": "Black",
+        "blue": "Blue",
+        "red": "Red",
+        "magenta": "Magenta",
+        "green": "Green",
+        "cyan": "Cyan",
+        "yellow": "Yellow",
+        "white": "White"
+    },
+    "config": {
+        "global_title": "Global Config (default)",
+        "edit_interface": "Editing Interface",
+        "default_view": "Default view mode:",
+        "view_simple": "Simple View",
+        "view_advanced": "Advanced View",
+        "close": "Close"
+    },
+    "editor": {
+        "edit_node": "Edit Node",
+        "edit_group": "Edit Group",
+        "edit_reference": "Edit Reference",
+        "node_no_title": "Untitled Node",
+        "actions_placeholder": "ex: set:key clear:lock rnd:50",
+        "actions_title": "MuCho actions alongside $Q",
+        "view_simple": "Simple View",
+        "view_advanced": "Advanced View",
+        "options_title": "🔗 Options",
+        "option_placeholder": "Option Label",
+        "actions_option_title": "Actions when choosing this option",
+        "delete_option": "Delete option",
+        "add_option": "+ Add option",
+        "color_config_title": "Color Configuration",
+        "use_custom_node": "Use specific configuration for this node",
+        "insert_image": "🖼️ Insert Image",
+        "ruler_title": "Guide ruler (column width)",
+        "ruler_off": "📏 Ruler: Off"
+    },
+    "help": {
+        "title": "MUCHO SYNTAX HELP",
+        "flags_logic": "Flag Logic",
+        "flags_has": "If flag is set.",
+        "flags_not": "If flag is NOT set.",
+        "flags_rnd": "Probability (128 = 50%).",
+        "flags_and": "Combine:",
+        "or": "or",
+        "ops_title": "Operations (Flags)",
+        "ops_set": "Set a flag.",
+        "ops_clear": "Clear a flag.",
+        "ops_toggle": "Toggle flag state.",
+        "nums_title": "Numbers and Variables",
+        "nums_assign": "Assign (0-255).",
+        "nums_add_sub": "Add or subtract.",
+        "nums_compare": "Comparison.",
+        "nums_print": "Print value in text.",
+        "style_title": "Screen and Style",
+        "style_img": "Show image (SCREEN$).",
+        "style_attr": "Text color (White on Black).",
+        "style_div_int": "Divider / Interface.",
+        "style_border": "Change border color.",
+        "style_cls": "Clear the screen.",
+        "click_to_insert": "Click on code to insert it."
+    },
+    "messages": {
+        "new_confirm": "Are you sure you want to start a new project? Current unsaved progress will be lost.",
+        "storage_full": "Storage full! Try removing some images or large text blocks.",
+        "save_failed": "Save failed: ",
+        "load_failed": "Error loading project: "
+    }
+}

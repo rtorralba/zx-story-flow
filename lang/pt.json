@@ -1,0 +1,109 @@
+{
+    "menu": {
+        "screen": "📺 Tela",
+        "group": "📦 Grupo",
+        "reference": "🔗 Referência",
+        "project": "📁 Projeto",
+        "export": "📤 Exportar",
+        "config": "⚙️ Config",
+        "fullscreen": "⛶ Tela Cheia"
+    },
+    "project": {
+        "new": "📄 Novo",
+        "save": "💾 Salvar",
+        "load": "📂 Abrir"
+    },
+    "export": {
+        "png": "🖼️ Imagem PNG",
+        "tap": "📼 .TAP",
+        "mucho": "📜 MuCho",
+        "basic": "⌨️ BASIC"
+    },
+    "properties": {
+        "title": "Propriedades",
+        "empty": "Selecione um nó para editar as propriedades.",
+        "specific_config": "Configuração específica",
+        "page": "Página",
+        "separator": "Separador",
+        "options": "Opções",
+        "ink": "INK",
+        "paper": "PAPER",
+        "bright": "BRIGHT",
+        "flash": "FLASH",
+        "group_color": "Cor do Grupo",
+        "contains_nodes": "Contém {n} nó(s)",
+        "delete_group": "Excluir Grupo",
+        "node_reference": "Referência de Nó",
+        "target_node": "Nó de Destino:",
+        "none": "(Nenhum)"
+    },
+    "colors": {
+        "black": "Preto",
+        "blue": "Azul",
+        "red": "Vermelho",
+        "magenta": "Magenta",
+        "green": "Verde",
+        "cyan": "Ciano",
+        "yellow": "Amarelo",
+        "white": "Branco"
+    },
+    "config": {
+        "global_title": "Configuração Global (padrão)",
+        "edit_interface": "Interface de Edição",
+        "default_view": "Modo de edição padrão:",
+        "view_simple": "Vista Simples",
+        "view_advanced": "Vista Avançada",
+        "close": "Fechar"
+    },
+    "editor": {
+        "edit_node": "Editar Nó",
+        "edit_group": "Editar Grupo",
+        "edit_reference": "Editar Referência",
+        "node_no_title": "Nó Sem Título",
+        "actions_placeholder": "ex: set:key clear:lock rnd:50",
+        "actions_title": "Ações MuCho que acompanham o $Q",
+        "view_simple": "Vista Simples",
+        "view_advanced": "Vista Avançada",
+        "options_title": "🔗 Opções",
+        "option_placeholder": "Rótulo da opção",
+        "actions_option_title": "Ações ao escolher esta opção",
+        "delete_option": "Excluir opção",
+        "add_option": "+ Adicionar opção",
+        "color_config_title": "Configuração de Cores",
+        "use_custom_node": "Usar configuração específica para este nó",
+        "insert_image": "🖼️ Inserir Imagem",
+        "ruler_title": "Régua de guia (largura da coluna)",
+        "ruler_off": "📏 Régua: Desligada"
+    },
+    "help": {
+        "title": "AJUDA SINTAXE MUCHO",
+        "flags_logic": "Lógica de Flags",
+        "flags_has": "Se tiver o flag.",
+        "flags_not": "Se NÃO o tiver.",
+        "flags_rnd": "Probabilidade (128 = 50%).",
+        "flags_and": "Combinar:",
+        "or": "ou",
+        "ops_title": "Operações (Flags)",
+        "ops_set": "Ativa um flag.",
+        "ops_clear": "Desativa um flag.",
+        "ops_toggle": "Inverte o estado.",
+        "nums_title": "Números e Variáveis",
+        "nums_assign": "Atribuir (0-255).",
+        "nums_add_sub": "Somar ou subtrair.",
+        "nums_compare": "Comparação.",
+        "nums_print": "Imprimir valor no texto.",
+        "style_title": "Tela e Estilo",
+        "style_img": "Mostrar imagem (SCREEN$).",
+        "style_attr": "Cor do texto (White on Black).",
+        "style_div_int": "Divisor / Interface.",
+        "style_border": "Alterar cor da borda.",
+        "style_cls": "Limpar a tela.",
+        "click_to_insert": "Clique no código para inseri-lo."
+    },
+    "messages": {
+        "new_confirm": "Tem certeza que deseja iniciar um novo projeto? O progresso atual não salvo será perdido.",
+        "storage_full": "Armazenamento cheio! Tente remover algumas imagens ou blocos de texto grandes.",
+        "save_failed": "Falha ao salvar: ",
+        "load_failed": "Erro ao carregar o projeto: "
+    }
+}

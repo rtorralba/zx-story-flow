@@ -9,8 +9,15 @@ import { generateBasic } from './basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
 import { generateTapFromBasic } from './tap-generator.js';
 import { MuchoEditor } from './mucho-editor.js';
+import { i18n, t } from './translations.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize i18n first
+    await i18n.init();
+
+    // Update language display in header
+    const currentLangDisplay = document.getElementById('current-lang');
+    if (currentLangDisplay) currentLangDisplay.textContent = i18n.currentLang.toUpperCase();
     const canvas = document.getElementById('node-canvas');
     const propertyContent = document.getElementById('properties-content');
     let projectName = 'Untitled';
@@ -117,6 +124,25 @@ document.addEventListener('DOMContentLoaded', () => {
     globalInterfaceFlash.addEventListener('change', onGlobalConfigChange);
     if (globalViewMode) globalViewMode.addEventListener('change', onGlobalConfigChange);
 
+    // Language Selector Listeners
+    document.querySelectorAll('.lang-option').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const lang = e.target.getAttribute('data-lang');
+            await i18n.loadLanguage(lang);
+            if (currentLangDisplay) currentLangDisplay.textContent = lang.toUpperCase();
+        });
+    });
+
+    // Language changed event listener for dynamic updates
+    window.addEventListener('languageChanged', (e) => {
+        // Redraw editor to update nodes if needed, though they are mostly graphical
+        editor.draw();
+        // If a modal is open, we might need to refresh its content
+        if (currentEditingNode) {
+            openNodeEditModal(currentEditingNode);
+        }
+    });
+
     // Funciones para el modal de edición de nodos
     const nodeEditModal = document.getElementById('node-edit-modal');
     const nodeEditModalContent = document.getElementById('node-edit-modal-content');
@@ -203,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const labelSimple = document.createElement('span');
         labelSimple.className = 'switch-label';
-        labelSimple.textContent = 'Sencilla';
+        labelSimple.textContent = t('editor.view_simple');
         if (editorViewMode === 'simple') labelSimple.classList.add('active');
 
         const switchDiv = document.createElement('div');
@@ -221,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const labelAdvanced = document.createElement('span');
         labelAdvanced.className = 'switch-label';
-        labelAdvanced.textContent = 'Avanzada';
+        labelAdvanced.textContent = t('editor.view_advanced');
         if (editorViewMode === 'advanced') labelAdvanced.classList.add('active');
 
         input.addEventListener('change', (e) => {
@@ -353,21 +379,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Actualizar título del modal
         if (nodeOrGroup instanceof Group) {
-            setupEditableModalTitle('Editar Grupo', nodeOrGroup, 'name');
+            setupEditableModalTitle(t('editor.edit_group'), nodeOrGroup, 'name');
             setupViewToggle();
         } else if (nodeOrGroup instanceof NodeReference) {
             nodeEditModalTitle.innerHTML = '';
-            nodeEditModalTitle.textContent = 'Editar Referencia';
+            nodeEditModalTitle.setAttribute('data-i18n', 'editor.edit_reference');
+            nodeEditModalTitle.textContent = t('editor.edit_reference');
             setupViewToggle();
         } else {
-            setupEditableModalTitle('Nodo Sin Título', nodeOrGroup, 'title');
+            setupEditableModalTitle(t('editor.node_no_title'), nodeOrGroup, 'title');
 
             // Add actions input next to the title
             const actionsInput = document.createElement('input');
             actionsInput.type = 'text';
             actionsInput.value = nodeOrGroup.actions || '';
-            actionsInput.placeholder = 'ej: set:key clear:lock rnd:50';
-            actionsInput.title = 'Acciones MuCho que van junto al $Q';
+            actionsInput.setAttribute('data-i18n', 'editor.actions_placeholder');
+            actionsInput.placeholder = t('editor.actions_placeholder');
+            actionsInput.setAttribute('data-i18n-title', 'editor.actions_title');
+            actionsInput.title = t('editor.actions_title');
             actionsInput.style.marginLeft = '12px';
             actionsInput.style.fontSize = '14px';
             actionsInput.style.fontFamily = 'Courier New, monospace';
@@ -576,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error("Auto-save FAILED:", e);
             if (e.name === 'QuotaExceededError') {
-                alert("Storage full! Try removing some images or large text blocks.");
+                alert(t('messages.storage_full'));
             }
         }
     }
@@ -715,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Save completed");
         } catch (e) {
             console.error("Save error:", e);
-            alert("Save failed: " + e.message);
+            alert(t('messages.save_failed') + e.message);
         }
     });
 
@@ -738,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 autoSave();
             } catch (err) {
                 console.error(err);
-                alert("Error loading project: " + err.message);
+                alert(t('messages.load_failed') + err.message);
             }
         };
         reader.readAsText(file);
@@ -748,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // New Project
     document.getElementById('new-btn').addEventListener('click', () => {
-        if (confirm('¿Estás seguro de que quieres empezar un proyecto nuevo? Se borrará el progreso actual no guardado en disco.')) {
+        if (confirm(t('messages.new_confirm'))) {
             // Temporary block auto-save to ensure clean wipe
             isInitialized = false;
             editor.nodes = [];
@@ -802,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-        const colorInput = createColorInput('Group Color', group.color, (val) => {
+        const colorInput = createColorInput(t('properties.group_color'), group.color, (val) => {
             group.color = val;
             editor.draw();
         });
@@ -811,11 +840,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show member nodes count
         const infoDiv = document.createElement('div');
         infoDiv.className = 'form-group';
-        infoDiv.innerHTML = `<p style="color: #aaa; font-size: 0.9em;">Contains ${group.nodeIds.length} node(s)</p>`;
+        infoDiv.innerHTML = `<p style="color: #aaa; font-size: 0.9em;">${t('properties.contains_nodes').replace('{n}', group.nodeIds.length)}</p>`;
         targetContainer.appendChild(infoDiv);
 
         const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = "Delete Group";
+        deleteBtn.textContent = t('properties.delete_group');
         deleteBtn.style.marginTop = "20px";
         deleteBtn.style.backgroundColor = "#d00000";
         deleteBtn.style.color = "#fff";
@@ -835,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
         targetContainer.innerHTML = '';
 
         const title = document.createElement('h3');
-        title.textContent = 'Node Reference';
+        title.textContent = t('properties.node_reference');
         targetContainer.appendChild(title);
 
         // Dropdown to select target node
@@ -843,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formGroup.className = 'form-group';
 
         const label = document.createElement('label');
-        label.textContent = 'Target Node:';
+        label.textContent = t('properties.target_node');
         formGroup.appendChild(label);
 
         const select = document.createElement('select');
@@ -851,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add "None" option
         const noneOption = document.createElement('option');
         noneOption.value = '';
-        noneOption.textContent = '(None)';
+        noneOption.textContent = t('properties.none');
         select.appendChild(noneOption);
 
         // Add all screen nodes as options
@@ -1024,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editorToolbar.style.borderRadius = '4px';
 
         const insertImageBtn = document.createElement('button');
-        insertImageBtn.innerHTML = '🖼️ Insertar Imagen';
+        insertImageBtn.innerHTML = t('editor.insert_image');
         insertImageBtn.style.padding = '5px 10px';
         insertImageBtn.style.fontSize = '12px';
 
@@ -1048,10 +1077,10 @@ document.addEventListener('DOMContentLoaded', () => {
         rulerSelect.style.backgroundColor = '#1a1a1a';
         rulerSelect.style.color = '#eee';
         rulerSelect.style.border = '1px solid #555';
-        rulerSelect.title = 'Regla de guía (ancho de columna)';
+        rulerSelect.title = t('editor.ruler_title');
 
         const rulerOptions = [
-            { label: '📏 Regla: Off', value: 'hidden' },
+            { label: t('editor.ruler_off'), value: 'hidden' },
             { label: '32 cols', value: '32ch' },
             { label: '42 cols', value: '42ch' },
             { label: '64 cols', value: '64ch' }
@@ -1140,51 +1169,51 @@ document.addEventListener('DOMContentLoaded', () => {
         const helpPanel = document.createElement('div');
         helpPanel.className = 'mucho-help-panel';
         helpPanel.innerHTML = `
-            <h5>Ayuda Sintaxis MuCho</h5>
+            <h5>${t('help.title')}</h5>
 
             <div class="mucho-help-section">
-                <h6>Lógica de Flags</h6>
+                <h6>${t('help.flags_logic')}</h6>
                 <ul>
-                    <li><code>has:name</code> (o <code>name</code>) Si tiene el flag.</li>
-                    <li><code>not:name</code> (o <code>!name</code>) Si NO lo tiene.</li>
-                    <li><code>rnd:128</code> Probabilidad (128 = 50%).</li>
-                    <li><code>AND</code> Combinar: <code>has:A AND has:B</code>.</li>
+                    <li><code>has:name</code> (${t('help.or')} <code>name</code>) ${t('help.flags_has')}</li>
+                    <li><code>not:name</code> (${t('help.or')} <code>!name</code>) ${t('help.flags_not')}</li>
+                    <li><code>rnd:128</code> ${t('help.flags_rnd')}</li>
+                    <li><code>AND</code> ${t('help.flags_and')} <code>has:A AND has:B</code>.</li>
                 </ul>
             </div>
 
             <div class="mucho-help-section">
-                <h6>Operaciones (Flags)</h6>
+                <h6>${t('help.ops_title')}</h6>
                 <ul>
-                    <li><code>set:flag</code> Activa un flag.</li>
-                    <li><code>clear:flag</code> (o <code>clr:</code>) Desactiva un flag.</li>
-                    <li><code>toggle:flag</code> Invierte el estado.</li>
+                    <li><code>set:flag</code> ${t('help.ops_set')}</li>
+                    <li><code>clear:flag</code> (${t('help.or')} <code>clr:</code>) ${t('help.ops_clear')}</li>
+                    <li><code>toggle:flag</code> ${t('help.ops_toggle')}</li>
                 </ul>
             </div>
 
             <div class="mucho-help-section">
-                <h6>Números y Variables</h6>
+                <h6>${t('help.nums_title')}</h6>
                 <ul>
-                    <li><code>v=10</code> Asignar (0-255).</li>
-                    <li><code>v+5</code> / <code>v-2</code> Sumar o restar.</li>
-                    <li><code>v==10</code> / <code>v!=5</code> Comparación.</li>
-                    <li><code>v&gt;5</code> / <code>v&lt;=20</code> Comparación.</li>
-                    <li><code>&lt;&lt;v&gt;&gt;</code> Imprimir valor en el texto.</li>
+                    <li><code>v=10</code> ${t('help.nums_assign')}</li>
+                    <li><code>v+5</code> / <code>v-2</code> ${t('help.nums_add_sub')}</li>
+                    <li><code>v==10</code> / <code>v!=5</code> ${t('help.nums_compare')}</li>
+                    <li><code>v&gt;5</code> / <code>v&lt;=20</code> ${t('help.nums_compare')}</li>
+                    <li><code>&lt;&lt;v&gt;&gt;</code> ${t('help.nums_print')}</li>
                 </ul>
             </div>
 
             <div class="mucho-help-section">
-                <h6>Pantalla y Estilo</h6>
+                <h6>${t('help.style_title')}</h6>
                 <ul>
-                    <li><code>$I img.scr</code> Mostrar imagen (SCREEN$).</li>
-                    <li><code>attr:71</code> Color texto (White on Black).</li>
-                    <li><code>dattr:N</code> / <code>iattr:N</code> Divisor / Interfaz.</li>
-                    <li><code>border:N</code> Cambiar color del borde.</li>
-                    <li><code>cls:0</code> Limpiar la pantalla.</li>
+                    <li><code>$I img.scr</code> ${t('help.style_img')}</li>
+                    <li><code>attr:71</code> ${t('help.style_attr')}</li>
+                    <li><code>dattr:N</code> / <code>iattr:N</code> ${t('help.style_div_int')}</li>
+                    <li><code>border:N</code> ${t('help.style_border')}</li>
+                    <li><code>cls:0</code> ${t('help.style_cls')}</li>
                 </ul>
             </div>
 
             <p style="margin-top:10px; font-size:11px; color:#888;">
-                <em>Haz clic en el código para insertarlo.</em>
+                <em>${t('help.click_to_insert')}</em>
             </p>
         `;
 
@@ -1219,7 +1248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         optionsSection.style.borderRadius = '4px';
 
         const optionsTitle = document.createElement('h4');
-        optionsTitle.textContent = '🔗 Opciones';
+        optionsTitle.textContent = t('editor.options_title');
         optionsTitle.style.margin = '0 0 10px 0';
         optionsTitle.style.color = '#4a9eff';
         optionsSection.appendChild(optionsTitle);
@@ -1247,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const inp = document.createElement('input');
                 inp.value = opt.label;
-                inp.placeholder = 'Etiqueta de la opción';
+                inp.placeholder = t('editor.option_placeholder');
                 inp.style.flex = "2";
                 inp.addEventListener('input', (e) => {
                     opt.label = e.target.value;
@@ -1267,7 +1296,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 flagInp.style.backgroundColor = '#000';
                 flagInp.style.border = '1px solid #555';
                 flagInp.style.borderRadius = '3px';
-                flagInp.title = 'Acciones al elegir esta opción';
+                flagInp.title = t('editor.actions_option_title');
                 flagInp.classList.add('advanced-only-flags');
                 flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
                 flagInp.addEventListener('input', (e) => {
@@ -1287,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 del.style.fontSize = "16px";
                 del.style.fontWeight = "bold";
                 del.style.minWidth = "35px";
-                del.title = "Eliminar opción";
+                del.title = t('editor.delete_option');
                 del.addEventListener('click', () => {
                     node.removeOption(idx);
                     editor.draw();
@@ -1305,7 +1334,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Add Option Button
             const addBtn = document.createElement('button');
-            addBtn.textContent = "+ Añadir opción";
+            addBtn.textContent = t('editor.add_option');
             addBtn.style.width = "100%";
             addBtn.style.marginTop = "5px";
             addBtn.addEventListener('click', () => {
@@ -1330,7 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         colorConfigSection.style.borderRadius = '4px';
 
         const colorConfigTitle = document.createElement('h4');
-        colorConfigTitle.textContent = '▼ 🎨 Configuración de Colores';
+        colorConfigTitle.textContent = '▼ 🎨 ' + t('editor.color_config_title');
         colorConfigTitle.style.margin = '0 0 10px 0';
         colorConfigTitle.style.color = '#4a9eff';
         colorConfigTitle.style.cursor = 'pointer';
@@ -1344,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', () => {
         colorConfigTitle.addEventListener('click', () => {
             isColorConfigExpanded = !isColorConfigExpanded;
             colorConfigContent.style.display = isColorConfigExpanded ? 'block' : 'none';
-            colorConfigTitle.textContent = (isColorConfigExpanded ? '▼' : '▶') + ' 🎨 Configuración de Colores';
+            colorConfigTitle.textContent = (isColorConfigExpanded ? '▼' : '▶') + ' 🎨 ' + t('editor.color_config_title');
         });
 
         // Use custom config checkbox
@@ -1362,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         useCustomCheckbox.style.marginRight = '8px';
 
         const useCustomText = document.createElement('span');
-        useCustomText.textContent = 'Usar configuración específica para este nodo';
+        useCustomText.textContent = t('editor.use_custom_node');
 
         useCustomLabel.appendChild(useCustomCheckbox);
         useCustomLabel.appendChild(useCustomText);
@@ -1400,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
             colorRow.style.alignItems = 'center';
 
             const inkLabel = document.createElement('label');
-            inkLabel.textContent = 'INK:';
+            inkLabel.textContent = t('properties.ink');
             inkLabel.style.minWidth = '40px';
 
             const inkSelect = document.createElement('select');
@@ -1408,13 +1437,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
                 const opt = document.createElement('option');
                 opt.value = color;
-                opt.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+                opt.textContent = t(`colors.${color}`);
                 if (currentConfig.ink === color) opt.selected = true;
                 inkSelect.appendChild(opt);
             });
 
             const paperLabel = document.createElement('label');
-            paperLabel.textContent = 'PAPER:';
+            paperLabel.textContent = t('properties.paper');
             paperLabel.style.minWidth = '50px';
             paperLabel.style.marginLeft = '5px';
 
@@ -1423,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
                 const opt = document.createElement('option');
                 opt.value = color;
-                opt.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+                opt.textContent = t(`colors.${color}`);
                 if (currentConfig.paper === color) opt.selected = true;
                 paperSelect.appendChild(opt);
             });
@@ -1451,7 +1480,7 @@ document.addEventListener('DOMContentLoaded', () => {
             brightCheckbox.style.marginRight = '5px';
 
             const brightText = document.createElement('span');
-            brightText.textContent = 'Bright';
+            brightText.textContent = t('properties.bright');
 
             brightLabel.appendChild(brightCheckbox);
             brightLabel.appendChild(brightText);
@@ -1467,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             flashCheckbox.style.marginRight = '5px';
 
             const flashText = document.createElement('span');
-            flashText.textContent = 'Flash';
+            flashText.textContent = t('properties.flash');
 
             flashLabel.appendChild(flashCheckbox);
             flashLabel.appendChild(flashText);
@@ -1496,9 +1525,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return section;
         };
 
-        customConfigContainer.appendChild(createColorConfig('Página', 'pageConfig'));
-        customConfigContainer.appendChild(createColorConfig('Separador', 'separatorConfig'));
-        customConfigContainer.appendChild(createColorConfig('Opciones', 'interfaceConfig'));
+        customConfigContainer.appendChild(createColorConfig(t('properties.page'), 'pageConfig'));
+        customConfigContainer.appendChild(createColorConfig(t('properties.separator'), 'separatorConfig'));
+        customConfigContainer.appendChild(createColorConfig(t('properties.options'), 'interfaceConfig'));
 
         colorConfigContent.appendChild(customConfigContainer);
 
@@ -1530,9 +1559,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 // Recreate the config UI with new values
                 customConfigContainer.innerHTML = '';
-                customConfigContainer.appendChild(createColorConfig('Página', 'pageConfig'));
-                customConfigContainer.appendChild(createColorConfig('Separador', 'separatorConfig'));
-                customConfigContainer.appendChild(createColorConfig('Opciones', 'interfaceConfig'));
+                customConfigContainer.appendChild(createColorConfig(t('properties.page'), 'pageConfig'));
+                customConfigContainer.appendChild(createColorConfig(t('properties.separator'), 'separatorConfig'));
+                customConfigContainer.appendChild(createColorConfig(t('properties.options'), 'interfaceConfig'));
             } else {
                 delete node.pageConfig;
                 delete node.separatorConfig;
