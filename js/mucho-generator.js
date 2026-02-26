@@ -76,7 +76,8 @@ export function generateMucho(nodes, globalConfig = null) {
     screenNodes.forEach(node => {
         const label = labelMap[node.id];
         let description = node.text || "";
-        description = description.trim();
+        // Replace lines that only contain whitespace with $P
+        description = description.split(/\r?\n/).map(line => line.trim() === "" ? "$P" : line).join("\n");
 
         // Calculate attributes
         // Page attributes (use node config if exists, else global)

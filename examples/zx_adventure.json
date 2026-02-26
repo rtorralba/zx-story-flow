@@ -18,7 +18,8 @@
       "paper": "green",
       "bright": false,
       "flash": true
-    }
+    },
+    "viewMode": "advanced"
   },
   "nodes": [
     {
