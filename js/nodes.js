@@ -70,9 +70,9 @@ export class NodeReference extends Node {
 
     // Get the title based on the target node
     getDisplayTitle(nodes) {
-        if (!this.targetNodeId) return "→ (No target)";
+        if (!this.targetNodeId) return "(No target)";
         const targetNode = nodes.find(n => n.id === this.targetNodeId);
-        return targetNode ? `→ ${targetNode.title}` : "→ (Not found)";
+        return targetNode ? `${targetNode.title}` : "(Not found)";
     }
 }
 
