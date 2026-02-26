@@ -1117,11 +1117,15 @@ export class NodeEditor {
         tempCtx.restore();
 
         // Convert to PNG and download
+        let filename = 'workflow.png';
+        if (arguments.length > 0 && typeof arguments[0] === 'string') {
+            filename = arguments[0] + '.png';
+        }
         tempCanvas.toBlob((blob) => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'workflow.png';
+            a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
         });

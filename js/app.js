@@ -659,7 +659,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('export-png-btn').addEventListener('click', () => {
-        editor.exportToPNG();
+        const exportName = (projectName || 'workflow').replace(/\s+/g, '_');
+        editor.exportToPNG(exportName);
     });
 
     document.getElementById('export-tap-btn').addEventListener('click', () => {
@@ -684,13 +685,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            const tapData = generateTapFromBasic(basicCode, "adventure", screenImages);
+            // Usar el nombre del proyecto, reemplazando espacios por _
+            const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
+            const tapData = generateTapFromBasic(basicCode, exportName, screenImages);
 
             const blob = new Blob([tapData], { type: 'application/x-tap' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'adventure.tap';
+            a.download = exportName + '.tap';
             a.click();
             URL.revokeObjectURL(url);
             console.log("TAP Export successful");
@@ -706,24 +709,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-btn').addEventListener('click', () => {
         const basicCode = generateBasic(editor.nodes, globalConfig);
-
-        // Create a blob and download
+        const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([basicCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'adventure.bas';
+        a.download = exportName + '.bas';
         a.click();
         URL.revokeObjectURL(url);
     });
 
     document.getElementById('export-mucho-btn').addEventListener('click', () => {
         const muchoCode = generateMucho(editor.nodes, globalConfig);
+        const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([muchoCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'adventure.txt';
+        a.download = exportName + '.txt';
         a.click();
         URL.revokeObjectURL(url);
     });
