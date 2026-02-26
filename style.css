@@ -240,6 +240,29 @@ canvas {
     max-width: 860px;
 }
 
+/* Compact modal styles (for Groups and References) */
+#compact-edit-modal .modal-content {
+    max-width: 480px;
+    width: 420px;
+    max-height: 30vh;
+    overflow-y: auto;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 10px 12px;
+}
+
+#compact-edit-modal .modal-content h2 {
+    font-size: 1.05em;
+    margin: 0 0 10px 0;
+}
+
+#compact-edit-modal #compact-edit-modal-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 #node-edit-modal-content {
     flex: 1;
     overflow-y: auto;

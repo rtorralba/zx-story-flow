@@ -147,9 +147,80 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nodeEditModal = document.getElementById('node-edit-modal');
     const nodeEditModalContent = document.getElementById('node-edit-modal-content');
     const nodeEditModalTitle = document.getElementById('node-edit-modal-title');
+    // Compact modal for groups and references
+    const compactEditModal = document.getElementById('compact-edit-modal');
+    const compactEditModalContent = document.getElementById('compact-edit-modal-content');
+    const compactEditModalTitle = document.getElementById('compact-edit-modal-title');
     let currentEditingNode = null;
     let editorViewMode = globalConfig.viewMode || 'simple'; // Use preference
     let editorRulerWidth = '32ch'; // '32ch', '28ch', '24ch', '20ch', or 'hidden'
+
+    function closeCompactEditModal() {
+        if (!compactEditModal) return;
+        compactEditModal.style.display = 'none';
+        currentEditingNode = null;
+    }
+
+    function setupCompactEditableTitle(fallbackText, obj, prop) {
+        if (!compactEditModalTitle) return;
+        compactEditModalTitle.innerHTML = '';
+        let titleText = obj[prop] || fallbackText;
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = titleText;
+        titleSpan.style.marginRight = '10px';
+        titleSpan.style.cursor = 'pointer';
+
+        const editIcon = document.createElement('span');
+        editIcon.textContent = '✏️';
+        editIcon.style.cursor = 'pointer';
+        editIcon.style.fontSize = '0.8em';
+
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.value = obj[prop] || '';
+        inputField.style.display = 'none';
+        inputField.style.fontSize = 'inherit';
+        inputField.style.fontFamily = 'inherit';
+        inputField.style.width = '100%';
+        inputField.style.padding = '4px 6px';
+
+        const updateTitle = () => {
+            obj[prop] = inputField.value;
+            titleSpan.textContent = obj[prop] || fallbackText;
+            editor.draw();
+        };
+
+        const startEditing = () => {
+            titleSpan.style.display = 'none';
+            editIcon.style.display = 'none';
+            inputField.style.display = 'inline-block';
+            inputField.focus();
+            inputField.select();
+        };
+
+        const stopEditing = () => {
+            updateTitle();
+            titleSpan.style.display = 'inline-block';
+            editIcon.style.display = 'inline-block';
+            inputField.style.display = 'none';
+        };
+
+        editIcon.addEventListener('click', startEditing);
+        titleSpan.addEventListener('click', startEditing);
+        inputField.addEventListener('blur', stopEditing);
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') stopEditing();
+            if (e.key === 'Escape') {
+                inputField.value = obj[prop] || '';
+                stopEditing();
+            }
+        });
+
+        compactEditModalTitle.appendChild(titleSpan);
+        compactEditModalTitle.appendChild(editIcon);
+        compactEditModalTitle.appendChild(inputField);
+    }
 
     function setupEditableModalTitle(fallbackText, obj, prop) {
         nodeEditModalTitle.innerHTML = '';
@@ -379,13 +450,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Actualizar título del modal
         if (nodeOrGroup instanceof Group) {
-            setupEditableModalTitle(t('editor.edit_group'), nodeOrGroup, 'name');
-            // No mostrar el switch de vista
+            // Use compact modal for groups (narrower, no view switch)
+            if (nodeEditModal) nodeEditModal.style.display = 'none';
+            if (compactEditModalTitle) setupCompactEditableTitle(t('editor.edit_group'), nodeOrGroup, 'name');
         } else if (nodeOrGroup instanceof NodeReference) {
-            nodeEditModalTitle.innerHTML = '';
-            nodeEditModalTitle.setAttribute('data-i18n', 'editor.edit_reference');
-            nodeEditModalTitle.textContent = t('editor.edit_reference');
-            setupViewToggle();
+            // Use compact modal for references (narrower, no view switch)
+            if (nodeEditModal) nodeEditModal.style.display = 'none';
+            if (compactEditModalTitle) {
+                compactEditModalTitle.innerHTML = '';
+                compactEditModalTitle.setAttribute('data-i18n', 'editor.edit_reference');
+                compactEditModalTitle.textContent = t('editor.edit_reference');
+            }
         } else {
             setupEditableModalTitle(t('editor.node_no_title'), nodeOrGroup, 'title');
 
@@ -418,21 +493,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             setupViewToggle();
         }
 
-        // Limpiar contenido anterior
-        nodeEditModalContent.innerHTML = '';
-
-        // Generar contenido según el tipo
+        // Generar y mostrar contenido según el tipo
         if (nodeOrGroup instanceof Group) {
-            updateGroupProperties(nodeOrGroup, nodeEditModalContent);
+            // compact container
+            compactEditModalContent.innerHTML = '';
+            updateGroupProperties(nodeOrGroup, compactEditModalContent);
+            compactEditModal.style.display = 'flex';
         } else if (nodeOrGroup instanceof NodeReference) {
-            updateReferenceProperties(nodeOrGroup, nodeEditModalContent);
+            compactEditModalContent.innerHTML = '';
+            updateReferenceProperties(nodeOrGroup, compactEditModalContent);
+            compactEditModal.style.display = 'flex';
         } else {
+            // full node editor
+            nodeEditModalContent.innerHTML = '';
             updateNodeProperties(nodeOrGroup, nodeEditModalContent);
+            nodeEditModal.style.display = 'flex';
+            applyViewMode();
         }
-
-        // Mostrar modal
-        nodeEditModal.style.display = 'flex';
-        applyViewMode();
     }
 
     function closeNodeEditModal() {
@@ -442,7 +519,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Event listeners para cerrar el modal
     document.getElementById('node-edit-modal-close-btn').addEventListener('click', closeNodeEditModal);
-    document.getElementById('node-edit-modal-close').addEventListener('click', closeNodeEditModal);
 
     // Cerrar modal al hacer clic fuera de él
     nodeEditModal.addEventListener('click', (e) => {
@@ -450,6 +526,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeNodeEditModal();
         }
     });
+
+    // Compact modal close handlers
+    const compactCloseBtn = document.getElementById('compact-edit-modal-close-btn');
+    if (compactCloseBtn) compactCloseBtn.addEventListener('click', closeCompactEditModal);
+    if (compactEditModal) {
+        compactEditModal.addEventListener('click', (e) => {
+            if (e.target === compactEditModal) closeCompactEditModal();
+        });
+    }
 
     // Initialize Editor
     const editor = new NodeEditor(canvas, (selectedNode) => {
@@ -461,8 +546,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (selectedNode instanceof NodeReference) {
             openNodeEditModal(selectedNode);
         } else {
-            // Si se deselecciona, cerrar el modal
+            // Si se deselecciona, cerrar cualquier modal de edición
             closeNodeEditModal();
+            closeCompactEditModal();
         }
     });
 
@@ -857,7 +943,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         deleteBtn.style.width = "100%";
         deleteBtn.addEventListener('click', () => {
             editor.removeGroup(group);
-            if (container) closeNodeEditModal(); // Cerrar modal si se está usando
+            if (container) {
+                if (container.id === 'compact-edit-modal-content') {
+                    closeCompactEditModal();
+                } else {
+                    closeNodeEditModal();
+                }
+            }
         });
         targetContainer.appendChild(deleteBtn);
     }
