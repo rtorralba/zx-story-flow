@@ -133,11 +133,11 @@ export class Group {
         return distance <= deleteIconSize / 2;
     }
 
-    // Check if config icon is being clicked (top-right corner of header, left of delete icon)
+    // Check if config icon is being clicked (bottom-left corner)
     isConfigIconHit(x, y) {
         const configIconSize = 16;
-        const configIconX = this.x + this.width - configIconSize - 25; // 25 to leave space for delete icon
-        const configIconY = this.y + 5;
+        const configIconX = this.x + 5;
+        const configIconY = this.y + this.height - configIconSize - 5;
         const centerX = configIconX + configIconSize / 2;
         const centerY = configIconY + configIconSize / 2;
         const distance = Math.hypot(x - centerX, y - centerY);

@@ -845,6 +845,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         infoDiv.className = 'form-group';
         infoDiv.innerHTML = `<p style="color: #aaa; font-size: 0.9em;">${t('properties.contains_nodes').replace('{n}', group.nodeIds.length)}</p>`;
         targetContainer.appendChild(infoDiv);
+        // Botón de configuración abajo a la izquierda
+        const configBtn = document.createElement('button');
+        configBtn.textContent = t('properties.config_group') || 'Configurar grupo';
+        configBtn.style.position = 'absolute';
+        configBtn.style.left = '20px';
+        configBtn.style.bottom = '20px';
+        configBtn.style.backgroundColor = '#4a90e2';
+        configBtn.style.color = '#fff';
+        configBtn.style.border = 'none';
+        configBtn.style.padding = '10px';
+        configBtn.style.cursor = 'pointer';
+        configBtn.style.borderRadius = '4px';
+        configBtn.addEventListener('click', () => {
+            // Aquí puedes abrir el modal de configuración de grupo
+            alert('Configurar grupo');
+        });
+        targetContainer.appendChild(configBtn);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = t('properties.delete_group');

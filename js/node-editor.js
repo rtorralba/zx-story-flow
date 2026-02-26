@@ -668,10 +668,12 @@ export class NodeEditor {
 
             // Draw delete, config and resize icons only when selected
             if (isSelected) {
-                // Draw Config Icon (⚙ in top-right corner of header, left of delete)
+
+
+                // Draw Config Icon (⚙ in bottom-left corner)
                 const configIconSize = 16;
-                const configIconX = group.x + group.width - configIconSize - 25;
-                const configIconY = group.y + 5;
+                const configIconX = group.x + 5;
+                const configIconY = group.y + group.height - configIconSize - 5;
                 const configCenterX = configIconX + configIconSize / 2;
                 const configCenterY = configIconY + configIconSize / 2;
 
