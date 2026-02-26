@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Actualizar título del modal
         if (nodeOrGroup instanceof Group) {
             setupEditableModalTitle(t('editor.edit_group'), nodeOrGroup, 'name');
-            setupViewToggle();
+            // No mostrar el switch de vista
         } else if (nodeOrGroup instanceof NodeReference) {
             nodeEditModalTitle.innerHTML = '';
             nodeEditModalTitle.setAttribute('data-i18n', 'editor.edit_reference');
