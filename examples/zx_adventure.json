@@ -72,7 +72,7 @@
       "y": 300,
       "type": "Screen",
       "title": "Paciencia",
-      "text": "Esperas.\nPasan 5 minutos.\nPasan 10 minutos.\nTu te se enfria.\n\nFinalmente aparece el mensaje: 'R Tape loading error, 0:1'.",
+      "text": "Esperas.\nPasan 5 minutos.\nPasan 10 minutos.\nTu te se enfria.\n\nFinalmente aparece el mensaje: \n'R Tape loading error, 0:1'.",
       "outputs": [
         {
           "label": "Rebobinar y reintentar",
