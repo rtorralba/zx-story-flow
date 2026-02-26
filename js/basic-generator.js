@@ -1,4 +1,3 @@
-import { ScreenNode, NodeReference } from './nodes.js';
 import { generateMucho } from './mucho-generator.js';
 
 // Helper: Convert color name to ZX Spectrum color code (0-7)
