@@ -9,6 +9,8 @@ if %errorlevel% neq 0 (
 )
 
 echo.
+echo Copiando carpeta lang/ a dist...
+xcopy lang dist\lang /E /I /Y
 echo Creating zip archive: zx-story-flow.zip...
 if exist zx-story-flow.zip del zx-story-flow.zip
 
