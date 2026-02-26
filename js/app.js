@@ -98,19 +98,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Event listeners para configuración global
-    globalPageInk.addEventListener('change', saveGlobalConfig);
-    globalPagePaper.addEventListener('change', saveGlobalConfig);
-    globalPageBright.addEventListener('change', saveGlobalConfig);
-    globalPageFlash.addEventListener('change', saveGlobalConfig);
-    globalSeparatorInk.addEventListener('change', saveGlobalConfig);
-    globalSeparatorPaper.addEventListener('change', saveGlobalConfig);
-    globalSeparatorBright.addEventListener('change', saveGlobalConfig);
-    globalSeparatorFlash.addEventListener('change', saveGlobalConfig);
-    globalInterfaceInk.addEventListener('change', saveGlobalConfig);
-    globalInterfacePaper.addEventListener('change', saveGlobalConfig);
-    globalInterfaceBright.addEventListener('change', saveGlobalConfig);
-    globalInterfaceFlash.addEventListener('change', saveGlobalConfig);
-    if (globalViewMode) globalViewMode.addEventListener('change', saveGlobalConfig);
+    const onGlobalConfigChange = () => {
+        saveGlobalConfig();
+        if (typeof autoSave === 'function') autoSave();
+    };
+
+    globalPageInk.addEventListener('change', onGlobalConfigChange);
+    globalPagePaper.addEventListener('change', onGlobalConfigChange);
+    globalPageBright.addEventListener('change', onGlobalConfigChange);
+    globalPageFlash.addEventListener('change', onGlobalConfigChange);
+    globalSeparatorInk.addEventListener('change', onGlobalConfigChange);
+    globalSeparatorPaper.addEventListener('change', onGlobalConfigChange);
+    globalSeparatorBright.addEventListener('change', onGlobalConfigChange);
+    globalSeparatorFlash.addEventListener('change', onGlobalConfigChange);
+    globalInterfaceInk.addEventListener('change', onGlobalConfigChange);
+    globalInterfacePaper.addEventListener('change', onGlobalConfigChange);
+    globalInterfaceBright.addEventListener('change', onGlobalConfigChange);
+    globalInterfaceFlash.addEventListener('change', onGlobalConfigChange);
+    if (globalViewMode) globalViewMode.addEventListener('change', onGlobalConfigChange);
 
     // Funciones para el modal de edición de nodos
     const nodeEditModal = document.getElementById('node-edit-modal');
@@ -274,6 +279,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Function to update project name in header
+    const updateProjectName = (name) => {
+        projectName = name || 'Untitled';
+        const display = document.getElementById('project-name-display');
+        if (display) {
+            display.textContent = projectName;
+        }
+    };
+
     function openNodeEditModal(nodeOrGroup) {
         if (!nodeOrGroup) return;
         currentEditingNode = nodeOrGroup;
@@ -365,14 +379,172 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Function to update project name in header
-    const updateProjectName = (name) => {
-        projectName = name || 'Untitled';
-        const display = document.getElementById('project-name-display');
-        if (display) {
-            display.textContent = projectName;
+    // Auto-save logic
+    const STORAGE_KEY = 'zx_story_flow_project';
+    let isInitialized = false;
+
+    function getProjectData() {
+        return {
+            name: projectName,
+            globalConfig: globalConfig,
+            nodes: editor.nodes.map(n => {
+                const nodeData = {
+                    id: n.id,
+                    x: n.x,
+                    y: n.y,
+                    type: n.type,
+                    title: n.title,
+                    text: n.text,
+                    outputs: n.outputs,
+                    actions: n.actions
+                };
+
+                if (n instanceof NodeReference) {
+                    nodeData.targetNodeId = n.targetNodeId;
+                }
+
+                if (n.conditionalParagraphs && n.conditionalParagraphs.length > 0) {
+                    nodeData.conditionalParagraphs = n.conditionalParagraphs;
+                }
+
+                if (n.paragraphImages && n.paragraphImages.length > 0) {
+                    nodeData.paragraphImages = n.paragraphImages;
+                }
+
+                if (n.useCustomConfig) {
+                    nodeData.useCustomConfig = true;
+                    nodeData.pageConfig = n.pageConfig;
+                    nodeData.separatorConfig = n.separatorConfig;
+                    nodeData.interfaceConfig = n.interfaceConfig;
+                }
+                return nodeData;
+            }),
+            groups: editor.groups.map(g => {
+                return {
+                    id: g.id,
+                    x: g.x,
+                    y: g.y,
+                    width: g.width,
+                    height: g.height,
+                    name: g.name,
+                    color: g.color,
+                    nodeIds: g.nodeIds
+                };
+            }),
+            lastSaved: Date.now()
+        };
+    }
+
+    function loadProjectData(data) {
+        if (!data) return false;
+
+        console.log("Restoring project data...", data.name);
+
+        try {
+            // Suppress auto-save during restoration to prevent overwriting with partial state
+            const originalOnStateChange = editor.onStateChange;
+            editor.onStateChange = null;
+
+            // Clear existing
+            editor.nodes = [];
+            editor.groups = [];
+            editor.selectNode(null);
+            editor.selectGroup(null);
+
+            // Restore project name
+            updateProjectName(data.name || 'Untitled');
+
+            // Restore global config
+            if (data.globalConfig) {
+                globalConfig = data.globalConfig;
+                editorViewMode = globalConfig.viewMode || 'simple';
+                loadGlobalConfig();
+            }
+
+            // Restore Nodes
+            if (data.nodes) {
+                data.nodes.forEach(n => {
+                    let newNode;
+                    if (n.type === 'Reference' || n.type === 'reference') {
+                        newNode = new NodeReference(n.id, n.x, n.y, n.targetNodeId);
+                    } else {
+                        newNode = new ScreenNode(n.id, n.x, n.y);
+                        newNode.text = n.text || "";
+                        newNode.title = n.title || n.type;
+                        newNode.actions = n.actions || "";
+                        if (n.outputs) newNode.outputs = n.outputs;
+                        if (n.conditionalParagraphs) newNode.conditionalParagraphs = n.conditionalParagraphs;
+                        if (n.paragraphImages) newNode.paragraphImages = n.paragraphImages;
+                        if (n.useCustomConfig) {
+                            newNode.useCustomConfig = true;
+                            if (n.pageConfig) newNode.pageConfig = n.pageConfig;
+                            if (n.separatorConfig) newNode.separatorConfig = n.separatorConfig;
+                            if (n.interfaceConfig) newNode.interfaceConfig = n.interfaceConfig;
+                        }
+                    }
+                    editor.nodes.push(newNode);
+                });
+            }
+
+            // Restore Groups
+            if (data.groups) {
+                data.groups.forEach(g => {
+                    const newGroup = new Group(g.id, g.x, g.y, g.width, g.height);
+                    newGroup.name = g.name || "New Group";
+                    newGroup.color = g.color || "#4a90e2";
+                    newGroup.nodeIds = g.nodeIds || [];
+                    editor.groups.push(newGroup);
+                });
+            }
+
+            editor.onStateChange = originalOnStateChange;
+            editor.draw();
+            console.log("Restoration successful");
+            return true;
+        } catch (e) {
+            console.error("Critical error during project restoration:", e);
+            return false;
         }
-    };
+    }
+
+    function autoSave() {
+        if (!isInitialized) return;
+
+        try {
+            const data = getProjectData();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            // Log intermittently to avoid console clutter
+            if (Math.random() < 0.05) console.log("Auto-save completed at " + new Date().toLocaleTimeString());
+        } catch (e) {
+            console.error("Auto-save FAILED:", e);
+            if (e.name === 'QuotaExceededError') {
+                alert("Storage full! Try removing some images or large text blocks.");
+            }
+        }
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                if (loadProjectData(data)) {
+                    console.log("Project successfully restored from localStorage");
+                } else {
+                    console.warn("Project found in localStorage but restoration failed.");
+                }
+            } catch (e) {
+                console.error("Failed to parse localStorage data:", e);
+            }
+        } else {
+            console.log("No saved project found in localStorage");
+        }
+
+        // Mark as initialized so FUTURE changes trigger auto-save
+        isInitialized = true;
+        editor.onStateChange = autoSave;
+    }
+
 
     // Toolbar Buttons
     document.getElementById('add-screen-btn').addEventListener('click', () => {
@@ -473,64 +645,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('save-btn').addEventListener('click', () => {
         console.log("Save clicked");
         try {
-            const projectData = {
-                name: projectName,
-                globalConfig: globalConfig,
-                nodes: editor.nodes.map(n => {
-                    const nodeData = {
-                        id: n.id,
-                        x: n.x,
-                        y: n.y,
-                        type: n.type,
-                        title: n.title,
-                        text: n.text,
-                        outputs: n.outputs
-                    };
-
-                    // Si es una referencia, guardar el targetNodeId
-                    if (n instanceof NodeReference) {
-                        nodeData.targetNodeId = n.targetNodeId;
-                    }
-
-                    // Guardar párrafos condicionales si existen
-                    if (n.conditionalParagraphs && n.conditionalParagraphs.length > 0) {
-                        nodeData.conditionalParagraphs = n.conditionalParagraphs;
-                    }
-
-                    // Guardar imágenes de párrafos si existen
-                    if (n.paragraphImages && n.paragraphImages.length > 0) {
-                        nodeData.paragraphImages = n.paragraphImages;
-                    }
-
-                    // Solo guardar configuración específica si está activada
-                    if (n.useCustomConfig) {
-                        nodeData.useCustomConfig = true;
-                        nodeData.pageConfig = n.pageConfig;
-                        nodeData.separatorConfig = n.separatorConfig;
-                        nodeData.interfaceConfig = n.interfaceConfig;
-                    }
-                    return nodeData;
-                }),
-                groups: editor.groups.map(g => {
-                    return {
-                        id: g.id,
-                        x: g.x,
-                        y: g.y,
-                        width: g.width,
-                        height: g.height,
-                        name: g.name,
-                        color: g.color,
-                        nodeIds: g.nodeIds
-                    };
-                })
-            };
-
+            const projectData = getProjectData();
             const json = JSON.stringify(projectData, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'project.json';
+            a.download = (projectName || 'project') + '.json';
             a.click();
             URL.revokeObjectURL(url);
             console.log("Save completed");
@@ -555,98 +676,8 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (event) => {
             try {
                 const data = JSON.parse(event.target.result);
-
-                // Clear existing
-                editor.nodes = [];
-                editor.groups = [];
-                editor.selectNode(null);
-                editor.selectGroup(null);
-
-                // Restore project name
-                updateProjectName(data.name || 'Untitled');
-
-                // Restore global config
-                if (data.globalConfig) {
-                    globalConfig = data.globalConfig;
-                    loadGlobalConfig();
-                }
-
-                // Restore Nodes
-                if (data.nodes) {
-                    data.nodes.forEach(n => {
-                        let newNode;
-
-                        // Check if it's a Reference
-                        if (n.type === 'Reference') {
-                            newNode = new NodeReference(n.id, n.x, n.y, n.targetNodeId);
-                        } else {
-                            // Regular ScreenNode
-                            newNode = new ScreenNode(n.id, n.x, n.y);
-                            newNode.text = n.text || "";
-                            newNode.title = n.title || n.type;
-
-                            // Restore outputs if present, else default
-                            if (n.outputs) {
-                                newNode.outputs = n.outputs;
-                            }
-
-                            // Restaurar párrafos condicionales si existen
-                            if (n.conditionalParagraphs) {
-                                newNode.conditionalParagraphs = n.conditionalParagraphs;
-                            }
-
-                            if (n.paragraphImages) {
-                                newNode.paragraphImages = n.paragraphImages;
-                            }
-
-                            // Restaurar configuración específica si existe
-                            if (n.useCustomConfig) {
-                                newNode.useCustomConfig = true;
-                                if (n.pageConfig) {
-                                    newNode.pageConfig = n.pageConfig;
-                                }
-                                if (n.separatorConfig) {
-                                    newNode.separatorConfig = n.separatorConfig;
-                                }
-                                if (n.interfaceConfig) {
-                                    newNode.interfaceConfig = n.interfaceConfig;
-                                }
-                            }
-
-                            // Compatibility: if loading old DecisionNode (type 'Decision'), 
-                            // convert question to text and options to output?
-                            // Or if old ScreenNode, ensure outputs is set.
-                            if (n.type === 'Decision') {
-                                newNode.text = n.question || "Choice";
-                                // It should have outputs already if we saved it as new structure, 
-                                // but if loading old JSON:
-                                // Old JSON didn't have outputs saved explicitly in the node object usually?
-                                // Actually previous save logic was:
-                                /*
-                                  if (n instanceof DecisionNode) data.question = n.question;
-                                  return data;
-                                */
-                                // Outputs are on the instance. `JSON.stringify` includes them by default if they are properties.
-                                // So `n.outputs` *should* be there if it was a DecisionNode.
-                            }
-                        }
-
-                        editor.nodes.push(newNode);
-                    });
-                }
-
-                // Restore Groups
-                if (data.groups) {
-                    data.groups.forEach(g => {
-                        const newGroup = new Group(g.id, g.x, g.y, g.width, g.height);
-                        newGroup.name = g.name || "New Group";
-                        newGroup.color = g.color || "#4a90e2";
-                        newGroup.nodeIds = g.nodeIds || [];
-                        editor.groups.push(newGroup);
-                    });
-                }
-
-                editor.draw();
+                loadProjectData(data);
+                autoSave();
             } catch (err) {
                 console.error(err);
                 alert("Error loading project: " + err.message);
@@ -655,6 +686,23 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
         // Reset input so same file can be selected again
         loadInput.value = '';
+    });
+
+    // New Project
+    document.getElementById('new-btn').addEventListener('click', () => {
+        if (confirm('¿Estás seguro de que quieres empezar un proyecto nuevo? Se borrará el progreso actual no guardado en disco.')) {
+            // Temporary block auto-save to ensure clean wipe
+            isInitialized = false;
+            editor.nodes = [];
+            editor.groups = [];
+            editor.selectNode(null);
+            editor.selectGroup(null);
+            updateProjectName('Untitled');
+            editor.draw();
+
+            isInitialized = true;
+            autoSave();
+        }
     });
 
     function updateGroupProperties(group, container = null) {
@@ -983,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const muchoEditor = new MuchoEditor(editorContainer, initialMuchoText, (newText) => {
             MuchoEditor.parseToNode(newText, node);
             editor.draw();
+            autoSave();
         });
 
         hiddenFileInput.addEventListener('change', (e) => {
@@ -1019,6 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const imgObj = node.paragraphImages.find(img => img.imageName === file.name);
                     if (imgObj) {
                         imgObj.imageData = imageData;
+                        autoSave();
                     }
                 };
                 reader.readAsDataURL(file);
@@ -1144,6 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 inp.addEventListener('input', (e) => {
                     opt.label = e.target.value;
                     editor.draw();
+                    autoSave();
                 });
 
                 // Single freeform actions textbox (replaces old select + flag input)
@@ -1164,6 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 flagInp.addEventListener('input', (e) => {
                     opt.flag = e.target.value.trim() || undefined;
                     editor.draw();
+                    autoSave();
                 });
 
                 // Delete button
@@ -1182,6 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     node.removeOption(idx);
                     editor.draw();
                     renderOptions();
+                    autoSave();
                 });
 
                 inputsRow.appendChild(inp);
@@ -1201,6 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 node.addOption(`Option ${node.outputs.length + 1}`);
                 editor.draw();
                 renderOptions();
+                autoSave();
             });
             container.appendChild(addBtn);
 
@@ -1376,10 +1430,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            inkSelect.addEventListener('change', saveConfig);
-            paperSelect.addEventListener('change', saveConfig);
-            brightCheckbox.addEventListener('change', saveConfig);
-            flashCheckbox.addEventListener('change', saveConfig);
+            inkSelect.addEventListener('change', () => { saveConfig(); autoSave(); });
+            paperSelect.addEventListener('change', () => { saveConfig(); autoSave(); });
+            brightCheckbox.addEventListener('change', () => { saveConfig(); autoSave(); });
+            flashCheckbox.addEventListener('change', () => { saveConfig(); autoSave(); });
 
             return section;
         };
@@ -1394,6 +1448,7 @@ document.addEventListener('DOMContentLoaded', () => {
         useCustomCheckbox.addEventListener('change', (e) => {
             node.useCustomConfig = e.target.checked;
             customConfigContainer.style.display = e.target.checked ? 'block' : 'none';
+            autoSave();
 
             if (e.target.checked) {
                 // Initialize with current global values
@@ -1436,4 +1491,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateNodeProperties(node, container) {
         return updatePropertyPanel(node, container);
     }
+    // FINAL STARTUP: Ensure everything is ready before loading
+    loadFromLocalStorage();
 });

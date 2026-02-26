@@ -18,6 +18,7 @@ export class NodeEditor {
         this.selectedGroup = null;
         this.dragState = null; // { type: 'node'|'connection'|'group', ... }
         this.hoveredConnection = null; // Track which connection is being hovered
+        this.onStateChange = null;
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -53,7 +54,7 @@ export class NodeEditor {
             x = center.x - 75; // Offset by half node width for centering
             y = center.y - 50; // Offset by half node height for centering
         }
-        
+
         const id = 'node_' + Date.now();
         // type ignored now effectively, or we can just assume screen
         const newNode = new ScreenNode(id, x, y);
@@ -62,6 +63,7 @@ export class NodeEditor {
             this.nodes.push(newNode);
             this.selectNode(newNode, false); // Don't open panel automatically
             this.draw();
+            if (this.onStateChange) this.onStateChange();
         }
     }
 
@@ -72,13 +74,14 @@ export class NodeEditor {
             x = center.x - 60; // Offset by half reference width for centering
             y = center.y - 25; // Offset by half reference height for centering
         }
-        
+
         const id = 'ref_' + Date.now();
         const newRef = new NodeReference(id, x, y, targetNodeId);
 
         this.nodes.push(newRef);
         this.selectNode(newRef, false); // Don't open panel automatically
         this.draw();
+        if (this.onStateChange) this.onStateChange();
         return newRef;
     }
 
@@ -89,12 +92,13 @@ export class NodeEditor {
             x = center.x - 200; // Offset by half group width for centering
             y = center.y - 150; // Offset by half group height for centering
         }
-        
+
         const id = 'group_' + Date.now();
         const newGroup = new Group(id, x, y);
         this.groups.push(newGroup);
         this.selectGroup(newGroup, false); // Don't open panel automatically
         this.draw();
+        if (this.onStateChange) this.onStateChange();
         return newGroup;
     }
 
@@ -105,6 +109,7 @@ export class NodeEditor {
             this.selectGroup(null);
         }
         this.draw();
+        if (this.onStateChange) this.onStateChange();
     }
 
     selectGroup(group, openPanel = false) {
@@ -116,6 +121,7 @@ export class NodeEditor {
             this.propertyPanelCallback(group);
         }
         this.draw();
+        if (this.onStateChange) this.onStateChange();
     }
 
     openGroupPropertyPanel(group) {
@@ -151,6 +157,7 @@ export class NodeEditor {
                 }
             });
         });
+        if (this.onStateChange) this.onStateChange();
     }
 
     removeNode(node) {
@@ -170,6 +177,7 @@ export class NodeEditor {
             this.selectNode(null);
         }
         this.draw();
+        if (this.onStateChange) this.onStateChange();
     }
 
     selectNode(node, openPanel = false) {
@@ -181,6 +189,7 @@ export class NodeEditor {
             this.propertyPanelCallback(node);
         }
         this.draw();
+        if (this.onStateChange) this.onStateChange();
     }
 
     openPropertyPanel(node) {
@@ -409,7 +418,7 @@ export class NodeEditor {
         // Update cursor based on hover state
         if (!this.dragState) {
             let cursorSet = false;
-            
+
             // Check if hovering over a node config icon
             for (let i = this.nodes.length - 1; i >= 0; i--) {
                 const node = this.nodes[i];
@@ -419,7 +428,7 @@ export class NodeEditor {
                     break;
                 }
             }
-            
+
             // Check if hovering over a node delete icon
             if (!cursorSet) {
                 for (let i = this.nodes.length - 1; i >= 0; i--) {
@@ -431,7 +440,7 @@ export class NodeEditor {
                     }
                 }
             }
-            
+
             // Check if hovering over a group config icon
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
@@ -443,7 +452,7 @@ export class NodeEditor {
                     }
                 }
             }
-            
+
             // Check if hovering over a group delete icon
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
@@ -455,7 +464,7 @@ export class NodeEditor {
                     }
                 }
             }
-            
+
             // Check if hovering over a resize handle
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
@@ -467,7 +476,7 @@ export class NodeEditor {
                     }
                 }
             }
-            
+
             // Check if hovering over a connection
             if (!cursorSet) {
                 const connection = this.getConnectionAt(x, y);
@@ -481,7 +490,7 @@ export class NodeEditor {
                     this.draw();
                 }
             }
-            
+
             if (!cursorSet) {
                 this.canvas.style.cursor = 'default';
             }
@@ -534,6 +543,7 @@ export class NodeEditor {
                 this.camera.y = this.dragState.initialCameraY + dy;
                 this.draw();
             }
+            if (this.onStateChange) this.onStateChange();
         }
     }
 
@@ -562,6 +572,7 @@ export class NodeEditor {
 
         this.dragState = null;
         this.draw();
+        if (this.onStateChange) this.onStateChange();
     }
 
     handleDoubleClick(e) {
@@ -604,6 +615,7 @@ export class NodeEditor {
         this.camera.y = mouseY - worldY * this.camera.zoom;
 
         this.draw();
+        if (this.onStateChange) this.onStateChange();
     }
 
     handleContextMenu(e) {
@@ -856,9 +868,9 @@ export class NodeEditor {
                     const endY = toNode.y + toNode.height / 2;
 
                     // Check if this connection is being hovered
-                    const isHovered = this.hoveredConnection && 
-                                     this.hoveredConnection.fromNode === fromNode && 
-                                     this.hoveredConnection.outputIndex === index;
+                    const isHovered = this.hoveredConnection &&
+                        this.hoveredConnection.fromNode === fromNode &&
+                        this.hoveredConnection.outputIndex === index;
 
                     this.drawConnection(startX, startY, endX, endY, false, isHovered);
                 });
@@ -896,7 +908,7 @@ export class NodeEditor {
             this.ctx.strokeStyle = isDragging ? "#fff" : "#aaa";
             this.ctx.lineWidth = 2;
         }
-        
+
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
 
@@ -1047,7 +1059,7 @@ export class NodeEditor {
             if (node instanceof ScreenNode) {
                 node.outputs.forEach((opt, index) => {
                     const port = node.getOutputPort(index);
-                    
+
                     // Draw port
                     tempCtx.fillStyle = "#00d022";
                     tempCtx.strokeStyle = "#666";
