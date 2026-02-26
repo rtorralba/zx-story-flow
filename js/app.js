@@ -279,13 +279,71 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Function to update project name in header
+    // Function to update project name in header (now interactive)
     const updateProjectName = (name) => {
         projectName = name || 'Untitled';
         const display = document.getElementById('project-name-display');
-        if (display) {
-            display.textContent = projectName;
-        }
+        if (!display) return;
+
+        display.innerHTML = '';
+        display.style.display = 'inline-flex';
+        display.style.alignItems = 'center';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = projectName;
+        nameSpan.style.cursor = 'pointer';
+
+        const editIcon = document.createElement('span');
+        editIcon.textContent = ' ✏️';
+        editIcon.style.cursor = 'pointer';
+        editIcon.style.fontSize = '0.7em';
+        editIcon.style.marginLeft = '8px';
+        editIcon.style.opacity = '0.6';
+
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.value = projectName;
+        inputField.style.display = 'none';
+        inputField.style.fontSize = 'inherit';
+        inputField.style.fontFamily = 'inherit';
+        inputField.style.color = 'inherit';
+        inputField.style.background = 'rgba(255,255,255,0.1)';
+        inputField.style.border = '1px solid #555';
+        inputField.style.padding = '2px 5px';
+        inputField.style.width = '250px';
+
+        const saveName = () => {
+            const newName = inputField.value.trim() || 'Untitled';
+            projectName = newName;
+            nameSpan.textContent = projectName;
+            nameSpan.style.display = 'inline';
+            editIcon.style.display = 'inline';
+            inputField.style.display = 'none';
+            if (typeof autoSave === 'function') autoSave();
+        };
+
+        const startEditing = () => {
+            nameSpan.style.display = 'none';
+            editIcon.style.display = 'none';
+            inputField.style.display = 'inline-block';
+            inputField.focus();
+            inputField.select();
+        };
+
+        editIcon.addEventListener('click', startEditing);
+        nameSpan.addEventListener('click', startEditing);
+        inputField.addEventListener('blur', saveName);
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveName();
+            if (e.key === 'Escape') {
+                inputField.value = projectName;
+                saveName();
+            }
+        });
+
+        display.appendChild(nameSpan);
+        display.appendChild(editIcon);
+        display.appendChild(inputField);
     };
 
     function openNodeEditModal(nodeOrGroup) {
