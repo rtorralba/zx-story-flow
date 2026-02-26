@@ -1,484 +1,263 @@
-// ZX Story Flow - BASIC Code Generator
-// Copyright (C) 2026 Raül Torralba Adsuara
-// Licensed under the GNU Affero General Public License v3.0 or later
-// See LICENSE file for details
-
 import { ScreenNode, NodeReference } from './nodes.js';
-
-// Helper: Resolve a node ID to its actual target (following references)
-function resolveNodeId(nodeId, nodes) {
-    if (!nodeId) return null;
-
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return null;
-
-    // If it's a reference, follow it to the target
-    if (node instanceof NodeReference) {
-        return resolveNodeId(node.targetNodeId, nodes);
-    }
-
-    return nodeId;
-}
+import { generateMucho } from './mucho-generator.js';
 
 // Helper: Convert color name to ZX Spectrum color code (0-7)
 function colorToZX(colorName) {
     const colors = {
-        'black': 0,
-        'blue': 1,
-        'red': 2,
-        'magenta': 3,
-        'green': 4,
-        'cyan': 5,
-        'yellow': 6,
-        'white': 7
+        'black': 0, 'blue': 1, 'red': 2, 'magenta': 3,
+        'green': 4, 'cyan': 5, 'yellow': 6, 'white': 7
     };
-    return colors[colorName] || 0;
+    return (colors[colorName] !== undefined) ? colors[colorName] : 0;
 }
 
-// Helper: Calculate ZX Spectrum attribute byte
-function calculateAttribute(ink, paper, bright, flash) {
-    const inkVal = colorToZX(ink);
-    const paperVal = colorToZX(paper);
-    const brightVal = bright ? 1 : 0;
-    const flashVal = flash ? 1 : 0;
-    return flashVal * 128 + brightVal * 64 + paperVal * 8 + inkVal;
-}
+// Word-wrapping for ZX Spectrum 32-char screen
+// Returns an array of lines to avoid exceeding Sinclair Basic 255-char line limit
+function wrapText(text, maxWidth = 32) {
+    if (!text) return [];
+    const cleanText = text.replace(/"/g, "'");
+    const paragraphs = cleanText.split('\n');
+    const wrappedLines = [];
 
-export function generateBasic(nodes, globalConfig = null) {
-    if (nodes.length === 0) return "10 REM No nodes defined";
-
-    // Filter out references - only process ScreenNodes
-    const screenNodes = nodes.filter(n => n instanceof ScreenNode);
-    if (screenNodes.length === 0) return "10 REM No screen nodes defined";
-
-    // Default global config
-    if (!globalConfig) {
-        globalConfig = {
-            page: { ink: 'white', paper: 'black', bright: false, flash: false },
-            separator: { ink: 'white', paper: 'black', bright: false, flash: false },
-            interface: { ink: 'white', paper: 'black', bright: false, flash: false }
-        };
-    }
-
-    // Collect all flags used in the project
-    const allFlags = new Set();
-    screenNodes.forEach(node => {
-        // Flags from outputs
-        if (node.outputs) {
-            node.outputs.forEach(output => {
-                if (output.flag && output.flag.trim()) {
-                    // Extract flag name (e.g., "set:key" -> "key")
-                    const parts = output.flag.split(':');
-                    if (parts.length === 2) {
-                        allFlags.add(parts[1]);
-                    }
-                }
-            });
+    paragraphs.forEach(para => {
+        if (para.length === 0) {
+            wrappedLines.push('');
+            return;
         }
-        // Flags from conditional paragraphs
-        if (node.conditionalParagraphs) {
-            node.conditionalParagraphs.forEach(cp => {
-                if (cp.conditions && cp.conditions.length > 0) {
-                    // New format: array of conditions
-                    cp.conditions.forEach(cond => {
-                        if (cond.flag && cond.flag.trim()) {
-                            allFlags.add(cond.flag);
-                        }
-                    });
-                } else if (cp.flag && cp.flag.trim()) {
-                    // Old format: single flag (backward compatibility)
-                    const parts = cp.flag.split(':');
-                    if (parts.length === 2) {
-                        allFlags.add(parts[1]);
-                    }
-                }
+        let words = para.split(' ');
+        let currentLine = '';
 
-                // Flags from setFlags actions
-                if (cp.setFlags && cp.setFlags.length > 0) {
-                    cp.setFlags.forEach(sf => {
-                        if (sf.flag && sf.flag.trim()) {
-                            allFlags.add(sf.flag);
-                        }
-                    });
-                }
-            });
+        words.forEach(word => {
+            if ((currentLine + word).length <= maxWidth) {
+                currentLine += (currentLine === '' ? '' : ' ') + word;
+            } else {
+                wrappedLines.push(currentLine);
+                currentLine = word;
+            }
+        });
+        if (currentLine) wrappedLines.push(currentLine);
+    });
+
+    return wrappedLines;
+}
+
+/**
+ * Transpiles MuCho code into ZX Basic.
+ */
+function transpileMuchoToBasic(muchoCode) {
+    if (!muchoCode) return "10 REM Project is empty";
+
+    const lines = muchoCode.split(/\r?\n/);
+    const blocks = [];
+    let currentBlock = null;
+
+    // Phase 1: Split into screen blocks
+    lines.forEach(line => {
+        if (line.startsWith('$Q ')) {
+            currentBlock = { header: line, content: [], options: [] };
+            blocks.push(currentBlock);
+        } else if (currentBlock) {
+            if (line.startsWith('$A ')) {
+                currentBlock.options.push({ header: line, text: null });
+            } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
+                // First non-$A line after a $A is the option text
+                currentBlock.options[currentBlock.options.length - 1].text = line.trim() || "Continuar";
+            } else {
+                // Everything else is content (including empty lines and $P)
+                currentBlock.content.push(line);
+            }
+        }
+    });
+
+    if (blocks.length === 0) return "10 REM No screens found in MuCho code";
+
+    // Phase 2: Identify all flags to initialize them
+    const allFlags = new Set();
+    muchoCode.match(/(?:set:|clear:|clr:|toggle:|has:|not:|!)([a-zA-Z0-9_]+)/g)?.forEach(match => {
+        const name = match.split(':')[1] || match.substring(1);
+        allFlags.add(name);
+    });
+
+    // Phase 3: Identify unique images for caching
+    const images = [];
+    muchoCode.match(/\$I\s+([^\s\n\r]+)/g)?.forEach(match => {
+        const name = match.substring(3).trim().replace(/\.scr$/i, '').toUpperCase();
+        if (!images.includes(name)) images.push(name);
+    });
+
+    const imageMap = {};
+    let currentAddr = 65536;
+    images.forEach(img => {
+        currentAddr -= 6912;
+        imageMap[img] = currentAddr;
+    });
+
+    // Phase 4: Map labels to line numbers (1000 per block) - Case Insensitive
+    const labelLines = {};
+    blocks.forEach((block, idx) => {
+        const match = block.header.match(/^\$Q\s+([^\s]+)/);
+        const label = match ? match[1] : null;
+        if (label) {
+            labelLines[label.toLowerCase()] = 1000 + (idx * 1000);
         }
     });
 
     let basicCode = "";
-    let lineNumber = 10;
 
-    // Helper to get next line number
-    const nextLine = () => { lineNumber += 10; return lineNumber; };
+    // Header
+    const firstBlockMatch = blocks[0].header.match(/^\$Q\s+([^\s]+)/);
+    const startLabel = firstBlockMatch ? firstBlockMatch[1].toLowerCase() : "start";
 
-    // 1. Assign base line numbers to nodes
-    // We'll use a map to store the assigned start line for each node
-    const nodeLines = new Map();
-    let currentNodeLine = 1000;
+    // Extract initial attributes for global state
+    const attrMatch = blocks[0].header.match(/attr:(\d+)/);
+    const initialAttr = attrMatch ? parseInt(attrMatch[1]) : 7;
 
-    screenNodes.forEach(node => {
-        nodeLines.set(node.id, currentNodeLine);
-        currentNodeLine += 1000; // Leave ample space between nodes
-    });
+    const paper = (initialAttr >> 3) & 7;
+    const ink = initialAttr & 7;
+    const bright = (initialAttr >> 6) & 1;
+    const flash = (initialAttr >> 7) & 1;
 
-    // 2. Generate Header
-    const startNode = screenNodes[0]; // Simplification: First node is start
-
-    // Get page configuration for the first node to apply before initial CLS
-    const firstPageConfig = (startNode.useCustomConfig && startNode.pageConfig)
-        ? startNode.pageConfig
-        : globalConfig.page;
-
-    basicCode += `10 INK ${colorToZX(firstPageConfig.ink)}: PAPER ${colorToZX(firstPageConfig.paper)}: BRIGHT ${firstPageConfig.bright ? 1 : 0}: FLASH ${firstPageConfig.flash ? 1 : 0}\n`;
+    basicCode += `10 INK ${ink}: PAPER ${paper}: BRIGHT ${bright}: FLASH ${flash}\n`;
     basicCode += `20 CLS\n`;
 
-    // Initialize flag variables (LET f=0)
-    if (allFlags.size > 0) {
-        let flagLine = 30;
-        const flagArray = Array.from(allFlags);
-        flagArray.forEach(flag => {
-            // Use single letter variables for flags to avoid long names
-            const varName = `f${flag}`;
-            basicCode += `${flagLine} LET ${varName}=0\n`;
-            flagLine += 10;
-        });
-        basicCode += `${flagLine} GO TO ${nodeLines.get(startNode.id)}\n`;
-    } else {
-        basicCode += `30 GO TO ${nodeLines.get(startNode.id)}\n`;
-    }
-
-    // 3. Generate Code for each screen node
-    screenNodes.forEach(node => {
-        let currentLine = nodeLines.get(node.id);
-
-        // Add a comment/REM for readability (optional, but helpful)
-        basicCode += `${currentLine} REM --- ${node.title} ---\n`;
+    let currentLine = 30;
+    allFlags.forEach(flag => {
+        basicCode += `${currentLine} LET f${flag}=0\n`;
         currentLine += 10;
+    });
 
-        // Get page configuration (use node config if exists, else global)
-        const pageConfig = (node.useCustomConfig && node.pageConfig)
-            ? node.pageConfig
-            : globalConfig.page;
-        const pageInk = pageConfig.ink;
-        const pagePaper = pageConfig.paper;
-        const pageBright = pageConfig.bright;
-        const pageFlash = pageConfig.flash;
+    basicCode += `${currentLine} GO TO ${labelLines[startLabel] || 1000}\n`;
 
-        // Always set colors and clear screen at the start of each node
-        // This ensures we have a clean state even if image loading fails
-        basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
-        currentLine += 10;
-        basicCode += `${currentLine} CLS\n`;
-        currentLine += 10;
+    // Phase 5: Generate code for each block
+    blocks.forEach(block => {
+        const match = block.header.match(/^\$Q\s+([^\s]+)/);
+        const blockLabel = match ? match[1] : "Unknown";
+        let lineNr = labelLines[blockLabel.toLowerCase()] || 9999;
+        const header = block.header;
 
-        // Check if there are images
-        const hasParagraphImages = node.paragraphImages && node.paragraphImages.length > 0;
+        // Parse attributes
+        const attr = parseInt(header.match(/attr:(\d+)/)?.[1] || "7");
+        const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || "7");
+        const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || "7");
 
-        // Print text with word-aware wrapping for ZX Spectrum 32-char screen
-        // 1. Replace quotes
-        // 2. Word-wrap at 32 characters
-        // 3. Use BASIC newline separator (' in PRINT)
+        basicCode += `${lineNr} REM --- ${blockLabel} ---\n`;
+        lineNr += 10;
 
-        const wrapText = (text, maxWidth = 32) => {
-            // First strip MuCho lines (lines starting with $)
-            const cleanText = text.split('\n')
-                .filter(line => !line.trim().startsWith('$'))
-                .join('\n');
+        // Apply page attributes
+        basicCode += `${lineNr} INK ${attr & 7}: PAPER ${(attr >> 3) & 7}: BRIGHT ${(attr >> 6) & 1}: FLASH ${(attr >> 7) & 1}: CLS\n`;
+        lineNr += 10;
 
-            // Then replace quotes
-            const finalRawText = cleanText.replace(/"/g, "'");
-
-            // Split by explicit newlines first
-            const paragraphs = finalRawText.split('\n');
-            const wrappedLines = [];
-
-            paragraphs.forEach(para => {
-                if (para.length === 0) {
-                    wrappedLines.push(''); // Preserve empty lines
-                    return;
-                }
-
-                // Preservar todos los espacios, incluyendo los del principio
-                let idx = 0;
-                while (idx < para.length) {
-                    let line = '';
-                    while (idx < para.length && line.length < maxWidth) {
-                        line += para[idx];
-                        idx++;
-                    }
-                    wrappedLines.push(line);
-                }
-            });
-
-            // Join with BASIC newline separator
-            return wrappedLines.join('" \' "');
-        };
-
-        const safeText = wrapText(node.text || "");
-
-        // Split text into paragraphs (separated by double newlines in the original text)
-        // When there are images, preserve empty lines; otherwise filter them out
-        const rawParagraphs = hasParagraphImages
-            ? (node.text || "").split('\n\n')  // Keep all paragraphs including empty ones
-            : (node.text || "").split('\n\n').filter(p => p.trim());  // Filter empty ones when no images
-
-        // Check if there are conditional paragraphs
-        const hasConditionalParagraphs = node.conditionalParagraphs && node.conditionalParagraphs.length > 0;
-
-        // If there's no text at all
-        if (!node.text || node.text.trim().length === 0) {
-            // Check if there are images to show even without text
-            if (hasParagraphImages && node.paragraphImages.length > 0) {
-                // Load all images (without clearing after since there's no text to show)
-                node.paragraphImages.forEach(imageData => {
-                    if (imageData && imageData.imageName) {
-                        // Remove .scr extension, convert to uppercase, and replace quotes for LOAD command
-                        const imgName = imageData.imageName
-                            .replace(/\.scr$/i, '')  // Remove .scr extension
-                            .toUpperCase()            // Convert to uppercase to match TAP filename
-                            .replace(/"/g, "'");      // Replace quotes
-                        basicCode += `${currentLine} LOAD "${imgName}" SCREEN$\n`;
-                        currentLine += 10;
-                        basicCode += `${currentLine} PAUSE 0\n`;
-                        currentLine += 10;
-                    }
-                });
-                // After last image, restore text colors for menu without clearing screen
-                basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
-                currentLine += 10;
-            } else {
-                // No text and no images - show node title
-                basicCode += `${currentLine} PRINT "[ ${node.title} ]"\n`;
-                currentLine += 10;
-            }
-        } else if (hasConditionalParagraphs || hasParagraphImages) {
-            // Print each paragraph, checking if it's conditional or has an image
-            rawParagraphs.forEach((paragraph, idx) => {
-                const conditional = hasConditionalParagraphs ? node.conditionalParagraphs.find(cp => cp.paragraphIndex === idx) : null;
-
-                // Check if there's an image for this paragraph
-                const imageData = hasParagraphImages ? node.paragraphImages.find(pi => pi.paragraphIndex === idx) : null;
-
-                // If there's an image, load it first
-                if (imageData && imageData.imageName) {
-                    // Remove .scr extension, convert to uppercase, and replace quotes for LOAD command
-                    const imgName = imageData.imageName
-                        .replace(/\.scr$/i, '')  // Remove .scr extension
-                        .toUpperCase()            // Convert to uppercase to match TAP filename
-                        .replace(/"/g, "'");      // Replace quotes
-                    basicCode += `${currentLine} LOAD "${imgName}" SCREEN$\n`;
-                    currentLine += 10;
-                    // Set text colors to print over the image
-                    basicCode += `${currentLine} INK ${colorToZX(pageInk)}: PAPER ${colorToZX(pagePaper)}: BRIGHT ${pageBright ? 1 : 0}: FLASH ${pageFlash ? 1 : 0}\n`;
-                    currentLine += 10;
-                }
-
-                // Then print the paragraph text (either over the image or on clean screen)
-                // When there's an image, preserve ALL newlines including empty ones
-                if (imageData && imageData.imageName && paragraph) {
-                    // Split by single newlines to preserve empty lines
-                    const lines = paragraph.split('\n');
-                    lines.forEach(line => {
-                        const trimmed = line.trim();
-                        if (trimmed.startsWith('$')) {
-                            // Skip MuCho commands (like $I, $O, $P) from PRINT output
-                            return;
-                        }
-                        if (trimmed.length === 0) {
-                            // Empty line - just print blank
-                            basicCode += `${currentLine} PRINT ""\n`;
-                            currentLine += 10;
-                        } else {
-                            // Line with content - wrap and print
-                            const wrappedLine = line.replace(/"/g, "'");
-                            basicCode += `${currentLine} PRINT "${wrappedLine}"\n`;
-                            currentLine += 10;
-                        }
-                    });
-                } else if (conditional && (conditional.conditions || conditional.flag || (conditional.setFlags && conditional.setFlags.length > 0))) {
-                    // This paragraph is conditional or sets flags
-                    const wrappedPara = wrapText(paragraph);
-                    let conditionExpression = '';
-
-                    if (conditional.conditions && conditional.conditions.length > 0) {
-                        // New format: multiple conditions combined with AND
-                        const conditions = conditional.conditions.map(cond => {
-                            if (cond.type === 'custom') return cond.flag;
-                            if (cond.type === 'rnd') return `INT(RND * 256) < ${cond.flag}`;
-                            const varName = `f${cond.flag}`;
-                            return cond.type === 'has' ? `${varName}=1` : `${varName}=0`;
-                        });
-                        conditionExpression = conditions.join(' AND ');
-                    } else if (conditional.flag) {
-                        // Old format: single condition (backward compatibility)
-                        const parts = conditional.flag.split(':');
-                        if (parts.length === 2) {
-                            const condition = parts[0]; // "has" or "not"
-                            const flagName = parts[1];
-                            const varName = `f${flagName}`;
-                            conditionExpression = condition === 'has' ? `${varName}=1` : `${varName}=0`;
-                        }
-                    }
-
-                    let setFlagsStatement = '';
-                    if (conditional.setFlags && conditional.setFlags.length > 0) {
-                        const setFlagsCode = conditional.setFlags.map(sf => {
-                            if (sf.type === 'custom') return sf.flag;
-                            const varName = `f${sf.flag}`;
-                            if (sf.type === 'toggle') return `LET ${varName}=1-${varName}`;
-                            const val = sf.type === 'set' ? '1' : '0';
-                            return `LET ${varName}=${val}`;
-                        });
-                        setFlagsStatement = setFlagsCode.join(': ');
-                    }
-
-                    if (conditionExpression) {
-                        // Generate IF statement to print paragraph and set flags
-                        let lineCmd = `IF ${conditionExpression} THEN PRINT "${wrappedPara}"`;
-                        if (setFlagsStatement) {
-                            lineCmd += `: ${setFlagsStatement}`;
-                        }
-                        basicCode += `${currentLine} ${lineCmd}\n`;
-                        currentLine += 10;
-
-                        // Add blank line separator after conditional paragraph
-                        if (idx < rawParagraphs.length - 1) {
-                            basicCode += `${currentLine} IF ${conditionExpression} THEN PRINT ""\n`;
-                            currentLine += 10;
-                        }
-                    } else if (setFlagsStatement) {
-                        // No conditions, but it sets flags when this paragraph is shown
-                        basicCode += `${currentLine} PRINT "${wrappedPara}"\n`;
-                        currentLine += 10;
-                        basicCode += `${currentLine} ${setFlagsStatement}\n`;
-                        currentLine += 10;
-
-                        if (idx < rawParagraphs.length - 1) {
-                            basicCode += `${currentLine} PRINT ""\n`;
-                            currentLine += 10;
-                        }
-                    }
-                } else {
-                    // Normal paragraph
-                    const wrappedPara = wrapText(paragraph);
-                    basicCode += `${currentLine} PRINT "${wrappedPara}"\n`;
-                    currentLine += 10;
-
-                    // Add blank line separator between paragraphs
-                    if (idx < rawParagraphs.length - 1) {
-                        basicCode += `${currentLine} PRINT ""\n`;
-                        currentLine += 10;
-                    }
-                }
-            });
-        } else {
-            // No conditional paragraphs or images, print all text at once
-            basicCode += `${currentLine} PRINT "${safeText}"\n`;
-            currentLine += 10;
+        // Process block actions (borders, etc)
+        const borderMatch = header.match(/border:(\d+)/);
+        if (borderMatch) {
+            basicCode += `${lineNr} BORDER ${borderMatch[1]}\n`;
+            lineNr += 10;
         }
 
-        // Always show menu with options
-        // If it's a last node (no outputs or no target), create a "Play again" option
-        const target = node.outputs[0]?.target;
-        const effectiveOutputs = (node.outputs.length === 0 || !target)
-            ? [{ label: "Jugar otro juego", target: startNode.id }]
-            : node.outputs;
+        // Content
+        for (let i = 0; i < block.content.length; i++) {
+            const line = block.content[i];
+            const trimmed = line.trim();
 
-        // Get separator configuration (use node config if exists, else global)
-        const sepConfig = (node.useCustomConfig && node.separatorConfig)
-            ? node.separatorConfig
-            : globalConfig.separator;
-        const sepInk = sepConfig.ink;
-        const sepPaper = sepConfig.paper;
-        const sepBright = sepConfig.bright;
-        const sepFlash = sepConfig.flash;
-
-        // Get interface configuration (use node config if exists, else global)
-        const intConfig = (node.useCustomConfig && node.interfaceConfig)
-            ? node.interfaceConfig
-            : globalConfig.interface;
-        const intInk = intConfig.ink;
-        const intPaper = intConfig.paper;
-        const intBright = intConfig.bright;
-        const intFlash = intConfig.flash;
-
-        // Calculate screen position: separator + options should be at bottom
-        // ZX Spectrum has 24 lines (0-23), but lines 22-23 are INPUT area
-        // We need: 1 line for separator + effectiveOutputs.length lines for options
-        // Options should end at line 21 maximum
-        const totalLines = 1 + effectiveOutputs.length; // separator + options
-        const startLine = 21 - totalLines + 1; // Start position for separator
-
-        // Apply separator attributes and print separator at calculated position
-        basicCode += `${currentLine} INK ${colorToZX(sepInk)}: PAPER ${colorToZX(sepPaper)}: BRIGHT ${sepBright ? 1 : 0}: FLASH ${sepFlash ? 1 : 0}\n`;
-        currentLine += 10;
-        basicCode += `${currentLine} PRINT AT ${startLine},0;"--------------------------------"\n`;
-        currentLine += 10;
-
-        // Apply interface attributes
-        basicCode += `${currentLine} INK ${colorToZX(intInk)}: PAPER ${colorToZX(intPaper)}: BRIGHT ${intBright ? 1 : 0}: FLASH ${intFlash ? 1 : 0}\n`;
-        currentLine += 10;
-
-        effectiveOutputs.forEach((opt, idx) => {
-            // Remove newlines from labels entirely, they are single line inputs
-            const safeLabel = opt.label.replace(/"/g, "'").replace(/\n/g, " ");
-            const optionLine = startLine + 1 + idx; // Position each option below separator
-            basicCode += `${currentLine} PRINT AT ${optionLine},0;"${idx + 1}. ${safeLabel}"\n`;
-            currentLine += 10;
-        });
-
-        // Restore default attributes (white on black)
-        basicCode += `${currentLine} INK 7: PAPER 0: BRIGHT 0: FLASH 0\n`;
-        currentLine += 10;
-
-        basicCode += `${currentLine} INPUT A$\n`;
-        currentLine += 10;
-
-        // Generate IFs for option selection
-        effectiveOutputs.forEach((opt, idx) => {
-            if (opt.target) {
-                const resolvedTarget = resolveNodeId(opt.target, nodes);
-                if (resolvedTarget) {
-                    const targetLine = nodeLines.get(resolvedTarget);
-
-                    // Check if this option has flag actions (can be space-separated list like "set:key clear:lock")
-                    if (opt.flag && opt.flag.trim()) {
-                        const flagTokens = opt.flag.trim().split(/\s+/);
-                        const flagStatements = [];
-
-                        for (const token of flagTokens) {
-                            const parts = token.split(':');
-                            if (parts.length >= 2 && ['set', 'clear', 'toggle', 'custom'].includes(parts[0])) {
-                                const action = parts[0];
-                                const flagName = parts.slice(1).join(':');
-                                if (action === 'custom') {
-                                    flagStatements.push(flagName);
-                                } else {
-                                    const varName = `f${flagName}`;
-                                    let val = action === 'set' ? '1' : action === 'clear' ? '0' : `1-${varName}`;
-                                    flagStatements.push(`LET ${varName}=${val}`);
-                                }
-                            }
-                        }
-
-                        if (flagStatements.length > 0) {
-                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN ${flagStatements.join(': ')}: GO TO ${targetLine}\n`;
-                        } else {
-                            basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
-                        }
-                        currentLine += 10;
-                    } else {
-                        // No flag, just jump
-                        basicCode += `${currentLine} IF A$="${idx + 1}" THEN GO TO ${targetLine}\n`;
-                        currentLine += 10;
+            if (trimmed === "" || trimmed === "$P") {
+                basicCode += `${lineNr} PRINT ""\n`;
+                lineNr += 10;
+            } else if (trimmed.startsWith('$I ')) {
+                // Skiping images for now to avoid tape loading issues
+                lineNr += 0;
+            } else if (trimmed.startsWith('$O ')) {
+                const condStr = trimmed.substring(3);
+                const condParts = condStr.split(' AND ');
+                const conditions = condParts.map(p => {
+                    const c = p.trim();
+                    if (c.startsWith('has:') || c.startsWith('set:')) return `f${c.split(':')[1]}=1`;
+                    if (c.startsWith('not:') || c.startsWith('clr:') || c.startsWith('!')) {
+                        const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
+                        return `f${f}=0`;
                     }
+                    return c;
+                });
+
+                const nextLineText = block.content[i + 1] || "";
+                if (nextLineText && !nextLineText.startsWith('$')) {
+                    const wLines = wrapText(nextLineText);
+                    wLines.forEach(wl => {
+                        if (wl.trim() !== "") {
+                            basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT "${wl}"\n`;
+                            lineNr += 10;
+                        }
+                    });
+                    i++; // Skip next line
                 }
+            } else if (!trimmed.startsWith('$')) {
+                const wLines = wrapText(line);
+                wLines.forEach(wl => {
+                    basicCode += `${lineNr} PRINT "${wl}"\n`;
+                    lineNr += 10;
+                });
             }
+        }
+
+        // Options / Menu
+        const effectiveOptions = block.options.length > 0
+            ? block.options
+            : [{ header: "$A " + startLabel, text: "Jugar de nuevo" }];
+
+        const totalLines = 1 + effectiveOptions.length;
+        const startPosLine = 21 - totalLines + 1;
+
+        // Separator
+        basicCode += `${lineNr} INK ${dattr & 7}: PAPER ${(dattr >> 3) & 7}: BRIGHT ${(dattr >> 6) & 1}: FLASH ${(dattr >> 7) & 1}\n`;
+        lineNr += 10;
+        basicCode += `${lineNr} PRINT AT ${startPosLine},0;"--------------------------------"\n`;
+        lineNr += 10;
+
+        // Options
+        basicCode += `${lineNr} INK ${iattr & 7}: PAPER ${(iattr >> 3) & 7}: BRIGHT ${(iattr >> 6) & 1}: FLASH ${(iattr >> 7) & 1}\n`;
+        lineNr += 10;
+
+        effectiveOptions.forEach((opt, idx) => {
+            const optText = opt.text || "Continuar";
+            const safeLabel = optText.replace(/"/g, "'").substring(0, 28);
+            basicCode += `${lineNr} PRINT AT ${startPosLine + 1 + idx},0;"${idx + 1}. ${safeLabel}"\n`;
+            lineNr += 10;
         });
 
-        // Loop back if invalid input
-        basicCode += `${currentLine} GO TO ${nodeLines.get(node.id)}\n`;
+        // Use interface colors for INPUT prompt too
+        basicCode += `${lineNr} INK ${iattr & 7}: PAPER ${(iattr >> 3) & 7}: BRIGHT ${(iattr >> 6) & 1}: FLASH ${(iattr >> 7) & 1}: INPUT A$\n`;
+        lineNr += 10;
+
+        effectiveOptions.forEach((opt, idx) => {
+            const matchA = opt.header.match(/^\$A\s+([^\s]+)/);
+            const target = matchA ? matchA[1].toLowerCase() : startLabel;
+            const targetLine = labelLines[target] || 1000;
+
+            const flagActions = opt.header.split(/\s+/).slice(2).map(f => {
+                const parts = f.split(':');
+                const action = parts[0];
+                const name = parts[1];
+                if (action === 'set') return `LET f${name}=1`;
+                if (action === 'clear' || action === 'clr') return `LET f${name}=0`;
+                if (action === 'toggle') return `LET f${name}=1-f${name}`;
+                return "";
+            }).filter(a => a !== "").join(': ');
+
+            basicCode += `${lineNr} IF A$="${idx + 1}" THEN ${flagActions ? flagActions + ': ' : ''}GO TO ${targetLine}\n`;
+            lineNr += 10;
+        });
+
+        // Loop back to current node
+        basicCode += `${lineNr} GO TO ${labelLines[blockLabel.toLowerCase()] || 1000}\n`;
     });
 
     return basicCode;
+}
+
+export function generateBasic(nodes, globalConfig = null) {
+    if (!nodes || nodes.length === 0) return "10 REM No nodes";
+
+    // 1. Convert everything to MuCho intermediate format
+    const muchoText = generateMucho(nodes, globalConfig);
+
+    // 2. Transpile MuCho to ZX Basic
+    return transpileMuchoToBasic(muchoText);
 }
