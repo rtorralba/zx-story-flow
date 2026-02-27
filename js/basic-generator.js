@@ -22,12 +22,20 @@ function wrapText(text, maxWidth = 32) {
             wrappedLines.push('');
             return;
         }
-        let words = para.split(' ');
-        let currentLine = '';
+        // Detecta espacios iniciales
+        const leadingSpaces = para.match(/^\s*/)[0];
+        let content = para.slice(leadingSpaces.length);
+        let words = content.split(' ');
+        let currentLine = leadingSpaces;
 
-        words.forEach(word => {
+        words.forEach((word, idx) => {
+            // Si la palabra está vacía (por múltiples espacios), añade espacio
+            if (word === "") {
+                currentLine += " ";
+                return;
+            }
             if ((currentLine + word).length <= maxWidth) {
-                currentLine += (currentLine === '' ? '' : ' ') + word;
+                currentLine += (currentLine === leadingSpaces ? '' : ' ') + word;
             } else {
                 wrappedLines.push(currentLine);
                 currentLine = word;
@@ -155,16 +163,15 @@ function transpileMuchoToBasic(muchoCode) {
         // Content
         for (let i = 0; i < block.content.length; i++) {
             const line = block.content[i];
-            const trimmed = line.trim();
-
-            if (trimmed === "" || trimmed === "$P") {
+            // Detecta líneas vacías exactas o $P, respeta espacios iniciales
+            if (line === "" || line === "$P") {
                 basicCode += `${lineNr} PRINT ""\n`;
                 lineNr += 10;
-            } else if (trimmed.startsWith('$I ')) {
+            } else if (line.startsWith('$I ')) {
                 // Skiping images for now to avoid tape loading issues
                 lineNr += 0;
-            } else if (trimmed.startsWith('$O ')) {
-                const condStr = trimmed.substring(3);
+            } else if (line.startsWith('$O ')) {
+                const condStr = line.substring(3);
                 const condParts = condStr.split(' AND ');
                 const conditions = condParts.map(p => {
                     const c = p.trim();
@@ -180,14 +187,15 @@ function transpileMuchoToBasic(muchoCode) {
                 if (nextLineText && !nextLineText.startsWith('$')) {
                     const wLines = wrapText(nextLineText);
                     wLines.forEach(wl => {
-                        if (wl.trim() !== "") {
+                        // Solo imprime si la línea no es vacía
+                        if (wl !== "") {
                             basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT "${wl}"\n`;
                             lineNr += 10;
                         }
                     });
                     i++; // Skip next line
                 }
-            } else if (!trimmed.startsWith('$')) {
+            } else if (!line.startsWith('$')) {
                 const wLines = wrapText(line);
                 wLines.forEach(wl => {
                     basicCode += `${lineNr} PRINT "${wl}"\n`;
