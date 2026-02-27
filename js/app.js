@@ -521,19 +521,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('node-edit-modal-close-btn').addEventListener('click', closeNodeEditModal);
 
     // Cerrar modal al hacer clic fuera de él
-    nodeEditModal.addEventListener('click', (e) => {
-        if (e.target === nodeEditModal) {
-            closeNodeEditModal();
-        }
-    });
+    // Eliminado: no cerrar modal al hacer clic fuera
 
     // Compact modal close handlers
     const compactCloseBtn = document.getElementById('compact-edit-modal-close-btn');
     if (compactCloseBtn) compactCloseBtn.addEventListener('click', closeCompactEditModal);
     if (compactEditModal) {
-        compactEditModal.addEventListener('click', (e) => {
-            if (e.target === compactEditModal) closeCompactEditModal();
-        });
+        // Eliminado: no cerrar modal al hacer clic fuera
+        // El cierre solo será posible con el botón X/cruz
+    // (no hay llave de cierre aquí)
     }
 
     // Initialize Editor
