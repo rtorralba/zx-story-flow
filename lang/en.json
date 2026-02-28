@@ -50,6 +50,9 @@
     },
     "config": {
         "global_title": "Global Config (default)",
+        "project_type": "Project Type",
+        "format_label": "Format:",
+        "format_help": "Choose how exports interpret node text",
         "edit_interface": "Editing Interface",
         "default_view": "Default view mode:",
         "view_simple": "Simple View",

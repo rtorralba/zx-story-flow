@@ -10,6 +10,7 @@ import { generateMucho } from './mucho-generator.js';
 import { generateTapFromBasic } from './tap-generator.js';
 import { generateCYD } from './cyd-generator.js';
 import { MuchoEditor } from './mucho-editor.js';
+import { CYDEditor } from './cyd-editor.js';
 import { i18n, t } from './translations.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('node-canvas');
     const propertyContent = document.getElementById('properties-content');
     let projectName = 'Untitled';
+    let projectType = 'MuCho';
 
     // Configuración global (por defecto)
     let globalConfig = {
@@ -46,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const globalInterfaceBright = document.getElementById('global-interface-bright');
     const globalInterfaceFlash = document.getElementById('global-interface-flash');
     const globalViewMode = document.getElementById('global-view-mode');
+    const globalProjectType = document.getElementById('global-project-type');
 
     // Cargar configuración global en los controles
     function loadGlobalConfig() {
@@ -62,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         globalInterfaceBright.checked = globalConfig.interface.bright;
         globalInterfaceFlash.checked = globalConfig.interface.flash;
         if (globalViewMode) globalViewMode.value = globalConfig.viewMode || 'simple';
+        if (globalProjectType) globalProjectType.value = (globalConfig.projectType || projectType || 'MuCho');
     }
 
     // Guardar configuración global desde los controles
@@ -85,6 +89,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             flash: globalInterfaceFlash.checked
         };
         if (globalViewMode) globalConfig.viewMode = globalViewMode.value;
+        // project type selector
+        if (globalProjectType) {
+            projectType = globalProjectType.value || projectType;
+            globalConfig.projectType = projectType;
+        }
     }
 
     // Abrir modal de configuración global
@@ -364,16 +373,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             sidebarColumn.style.display = isAdvanced ? 'block' : 'none';
         }
 
-        // Toggle Tags (Title Actions)
+        // Toggle Tags (Title Actions) - hide for CYD projects
         const tagsInput = nodeEditModalTitle.querySelector('.advanced-only');
         if (tagsInput) {
-            tagsInput.style.display = isAdvanced ? 'block' : 'none';
+            tagsInput.style.display = (projectType === 'CYD') ? 'none' : (isAdvanced ? 'block' : 'none');
         }
 
-        // Toggle Flags (Option Actions)
+        // Toggle Flags (Option Actions) - hide for CYD projects
         const flagsInputs = nodeEditModalContent.querySelectorAll('.advanced-only-flags');
         flagsInputs.forEach(el => {
-            el.style.display = isAdvanced ? 'block' : 'none';
+            el.style.display = (projectType === 'CYD') ? 'none' : (isAdvanced ? 'block' : 'none');
         });
     }
 
@@ -487,7 +496,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 nodeOrGroup.actions = e.target.value;
             });
             actionsInput.classList.add('advanced-only');
-            actionsInput.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+            // Hide title actions input for CYD projects; otherwise show in advanced view
+            actionsInput.style.display = (projectType === 'CYD') ? 'none' : (editorViewMode === 'advanced' ? 'block' : 'none');
             nodeEditModalTitle.appendChild(actionsInput);
 
             // Toggle must be added LAST
@@ -556,6 +566,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function getProjectData() {
         return {
             name: projectName,
+            projectType: projectType,
             globalConfig: globalConfig,
             nodes: editor.nodes.map(n => {
                 const nodeData = {
@@ -627,8 +638,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Restore global config
             if (data.globalConfig) {
                 globalConfig = data.globalConfig;
+                // if project type stored in globalConfig prefer it
+                if (globalConfig.projectType) projectType = globalConfig.projectType;
                 editorViewMode = globalConfig.viewMode || 'simple';
                 loadGlobalConfig();
+            }
+            // If file explicitly sets projectType at root, prefer it
+            if (data.projectType) {
+                projectType = data.projectType;
+                if (globalProjectType) globalProjectType.value = projectType;
             }
 
             // Restore Nodes
@@ -816,7 +834,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-cyd-btn').addEventListener('click', () => {
         try {
-            const cydCode = generateCYD(editor.nodes, globalConfig);
+            let cydCode;
+            if (projectType === 'CYD') {
+                // Project is authored directly in CYD syntax: export node texts as-is.
+                const screenNodes = editor.nodes.filter(n => n && (n.type === 'Screen' || (n.constructor && n.constructor.name === 'ScreenNode')));
+                const parts = screenNodes.map(n => (n.text || '').replace(/\r\n/g, '\n'));
+                cydCode = parts.join('\n\n');
+            } else {
+                cydCode = generateCYD(editor.nodes, globalConfig);
+            }
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
             const blob = new Blob([cydCode], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -1224,9 +1250,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateRuler(editorRulerWidth);
         mainColumn.appendChild(editorContainer);
 
-        const initialMuchoText = MuchoEditor.generateFromNode(node);
-        const muchoEditor = new MuchoEditor(editorContainer, initialMuchoText, (newText) => {
-            MuchoEditor.parseToNode(newText, node);
+        // Choose editor implementation based on project type (MuCho or CYD)
+        const EditorClass = (projectType === 'CYD') ? CYDEditor : MuchoEditor;
+        const initialText = EditorClass.generateFromNode(node);
+        const editorWidget = new EditorClass(editorContainer, initialText, (newText) => {
+            EditorClass.parseToNode(newText, node);
             editor.draw();
             autoSave();
         });
@@ -1234,9 +1262,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         hiddenFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                const ta = muchoEditor.textarea;
+                const ta = editorWidget.textarea;
                 const start = ta.selectionStart;
-                const text = muchoEditor.value;
+                const text = editorWidget.value;
 
                 // Analizar el contexto alrededor del cursor para no meter saltos de linea de mas
                 const textBefore = text.substring(0, start);
@@ -1251,10 +1279,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Siempre incluir salto de linea final
                 const insertText = prepend + "$I " + file.name + "\n";
 
-                muchoEditor.value = textBefore + insertText + textAfter;
-                ta.value = muchoEditor.value;
-                muchoEditor.updateHighlights();
-                MuchoEditor.parseToNode(muchoEditor.value, node);
+                editorWidget.value = textBefore + insertText + textAfter;
+                ta.value = editorWidget.value;
+                editorWidget.updateHighlights();
+                EditorClass.parseToNode(editorWidget.value, node);
                 editor.draw();
 
                 // Read the image file and attach to paragraphImages array based on parsed index
@@ -1278,69 +1306,106 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const helpPanel = document.createElement('div');
         helpPanel.className = 'mucho-help-panel';
-        helpPanel.innerHTML = `
-            <h5>${t('help.title')}</h5>
+        if (projectType === 'CYD') {
+            helpPanel.innerHTML = `
+                <h5>CYD Syntax Help</h5>
+                <div class="mucho-help-section">
+                    <h6>Directives</h6>
+                    <ul>
+                        <li><code>[[ DECLARE 0 AS name ]]</code> Declare variables</li>
+                        <li><code>[[ PICTURE 1 ]]</code> / <code>[[ DISPLAY 1 ]]</code> Show image</li>
+                        <li><code>[[ LABEL name ]]</code> Define label</li>
+                        <li><code>[[ IF @name = 1 THEN ]] ... [[ ENDIF ]]</code> Conditionals</li>
+                        <li><code>[[ OPTION GOTO label ]]Choice text</code> Options &amp; <code>[[ CHOOSE ]]</code></li>
+                    </ul>
+                </div>
+                <div class="mucho-help-section">
+                    <h6>Layout</h6>
+                    <ul>
+                        <li><code>[[ MARGINS left,top,width,height ]]</code> Restrict text area</li>
+                        <li><code>[[ CLEAR ]]</code> Clear screen</li>
+                        <li><code>[[ WAITKEY : END ]]</code> Wait and end</li>
+                    </ul>
+                </div>
+                <p style="margin-top:10px; font-size:11px; color:#888;"><em>Click code snippets to insert.</em></p>
+            `;
+        } else {
+            helpPanel.innerHTML = `
+                <h5>${t('help.title')}</h5>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.flags_logic')}</h6>
-                <ul>
-                    <li><code>has:name</code> (${t('help.or')} <code>name</code>) ${t('help.flags_has')}</li>
-                    <li><code>not:name</code> (${t('help.or')} <code>!name</code>) ${t('help.flags_not')}</li>
-                    <li><code>rnd:128</code> ${t('help.flags_rnd')}</li>
-                    <li><code>AND</code> ${t('help.flags_and')} <code>has:A AND has:B</code>.</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.flags_logic')}</h6>
+                    <ul>
+                        <li><code>has:name</code> (${t('help.or')} <code>name</code>) ${t('help.flags_has')}</li>
+                        <li><code>not:name</code> (${t('help.or')} <code>!name</code>) ${t('help.flags_not')}</li>
+                        <li><code>rnd:128</code> ${t('help.flags_rnd')}</li>
+                        <li><code>AND</code> ${t('help.flags_and')} <code>has:A AND has:B</code>.</li>
+                    </ul>
+                </div>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.ops_title')}</h6>
-                <ul>
-                    <li><code>set:flag</code> ${t('help.ops_set')}</li>
-                    <li><code>clear:flag</code> (${t('help.or')} <code>clr:</code>) ${t('help.ops_clear')}</li>
-                    <li><code>toggle:flag</code> ${t('help.ops_toggle')}</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.ops_title')}</h6>
+                    <ul>
+                        <li><code>set:flag</code> ${t('help.ops_set')}</li>
+                        <li><code>clear:flag</code> (${t('help.or')} <code>clr:</code>) ${t('help.ops_clear')}</li>
+                        <li><code>toggle:flag</code> ${t('help.ops_toggle')}</li>
+                    </ul>
+                </div>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.nums_title')}</h6>
-                <ul>
-                    <li><code>v=10</code> ${t('help.nums_assign')}</li>
-                    <li><code>v+5</code> / <code>v-2</code> ${t('help.nums_add_sub')}</li>
-                    <li><code>v==10</code> / <code>v!=5</code> ${t('help.nums_compare')}</li>
-                    <li><code>v&gt;5</code> / <code>v&lt;=20</code> ${t('help.nums_compare')}</li>
-                    <li><code>&lt;&lt;v&gt;&gt;</code> ${t('help.nums_print')}</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.nums_title')}</h6>
+                    <ul>
+                        <li><code>v=10</code> ${t('help.nums_assign')}</li>
+                        <li><code>v+5</code> / <code>v-2</code> ${t('help.nums_add_sub')}</li>
+                        <li><code>v==10</code> / <code>v!=5</code> ${t('help.nums_compare')}</li>
+                        <li><code>v&gt;5</code> / <code>v&lt;=20</code> ${t('help.nums_compare')}</li>
+                        <li><code>&lt;&lt;v&gt;&gt;</code> ${t('help.nums_print')}</li>
+                    </ul>
+                </div>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.style_title')}</h6>
-                <ul>
-                    <li><code>$I img.scr</code> ${t('help.style_img')}</li>
-                    <li><code>attr:71</code> ${t('help.style_attr')}</li>
-                    <li><code>dattr:N</code> / <code>iattr:N</code> ${t('help.style_div_int')}</li>
-                    <li><code>border:N</code> ${t('help.style_border')}</li>
-                    <li><code>cls:0</code> ${t('help.style_cls')}</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.style_title')}</h6>
+                    <ul>
+                        <li><code>$I img.scr</code> ${t('help.style_img')}</li>
+                        <li><code>attr:71</code> ${t('help.style_attr')}</li>
+                        <li><code>dattr:N</code> / <code>iattr:N</code> ${t('help.style_div_int')}</li>
+                        <li><code>border:N</code> ${t('help.style_border')}</li>
+                        <li><code>cls:0</code> ${t('help.style_cls')}</li>
+                    </ul>
+                </div>
 
-            <p style="margin-top:10px; font-size:11px; color:#888;">
-                <em>${t('help.click_to_insert')}</em>
-            </p>
-        `;
+                <p style="margin-top:10px; font-size:11px; color:#888;">
+                    <em>${t('help.click_to_insert')}</em>
+                </p>
+            `;
+        }
 
         // Add click listeners to code tags to insert text
         helpPanel.querySelectorAll('code').forEach(codeEl => {
             codeEl.addEventListener('click', () => {
-                const insertText = codeEl.textContent + ' ';
-                const ta = muchoEditor.textarea;
+                let insertText = codeEl.textContent + ' ';
+                const ta = editorWidget.textarea;
                 const start = ta.selectionStart;
                 const end = ta.selectionEnd;
-                muchoEditor.value = muchoEditor.value.substring(0, start) + insertText + muchoEditor.value.substring(end);
-                ta.value = muchoEditor.value;
-                muchoEditor.updateHighlights();
-                MuchoEditor.parseToNode(muchoEditor.value, node);
+                editorWidget.value = editorWidget.value.substring(0, start) + insertText + editorWidget.value.substring(end);
+                ta.value = editorWidget.value;
+                editorWidget.updateHighlights();
+                EditorClass.parseToNode(editorWidget.value, node);
                 editor.draw();
                 ta.focus();
-                ta.setSelectionRange(start + insertText.length, start + insertText.length);
+
+                // If the inserted fragment contains a placeholder like 'name' or 'label', select it
+                const lower = insertText.toLowerCase();
+                const placeholderMatch = lower.match(/\b(name|label)\b/);
+                if (placeholderMatch) {
+                    const ph = placeholderMatch[0];
+                    const idx = lower.indexOf(ph);
+                    const selStart = start + idx;
+                    const selEnd = selStart + ph.length;
+                    ta.setSelectionRange(selStart, selEnd);
+                } else {
+                    ta.setSelectionRange(start + insertText.length, start + insertText.length);
+                }
             });
         });
 
@@ -1350,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         editorLayout.appendChild(sidebarColumn);
         targetContainer.appendChild(editorLayout);
 
-        // Options Section
+        // Options Section (always shown; flag inputs hidden for CYD projects)
         const optionsSection = document.createElement('div');
         optionsSection.style.marginTop = '15px';
         optionsSection.style.padding = '10px';
@@ -1408,7 +1473,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 flagInp.style.borderRadius = '3px';
                 flagInp.title = t('editor.actions_option_title');
                 flagInp.classList.add('advanced-only-flags');
-                flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+                if (projectType === 'CYD') {
+                    // In CYD projects options remain, but option flags are not applicable
+                    flagInp.style.display = 'none';
+                } else {
+                    flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+                }
                 flagInp.addEventListener('input', (e) => {
                     opt.flag = e.target.value.trim() || undefined;
                     editor.draw();

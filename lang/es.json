@@ -50,6 +50,9 @@
     },
     "config": {
         "global_title": "Configuración Global (por defecto)",
+        "project_type": "Tipo de Proyecto",
+        "format_label": "Formato:",
+        "format_help": "Cómo interpretan las exportaciones el texto de los nodos",
         "edit_interface": "Interfaz de Edición",
         "default_view": "Modo de edición por defecto:",
         "view_simple": "Vista Sencilla",

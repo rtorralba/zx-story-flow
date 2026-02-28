@@ -191,6 +191,29 @@
             <div class="modal-content">
                 <button class="modal-close-btn" id="modal-close-btn">&times;</button>
                 <h2 data-i18n="config.global_title">Configuración Global (por defecto)</h2>
+                <h3 data-i18n="config.project_type">Project Type</h3>
+                <div class="config-options">
+                    <div class="config-row">
+                        <label for="global-project-type" data-i18n="config.format_label">Format:</label>
+                        <select id="global-project-type">
+                            <option value="MuCho">MuCho</option>
+                            <option value="CYD">CYD</option>
+                        </select>
+                        <small style="margin-left:8px;" data-i18n="config.format_help">Choose how exports interpret node text</small>
+                    </div>
+                </div>
+                <br><br>
+                <h3 data-i18n="config.edit_interface">Interfaz de Edición</h3>
+                <div class="config-options">
+                    <div class="config-row">
+                        <label for="global-view-mode" data-i18n="config.default_view">Modo de edición por defecto:</label>
+                        <select id="global-view-mode">
+                            <option value="simple" data-i18n="config.view_simple">Vista Sencilla</option>
+                            <option value="advanced" data-i18n="config.view_advanced">Vista Avanzada</option>
+                        </select>
+                    </div>
+                </div>
+                <br><br>
                 <h3 data-i18n="properties.page">Página</h3>
                 <div class="config-options">
                     <div class="config-row">
@@ -226,7 +249,6 @@
                         <input type="checkbox" id="global-page-flash">
                     </div>
                 </div>
-                <br><br>
                 <h3 data-i18n="properties.separator">Separador</h3>
                 <div class="config-options">
                     <div class="config-row">
@@ -298,18 +320,7 @@
                         <input type="checkbox" id="global-interface-flash">
                     </div>
                 </div>
-                <br><br>
-                <h3 data-i18n="config.edit_interface">Interfaz de Edición</h3>
-                <div class="config-options">
-                    <div class="config-row">
-                        <label for="global-view-mode" data-i18n="config.default_view">Modo de edición por
-                            defecto:</label>
-                        <select id="global-view-mode">
-                            <option value="simple" data-i18n="config.view_simple">Vista Sencilla</option>
-                            <option value="advanced" data-i18n="config.view_advanced">Vista Avanzada</option>
-                        </select>
-                    </div>
-                </div>
+                
                 <div class="modal-buttons">
                     <button id="close-global-config" data-i18n="config.close">Cerrar</button>
                 </div>

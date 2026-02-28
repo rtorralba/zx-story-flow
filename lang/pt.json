@@ -50,6 +50,9 @@
     },
     "config": {
         "global_title": "Configuração Global (padrão)",
+        "project_type": "Tipo de Projeto",
+        "format_label": "Formato:",
+        "format_help": "Como as exportações interpretam o texto dos nós",
         "edit_interface": "Interface de Edição",
         "default_view": "Modo de edição padrão:",
         "view_simple": "Vista Simples",
