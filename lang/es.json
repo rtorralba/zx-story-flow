@@ -16,6 +16,7 @@
     "export": {
         "png": "🖼️ Imagen PNG",
         "tap": "📼 .TAP",
+        "cyd": "📝 CYD",
         "mucho": "📜 MuCho",
         "basic": "⌨️ BASIC"
     },

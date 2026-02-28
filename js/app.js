@@ -8,6 +8,7 @@ import { ScreenNode, Group, NodeReference } from './nodes.js';
 import { generateBasic } from './basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
 import { generateTapFromBasic } from './tap-generator.js';
+import { generateCYD } from './cyd-generator.js';
 import { MuchoEditor } from './mucho-editor.js';
 import { i18n, t } from './translations.js';
 
@@ -811,6 +812,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         a.download = exportName + '.txt';
         a.click();
         URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('export-cyd-btn').addEventListener('click', () => {
+        try {
+            const cydCode = generateCYD(editor.nodes, globalConfig);
+            const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
+            const blob = new Blob([cydCode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = exportName + '.cyd';
+            a.click();
+            URL.revokeObjectURL(url);
+            console.log('CYD export successful');
+        } catch (e) {
+            console.error('CYD export failed:', e);
+            alert('CYD export failed: ' + e.message);
+        }
     });
 
     // Save Project
