@@ -836,9 +836,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             let cydCode;
             if (projectType === 'CYD') {
-                // Project is authored directly in CYD syntax: export node texts as-is.
+                // Export each node: LABEL, title, text (verbatim), options (CYD format)
                 const screenNodes = editor.nodes.filter(n => n && (n.type === 'Screen' || (n.constructor && n.constructor.name === 'ScreenNode')));
-                const parts = screenNodes.map(n => (n.text || '').replace(/\r\n/g, '\n'));
+                // Helper para generar identificadores válidos
+                function slugify(str) {
+                    return (str || '').normalize('NFD')
+                        .replace(/[^\w\s-]/g, '') // elimina acentos y símbolos
+                        .replace(/[\s-]+/g, '_')   // espacios y guiones a _
+                        .replace(/^_+|_+$/g, '')   // quita _ al inicio/fin
+                        .replace(/^[^a-zA-Z]+/, '') // empieza por letra
+                        .substring(0, 32); // máximo 32 caracteres
+                }
+                function getNodeLabelById(id) {
+                    // Si es referencia, buscar el nodo referenciado
+                    let destNode = screenNodes.find(nd => nd.id === id);
+                    if (!destNode && id && id.startsWith('ref_')) {
+                        // Buscar referencia en todos los nodos
+                        const allNodes = editor.nodes;
+                        const refNode = allNodes.find(nd => nd.id === id && nd.type === 'Reference');
+                        if (refNode && refNode.targetNodeId) {
+                            destNode = screenNodes.find(nd => nd.id === refNode.targetNodeId);
+                        }
+                    }
+                    return destNode && destNode.title ? slugify(destNode.title) : slugify(id);
+                }
+                const parts = screenNodes.map(n => {
+                    let block = [];
+                    // LABEL (título del nodo, slugificado)
+                    block.push(`[[ LABEL ${slugify(n.title || n.id)} ]]`);
+                    // Texto del nodo
+                    if (n.text) block.push(n.text.replace(/\r\n/g, '\n'));
+                    // Opciones en formato CYD (outputs)
+                    let opciones = [];
+                    if (Array.isArray(n.outputs) && n.outputs.length > 0) {
+                        n.outputs.forEach(opt => {
+                            if (opt.target && opt.label) {
+                                const destino = getNodeLabelById(opt.target);
+                                opciones.push(`[[ OPTION GOTO ${destino} ]]${opt.label}`);
+                            }
+                        });
+                        if (opciones.length > 0) {
+                            block.push(opciones.join('\n'));
+                            block.push('[[ CHOOSE ]]');
+                        }
+                    }
+                    return block.join('\n');
+                });
                 cydCode = parts.join('\n\n');
             } else {
                 cydCode = generateCYD(editor.nodes, globalConfig);
