@@ -99,6 +99,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Abrir modal de configuración global
     document.getElementById('config-btn').addEventListener('click', () => {
         loadGlobalConfig();
+        // Mostrar/ocultar secciones según tipo de proyecto
+        const cydGeneralSection = document.getElementById('cyd-general-code-section');
+        const muchoSections = document.getElementById('mucho-sections');
+        if ((globalProjectType.value || projectType) === 'CYD') {
+            if (muchoSections) muchoSections.style.display = 'none';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'block';
+            if (window.showCYDEditor) window.showCYDEditor();
+        } else {
+            if (muchoSections) muchoSections.style.display = '';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'none';
+        }
         globalConfigModal.style.display = 'flex';
     });
 
@@ -117,6 +128,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listeners para configuración global
     const onGlobalConfigChange = () => {
         saveGlobalConfig();
+        // Actualizar visibilidad de secciones al cambiar tipo de proyecto
+        const cydGeneralSection = document.getElementById('cyd-general-code-section');
+        const muchoSections = document.getElementById('mucho-sections');
+        if ((globalProjectType.value || projectType) === 'CYD') {
+            if (muchoSections) muchoSections.style.display = 'none';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'block';
+            if (window.showCYDEditor) window.showCYDEditor();
+        } else {
+            if (muchoSections) muchoSections.style.display = '';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'none';
+        }
         if (typeof autoSave === 'function') autoSave();
     };
 
@@ -133,8 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     globalInterfaceBright.addEventListener('change', onGlobalConfigChange);
     globalInterfaceFlash.addEventListener('change', onGlobalConfigChange);
     if (globalViewMode) globalViewMode.addEventListener('change', onGlobalConfigChange);
-
-    // Language Selector Listeners
+    if (globalProjectType) globalProjectType.addEventListener('change', onGlobalConfigChange);
     document.querySelectorAll('.lang-option').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const lang = e.target.getAttribute('data-lang');
@@ -612,6 +633,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     nodeIds: g.nodeIds
                 };
             }),
+            cydGeneralCode: document.getElementById('cyd-general-code')?.value || '',
             lastSaved: Date.now()
         };
     }
@@ -647,6 +669,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (data.projectType) {
                 projectType = data.projectType;
                 if (globalProjectType) globalProjectType.value = projectType;
+            }
+
+            // Restore CYD general code
+            const cydGeneralTextarea = document.getElementById('cyd-general-code');
+            if (cydGeneralTextarea && data.cydGeneralCode != null) {
+                cydGeneralTextarea.value = data.cydGeneralCode;
+                // Forzar re-render del resaltado si ya está montado
+                cydGeneralTextarea.dispatchEvent(new Event('input'));
             }
 
             // Restore Nodes
@@ -886,6 +916,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 cydCode = generateCYD(editor.nodes, globalConfig);
             }
+            // Prepend CYD general code if present
+            const cydGeneralCode = (document.getElementById('cyd-general-code')?.value || '').trim();
+            if (cydGeneralCode) cydCode = cydGeneralCode + '\n\n' + cydCode;
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
             const blob = new Blob([cydCode], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -1803,4 +1836,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     // FINAL STARTUP: Ensure everything is ready before loading
     loadFromLocalStorage();
+
+    // Auto-save cuando se edita el Código general CYD
+    const cydGeneralTextareaEl = document.getElementById('cyd-general-code');
+    if (cydGeneralTextareaEl) {
+        cydGeneralTextareaEl.addEventListener('input', () => {
+            if (typeof autoSave === 'function') autoSave();
+        });
+    }
 });

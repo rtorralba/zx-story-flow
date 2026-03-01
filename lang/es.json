@@ -54,7 +54,7 @@
         "format_label": "Formato:",
         "format_help": "Cómo interpretan las exportaciones el texto de los nodos",
         "edit_interface": "Interfaz de Edición",
-        "default_view": "Modo de edición por defecto:",
+        "default_view": "Modo de edición:",
         "view_simple": "Vista Sencilla",
         "view_advanced": "Vista Avanzada",
         "close": "Cerrar"

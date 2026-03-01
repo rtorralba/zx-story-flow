@@ -770,6 +770,50 @@ input:checked+.slider:before {
 
 #global-config-modal .config-options { margin-bottom: 14px; }
 
+/* Tooltip de ayuda con icono ? */
+.tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    border-radius: 50%;
+    background: #555;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: help;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.tooltip-icon::after {
+    content: attr(title);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: normal;
+    white-space: nowrap;
+    max-width: 280px;
+    white-space: normal;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9999;
+}
+
+.tooltip-icon:hover::after {
+    opacity: 1;
+}
+
 #global-config-modal .config-row select,
 #global-config-modal .config-row input[type="text"] {
     width: 100%;

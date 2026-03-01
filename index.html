@@ -192,28 +192,34 @@
             <div class="modal-content">
                 <button class="modal-close-btn" id="modal-close-btn">&times;</button>
                 <h2 data-i18n="config.global_title">Configuración Global (por defecto)</h2>
-                <h3 data-i18n="config.project_type">Project Type</h3>
-                <div class="config-options">
-                    <div class="config-row">
-                        <label for="global-project-type" data-i18n="config.format_label">Format:</label>
-                        <select id="global-project-type">
-                            <option value="MuCho">MuCho</option>
-                            <option value="CYD">CYD</option>
-                        </select>
-                        <small style="margin-left:8px;" data-i18n="config.format_help">Choose how exports interpret node text</small>
+                <div style="display:flex; flex-direction:row; gap:32px; align-items:flex-start; width:100%;">
+                    <div style="flex:0 0 calc(50% - 16px);">
+                        <h3 data-i18n="config.project_type">Project Type</h3>
+                        <div class="config-options">
+                            <div class="config-row">
+                                <label for="global-project-type" data-i18n="config.format_label">Format:</label>
+                                <select id="global-project-type">
+                                    <option value="MuCho">MuCho</option>
+                                    <option value="CYD">CYD</option>
+                                </select>
+                                <span class="tooltip-icon" data-i18n="config.format_help" title="Choose how exports interpret node text">&#63;</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex:0 0 calc(50% - 16px);">
+                        <h3 data-i18n="config.edit_interface">Interfaz de Edición</h3>
+                        <div class="config-options">
+                            <div class="config-row">
+                                <label for="global-view-mode" data-i18n="config.default_view">Modo de edición:</label>
+                                <select id="global-view-mode">
+                                    <option value="simple" data-i18n="config.view_simple">Vista Sencilla</option>
+                                    <option value="advanced" data-i18n="config.view_advanced">Vista Avanzada</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <br><br>
-                <h3 data-i18n="config.edit_interface">Interfaz de Edición</h3>
-                <div class="config-options">
-                    <div class="config-row">
-                        <label for="global-view-mode" data-i18n="config.default_view">Modo de edición por defecto:</label>
-                        <select id="global-view-mode">
-                            <option value="simple" data-i18n="config.view_simple">Vista Sencilla</option>
-                            <option value="advanced" data-i18n="config.view_advanced">Vista Avanzada</option>
-                        </select>
-                    </div>
-                </div>
+                <div id="mucho-sections">
                 <br><br>
                 <h3 data-i18n="properties.page">Página</h3>
                 <div class="config-options">
@@ -321,9 +327,15 @@
                         <input type="checkbox" id="global-interface-flash">
                     </div>
                 </div>
+                </div><!-- /mucho-sections -->
                 
                 <div class="modal-buttons">
                     <button id="close-global-config" data-i18n="config.close">Cerrar</button>
+                </div>
+                <!-- Sección Código general para CYD -->
+                <div id="cyd-general-code-section" style="display:none; margin-top:20px;">
+                    <h3>Código general CYD</h3>
+                    <textarea id="cyd-general-code" rows="10" style="width:100%; font-family:monospace;"></textarea>
                 </div>
             </div>
         </div>
@@ -342,6 +354,17 @@
     </div>
 
     <script type="module" src="js/app.js"></script>
+    <script type="module">
+        import { mountCYDEditor } from './js/cyd-codemirror.js';
+        // Montar siempre al cargar (funciona aunque la sección esté oculta)
+        window.addEventListener('DOMContentLoaded', () => {
+            mountCYDEditor('cyd-general-code');
+        });
+        // Exponer para llamadas desde app.js (no hace nada si ya está montado)
+        window.showCYDEditor = function() {
+            mountCYDEditor('cyd-general-code');
+        };
+    </script>
 </body>
 
 </html>

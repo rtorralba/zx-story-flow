@@ -54,7 +54,7 @@
         "format_label": "Formato:",
         "format_help": "Como as exportações interpretam o texto dos nós",
         "edit_interface": "Interface de Edição",
-        "default_view": "Modo de edição padrão:",
+        "default_view": "Modo de edição:",
         "view_simple": "Vista Simples",
         "view_advanced": "Vista Avançada",
         "close": "Fechar"
