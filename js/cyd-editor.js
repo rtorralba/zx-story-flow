@@ -1,70 +1,58 @@
-// ZX Story Flow - CYD Syntax Editor (lightweight)
-// Provides minimal textarea-based editor with simple syntax highlighting for CYD
+// ZX Story Flow - CYD Node Editor (CodeMirror 5)
+// Uses the shared node editor shell + the CYD mode from cyd-codemirror.js
+
+import { registerCYDMode, injectExtraStyles } from './cyd-codemirror.js';
+import { injectSharedStyles, buildNodeEditor } from './cm-node-editor.js';
 
 export class CYDEditor {
     constructor(container, initialContent, onChange) {
-        this.container = container;
-        this.onChange = onChange;
-        this.value = initialContent || '';
+        this._value = initialContent || '';
+        this.cm = null;
+        this.textarea = null;
 
-        this.container.innerHTML = '';
-        this.container.className = 'mucho-editor-container cyd-editor-container';
+        if (!window.CodeMirror) {
+            // Fallback textarea si CodeMirror no está disponible
+            container.innerHTML = '';
+            this.textarea = document.createElement('textarea');
+            this.textarea.value = this._value;
+            this.textarea.style.cssText = 'width:100%;height:380px;font-family:monospace;font-size:13px;background:#282a36;color:#f8f8f2;border:1px solid #555;box-sizing:border-box;';
+            container.appendChild(this.textarea);
+            this.textarea.addEventListener('input', () => {
+                this._value = this.textarea.value;
+                if (onChange) onChange(this._value);
+            });
+            return;
+        }
 
-        this.backdrop = document.createElement('div');
-        this.backdrop.className = 'mucho-backdrop';
+        injectSharedStyles();
+        injectExtraStyles(); // colores extra del tema Dracula para tokens CYD
+        registerCYDMode();
 
-        this.textarea = document.createElement('textarea');
-        this.textarea.className = 'mucho-textarea';
-        this.textarea.value = this.value;
-        this.textarea.spellcheck = false;
-        this.textarea.style.color = 'transparent';
-        this.textarea.style.caretColor = '#fffa65';
-        this.textarea.style.background = 'transparent';
-
-        this.container.appendChild(this.backdrop);
-        this.container.appendChild(this.textarea);
-
-        this.textarea.addEventListener('input', this.handleInput.bind(this));
-        this.textarea.addEventListener('scroll', this.handleScroll.bind(this));
-
-        this.updateHighlights();
-    }
-
-    handleInput(e) {
-        this.value = e.target.value;
-        this.updateHighlights();
-        if (this.onChange) this.onChange(this.value);
-    }
-
-    handleScroll() {
-        this.backdrop.scrollTop = this.textarea.scrollTop;
-    }
-
-    updateHighlights() {
-        const raw = this.value;
-        const lines = raw.split('\n');
-        const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-        const result = lines.map(line => {
-            let content = esc(line);
-            // Highlight [[ ... ]] blocks
-            content = content.replace(/\[\[([^\]]+)\]\]/g, (m, inner) => `<span class="cyd-kw">[[</span><span class="cyd-inner">${esc(inner)}</span><span class="cyd-kw">]]</span>`);
-            // Keywords: LABEL, PICTURE, DISPLAY, IF, THEN, ENDIF, OPTION, CHOOSE, WAITKEY, MARGINS, DECLARE, SET, GOTO
-            content = content.replace(/\b(LABEL|PICTURE|DISPLAY|IF|THEN|ENDIF|OPTION|CHOOSE|WAITKEY|MARGINS|DECLARE|SET|GOTO)\b/g, '<span class="cyd-key">$1</span>');
-            return `<div class="mucho-line">${content || ' '}</div>`;
+        this.cm = buildNodeEditor(container, 'cyd', this._value, (v) => {
+            this._value = v;
+            if (onChange) onChange(v);
         });
 
-        if (raw.endsWith('\n')) result.push('<div class="mucho-line"> </div>');
-        this.backdrop.innerHTML = result.join('');
+        this.textarea = this.cm.getInputField();
     }
 
-    // Simple helpers to keep parity with MuchoEditor API
+    get value() {
+        return this.cm ? this.cm.getValue() : this._value;
+    }
+
+    set value(v) {
+        this._value = v;
+        if (this.cm) this.cm.setValue(v);
+        else if (this.textarea) this.textarea.value = v;
+    }
+
+    updateHighlights() {}
+
     static generateFromNode(node) {
         return node.text || '';
     }
 
     static parseToNode(text, node) {
-        // For CYD projects we keep text verbatim; parsing of labels/options is left to the author
         node.text = text;
     }
 }

@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZX Story Flow</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
 </head>
 
 <body>
@@ -329,9 +332,6 @@
                 </div>
                 </div><!-- /mucho-sections -->
                 
-                <div class="modal-buttons">
-                    <button id="close-global-config" data-i18n="config.close">Cerrar</button>
-                </div>
                 <!-- Sección Código general para CYD -->
                 <div id="cyd-general-code-section" style="display:none; margin-top:20px;">
                     <h3>Código general CYD</h3>
@@ -360,9 +360,11 @@
         window.addEventListener('DOMContentLoaded', () => {
             mountCYDEditor('cyd-general-code');
         });
-        // Exponer para llamadas desde app.js (no hace nada si ya está montado)
+        // Exponer para llamadas desde app.js: monta si no está montado, y siempre refresca
         window.showCYDEditor = function() {
             mountCYDEditor('cyd-general-code');
+            const ta = document.getElementById('cyd-general-code');
+            if (ta && ta._cmInstance) setTimeout(() => ta._cmInstance.refresh(), 0);
         };
     </script>
 </body>

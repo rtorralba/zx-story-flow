@@ -1,111 +1,120 @@
-// ZX Story Flow - MuCho Syntax Editor
+// ZX Story Flow - MuCho Syntax Editor (CodeMirror 5)
 // Copyright (C) 2026 Raül Torralba Adsuara
 // Licensed under the GNU Affero General Public License v3.0 or later
 
+import { injectSharedStyles, buildNodeEditor } from './cm-node-editor.js';
+
+// ── MuCho CodeMirror mode ────────────────────────────────────────────────────
+function registerMuchoMode() {
+    if (!window.CodeMirror) return;
+    if (CodeMirror.modes['mucho']) return;
+
+    CodeMirror.defineMode('mucho', () => ({
+        startState: () => ({}),
+        token(stream) {
+            // $I <filename>
+            if (stream.match(/^\$I\s+/i)) return 'mucho-cmd mucho-img-cmd';
+            if (stream.sol() && stream.match(/^\$I$/i)) return 'mucho-cmd mucho-img-cmd';
+
+            // $O <conditions>
+            if (stream.match(/^\$O\s+/i)) return 'mucho-cmd';
+            if (stream.sol() && stream.match(/^\$O$/i)) return 'mucho-cmd';
+
+            // $P legacy
+            if (stream.match(/^\$P\S*/i)) return 'mucho-meta';
+
+            // AND keyword inside $O lines (peek at line context — simpler: match standalone)
+            if (stream.match(/\bAND\b/)) return 'mucho-and';
+
+            // type:flag pattern
+            if (stream.match(/\w+(?=:)/)) return 'mucho-ctype';
+            if (stream.match(':')) return 'mucho-colon';
+            // flag (word after colon) — handled as next token, just a plain word
+            if (stream.match(/\S+/)) return 'mucho-cflag';
+
+            stream.next();
+            return null;
+        }
+    }));
+}
+
+// Extra CSS for MuCho tokens
+const MUCHO_CSS = `
+.cm-mucho-cmd      { color: #ff79c6; font-weight: bold; }
+.cm-mucho-img-cmd  { color: #ff79c6; font-weight: bold; }
+.cm-mucho-and      { color: #bd93f9; font-weight: bold; }
+.cm-mucho-ctype    { color: #8be9fd; }
+.cm-mucho-colon    { color: #ffb86c; }
+.cm-mucho-cflag    { color: #50fa7b; }
+.cm-mucho-meta     { color: #6272a4; font-style: italic; }
+`;
+
+let muchoStylesInjected = false;
+function injectMuchoStyles() {
+    if (muchoStylesInjected) return;
+    muchoStylesInjected = true;
+    const s = document.createElement('style');
+    s.id = 'mucho-cm-styles';
+    s.textContent = MUCHO_CSS;
+    document.head.appendChild(s);
+}
+
+// ── MuchoEditor class ────────────────────────────────────────────────────────
 export class MuchoEditor {
     constructor(container, initialContent, onChange) {
-        this.container = container;
-        this.onChange = onChange;
-        this.value = initialContent || "";
+        this._value = initialContent || '';
+        this.cm = null;
+        this.textarea = null;
 
-        this.container.innerHTML = '';
-        this.container.className = 'mucho-editor-container';
-
-        this.backdrop = document.createElement('div');
-        this.backdrop.className = 'mucho-backdrop';
-
-        this.textarea = document.createElement('textarea');
-        this.textarea.className = 'mucho-textarea';
-        this.textarea.value = this.value;
-        this.textarea.spellcheck = false;
-
-        // Let CSS handle coordinates and padding (the classes handle it)
-        this.textarea.style.color = 'transparent';
-        this.textarea.style.caretColor = '#fffa65';
-        this.textarea.style.background = 'transparent';
-
-        this.container.appendChild(this.backdrop);
-        this.container.appendChild(this.textarea);
-
-        this.textarea.addEventListener('input', this.handleInput.bind(this));
-        this.textarea.addEventListener('scroll', this.handleScroll.bind(this));
-
-        this.updateHighlights();
-    }
-
-    handleInput(e) {
-        this.value = e.target.value;
-        this.updateHighlights();
-        if (this.onChange) this.onChange(this.value);
-    }
-
-    handleScroll() {
-        this.backdrop.scrollTop = this.textarea.scrollTop;
-    }
-
-    updateHighlights() {
-        const raw = this.value;
-        const lines = raw.split('\n');
-
-        const escaped = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-        // Highlight a condition string like "has:key AND not:door"
-        const highlightConditions = (condStr) => {
-            return condStr.split(/(AND)/g).map(part => {
-                if (part === 'AND') return `<span class="mucho-and">AND</span>`;
-                // type:flag token (matching word:word)
-                return part.replace(/(\w+)(:)(\S+)/g,
-                    (_, type, colon, flag) =>
-                        `<span class="mucho-cond-type">${escaped(type)}</span><span class="mucho-colon">${colon}</span><span class="mucho-cond-flag">${escaped(flag)}</span>`
-                );
-            }).join('');
-        };
-
-        const result = lines.map(line => {
-            let content = escaped(line);
-
-            // Check for tokens while preserving whitespace
-            const matchImage = line.match(/^(\s*)(\$I\s+)(.*)$/i);
-            if (matchImage) {
-                const [_, indent, cmd, rest] = matchImage;
-                content = escaped(indent) + `<span class="mucho-kw-image">${escaped(cmd)}</span><span class="mucho-image-name">${escaped(rest)}</span>`;
-            }
-
-            const matchCond = line.match(/^(\s*)(\$O\s+)(.*)$/i);
-            if (matchCond) {
-                const [_, indent, cmd, condStr] = matchCond;
-                content = escaped(indent) + `<span class="mucho-kw-cond">${escaped(cmd)}</span>${highlightConditions(escaped(condStr))}`;
-            }
-
-            const matchLegacy = line.match(/^(\s*)(\$P.*)$/i);
-            if (matchLegacy) {
-                const [_, indent, cmd] = matchLegacy;
-                content = escaped(indent) + `<span class="mucho-kw-legacy">${escaped(cmd)}</span>`;
-            }
-
-            // Normal lines use div to force identical block flow as textarea
-            // Note: we add a zero-width space or a space for empty lines to ensure height
-            return `<div class="mucho-line">${content || ' '}</div>`;
-        });
-
-        // If the text ends with a newline, we need an extra empty line div at the bottom
-        if (raw.endsWith('\n')) {
-            result.push('<div class="mucho-line"> </div>');
+        if (!window.CodeMirror) {
+            // Fallback textarea
+            container.innerHTML = '';
+            this.textarea = document.createElement('textarea');
+            this.textarea.value = this._value;
+            this.textarea.style.cssText = 'width:100%;height:380px;font-family:monospace;font-size:13px;background:#282a36;color:#f8f8f2;border:1px solid #555;box-sizing:border-box;';
+            container.appendChild(this.textarea);
+            this.textarea.addEventListener('input', () => {
+                this._value = this.textarea.value;
+                if (onChange) onChange(this._value);
+            });
+            return;
         }
 
-        this.backdrop.innerHTML = result.join('');
+        injectSharedStyles();
+        injectMuchoStyles();
+        registerMuchoMode();
+
+        this.cm = buildNodeEditor(container, 'mucho', this._value, (v) => {
+            this._value = v;
+            if (onChange) onChange(v);
+        });
+
+        // Expose a pseudo-textarea for the image-insert handler in app.js
+        this.textarea = this.cm.getInputField();
     }
+
+    get value() {
+        return this.cm ? this.cm.getValue() : this._value;
+    }
+
+    set value(v) {
+        this._value = v;
+        if (this.cm) this.cm.setValue(v);
+        else if (this.textarea) this.textarea.value = v;
+    }
+
+    // No-op — CodeMirror handles highlighting
+    updateHighlights() {}
 
     // Helper to generate MuCho representation from a node's data
     static generateFromNode(node) {
-        return node.text || "";
+        return node.text || '';
     }
 
     // Helper to parse MuCho text back into a node's data
     static parseToNode(text, node) {
         node.text = text;
 
-        // Split by double newline preserving structure for background sync
         const paragraphs = text.split(/\n\n+/);
         const newConds = [];
         const newImgs = [];
@@ -138,12 +147,8 @@ export class MuchoEditor {
                 }
             });
 
-            if (conditionData && conditionData.conditions.length > 0) {
-                newConds.push(conditionData);
-            }
-            if (imageData) {
-                newImgs.push(imageData);
-            }
+            if (conditionData && conditionData.conditions.length > 0) newConds.push(conditionData);
+            if (imageData) newImgs.push(imageData);
         });
 
         node.conditionalParagraphs = newConds;

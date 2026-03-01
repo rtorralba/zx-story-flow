@@ -113,12 +113,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         globalConfigModal.style.display = 'flex';
     });
 
-    // Cerrar modal de configuración global
-    document.getElementById('close-global-config').addEventListener('click', () => {
-        saveGlobalConfig();
-        globalConfigModal.style.display = 'none';
-    });
-
     // Cerrar modal con botón X
     document.getElementById('modal-close-btn').addEventListener('click', () => {
         saveGlobalConfig();
@@ -674,9 +668,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Restore CYD general code
             const cydGeneralTextarea = document.getElementById('cyd-general-code');
             if (cydGeneralTextarea && data.cydGeneralCode != null) {
-                cydGeneralTextarea.value = data.cydGeneralCode;
-                // Forzar re-render del resaltado si ya está montado
-                cydGeneralTextarea.dispatchEvent(new Event('input'));
+                if (cydGeneralTextarea._cmInstance) {
+                    // Actualizar instancia CodeMirror directamente
+                    cydGeneralTextarea._cmInstance.setValue(data.cydGeneralCode);
+                } else {
+                    cydGeneralTextarea.value = data.cydGeneralCode;
+                    cydGeneralTextarea.dispatchEvent(new Event('input'));
+                }
             }
 
             // Restore Nodes
@@ -1268,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         insertImageBtn.innerHTML = t('editor.insert_image');
         insertImageBtn.style.padding = '5px 10px';
         insertImageBtn.style.fontSize = '12px';
+        if (projectType === 'CYD') insertImageBtn.style.display = 'none';
 
         const hiddenFileInput = document.createElement('input');
         hiddenFileInput.type = 'file';
@@ -1338,34 +1337,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         hiddenFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                const ta = editorWidget.textarea;
-                const start = ta.selectionStart;
-                const text = editorWidget.value;
-
-                // Analizar el contexto alrededor del cursor para no meter saltos de linea de mas
-                const textBefore = text.substring(0, start);
-                const textAfter = text.substring(ta.selectionEnd);
-
-                let prepend = "";
-
-                if (textBefore.length > 0 && !textBefore.endsWith('\n')) {
-                    prepend = "\n";
+                const cm = editorWidget.cm;
+                if (cm) {
+                    // Usar API CodeMirror para insertar en la posición del cursor
+                    const cursor = cm.getCursor();
+                    const line = cm.getLine(cursor.line);
+                    const prepend = (line.length > 0) ? '\n' : '';
+                    cm.replaceRange(prepend + '$I ' + file.name + '\n', cursor);
+                    EditorClass.parseToNode(cm.getValue(), node);
+                } else {
+                    // Fallback textarea
+                    const ta = editorWidget.textarea;
+                    const start = ta.selectionStart;
+                    const text = editorWidget.value;
+                    const textBefore = text.substring(0, start);
+                    const textAfter = text.substring(ta.selectionEnd);
+                    const prepend = (textBefore.length > 0 && !textBefore.endsWith('\n')) ? '\n' : '';
+                    editorWidget.value = textBefore + prepend + '$I ' + file.name + '\n' + textAfter;
+                    ta.value = editorWidget.value;
+                    editorWidget.updateHighlights();
+                    EditorClass.parseToNode(editorWidget.value, node);
                 }
-
-                // Siempre incluir salto de linea final
-                const insertText = prepend + "$I " + file.name + "\n";
-
-                editorWidget.value = textBefore + insertText + textAfter;
-                ta.value = editorWidget.value;
-                editorWidget.updateHighlights();
-                EditorClass.parseToNode(editorWidget.value, node);
                 editor.draw();
 
-                // Read the image file and attach to paragraphImages array based on parsed index
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const imageData = event.target.result;
-                    // Find the image node we just parsed to attach the raw data
                     const imgObj = node.paragraphImages.find(img => img.imageName === file.name);
                     if (imgObj) {
                         imgObj.imageData = imageData;
@@ -1613,6 +1610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         colorConfigSection.style.padding = '10px';
         colorConfigSection.style.backgroundColor = '#2a2a2a';
         colorConfigSection.style.borderRadius = '4px';
+        if (projectType === 'CYD') colorConfigSection.style.display = 'none';
 
         const colorConfigTitle = document.createElement('h4');
         colorConfigTitle.textContent = '▼ 🎨 ' + t('editor.color_config_title');
