@@ -11,7 +11,8 @@
     "project": {
         "new": "📄 New",
         "save": "💾 Save",
-        "load": "📂 Load"
+        "load": "📂 Load",
+        "import_mucho": "📥 Import MuCho"
     },
     "export": {
         "png": "🖼️ PNG Image",
@@ -108,6 +109,8 @@
         "new_confirm": "Are you sure you want to start a new project? Current unsaved progress will be lost.",
         "storage_full": "Storage full! Try removing some images or large text blocks.",
         "save_failed": "Save failed: ",
-        "load_failed": "Error loading project: "
+        "load_failed": "Failed to load project: ",
+        "import_mucho_empty": "No MuCho blocks ($Q) found in the file.",
+        "import_mucho_failed": "MuCho import failed: "
     }
 }

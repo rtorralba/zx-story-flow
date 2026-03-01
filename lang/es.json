@@ -11,7 +11,8 @@
     "project": {
         "new": "📄 Nuevo",
         "save": "💾 Guardar",
-        "load": "📂 Cargar"
+        "load": "📂 Cargar",
+        "import_mucho": "📥 Importar MuCho"
     },
     "export": {
         "png": "🖼️ Imagen PNG",
@@ -108,6 +109,8 @@
         "new_confirm": "¿Estás seguro de que quieres empezar un proyecto nuevo? Se borrará el progreso actual no guardado en disco.",
         "storage_full": "¡Almacenamiento lleno! Prueba a eliminar algunas imágenes o bloques de texto grandes.",
         "save_failed": "Error al guardar: ",
-        "load_failed": "Error al cargar el proyecto: "
+        "load_failed": "Error al cargar el proyecto: ",
+        "import_mucho_empty": "No se encontraron bloques MuCho ($Q) en el archivo.",
+        "import_mucho_failed": "Error al importar MuCho: "
     }
 }

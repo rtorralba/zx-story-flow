@@ -1,0 +1,177 @@
+{
+  "name": "Aventura ZX Spectrum",
+  "projectType": "CYD",
+  "globalConfig": {
+    "page": {
+      "ink": "white",
+      "paper": "black",
+      "bright": false,
+      "flash": false
+    },
+    "separator": {
+      "ink": "white",
+      "paper": "black",
+      "bright": false,
+      "flash": false
+    },
+    "interface": {
+      "ink": "magenta",
+      "paper": "green",
+      "bright": false,
+      "flash": true
+    },
+    "viewMode": "advanced",
+    "projectType": "CYD"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "x": 100,
+      "y": 200,
+      "type": "Screen",
+      "title": "La Carga",
+      "text": "[[ PICTURE 1 ]] \n[[ CLEAR ]]Es 1984. Estas sentado frente al televisor. Los chirridos de la cinta llenan la habitacion: 'BIIIP... screech... BIIP'.\n\nDe repente, el borde deja de parpadear colores.",
+      "outputs": [
+        {
+          "label": "Tocar el volumen",
+          "target": "n2"
+        },
+        {
+          "label": "Esperar con paciencia",
+          "target": "n3"
+        }
+      ],
+      "actions": "",
+      "paragraphImages": [
+        {
+          "paragraphIndex": 0,
+          "imageName": "dark.scr"
+        }
+      ]
+    },
+    {
+      "id": "n2",
+      "x": 451,
+      "y": 101,
+      "type": "Screen",
+      "title": "Azimut",
+      "text": "[[ CLEAR ]]Coges tu diminuto destornillador amarillo.\nGiras el tornillo de azimut del Datasette 0.01mm a la derecha.\n\nEl sonido cambia. Ha mejorado?",
+      "outputs": [
+        {
+          "label": "Si! Suena perfecto!",
+          "target": "n4"
+        },
+        {
+          "label": "Ups, ahora no suena",
+          "target": "n5",
+          "flag": "clear:key"
+        }
+      ],
+      "actions": ""
+    },
+    {
+      "id": "n3",
+      "x": 450,
+      "y": 300,
+      "type": "Screen",
+      "title": "Paciencia",
+      "text": "Esperas.\nPasan 5 minutos.\nPasan 10 minutos.\nTu te se enfria.\n\nFinalmente aparece el mensaje: \n'R Tape loading error, 0:1'.",
+      "outputs": [
+        {
+          "label": "Rebobinar y reintentar",
+          "target": "n5",
+          "flag": "set:key"
+        },
+        {
+          "label": "Destrozar el teclado",
+          "target": "n6"
+        }
+      ],
+      "actions": ""
+    },
+    {
+      "id": "n4",
+      "x": 793,
+      "y": 71,
+      "type": "Screen",
+      "title": "Exito!",
+      "text": "Un milagro! La pantalla de \ntitulo aparece pixel a pixel.\n\n'JET SET WILLY'\n\nInput Type: KEMPSTON.\nJuegas hasta que la fuente\nderrite la alfombra.",
+      "outputs": [
+        {
+          "label": "Jugar otro juego",
+          "target": "ref_1771608889239"
+        }
+      ],
+      "actions": ""
+    },
+    {
+      "id": "n5",
+      "x": 798,
+      "y": 192,
+      "type": "Screen",
+      "title": "Silencio",
+      "text": "Giraste el tornillo demasiado. El cabezal esta desalineado.\nRompiste el datasette.\n\n$O has:key\nAhora tienes que escuchar a tus padres hablar de politica en vez de jugar.",
+      "outputs": [
+        {
+          "label": "Irse a dormir",
+          "target": "ref_1771608889239"
+        }
+      ],
+      "actions": "",
+      "conditionalParagraphs": [
+        {
+          "paragraphIndex": 1,
+          "conditions": [
+            {
+              "type": "has",
+              "flag": "key"
+            }
+          ],
+          "setFlags": []
+        }
+      ]
+    },
+    {
+      "id": "n6",
+      "x": 800,
+      "y": 350,
+      "type": "Screen",
+      "title": "Rabia",
+      "text": "Golpeas las teclas de goma con frustracion.\nUna tecla sale volando y golpea al gato.\nEl gato te arana.\n\nGAME OVER.",
+      "outputs": [
+        {
+          "label": "Intentar de nuevo",
+          "target": "ref_1771608889239"
+        }
+      ],
+      "actions": ""
+    },
+    {
+      "id": "ref_1771608889239",
+      "x": 1272,
+      "y": 220,
+      "type": "Reference",
+      "title": "Reference",
+      "text": "",
+      "outputs": [],
+      "targetNodeId": "n1"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_1771443130338",
+      "x": 766,
+      "y": 29,
+      "width": 400,
+      "height": 300,
+      "name": "Patio",
+      "color": "#4a90e2",
+      "nodeIds": [
+        "n4",
+        "n5"
+      ]
+    }
+  ],
+  "cydGeneralCode": "[[\n   PAPER 0    /* Color de fondo negro  */\n   INK   7    /* Color de texto blanco */\n   BORDER 0   /* Borde de color negro  */\n   CLEAR      /* Borramos la pantalla*/\n\n   DECLARE 0 AS row\n   DECLARE 1 AS col\n]]",
+  "lastSaved": 1772369173510
+}

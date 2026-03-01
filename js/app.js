@@ -54,10 +54,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Actualiza la visibilidad de los botones de exportación según tipo de proyecto
     function updateExportButtons() {
         const isCYD = projectType === 'CYD';
-        const cydBtn   = document.getElementById('export-cyd-btn');
-        const muchoBtn = document.getElementById('export-mucho-btn');
-        if (cydBtn)   cydBtn.style.display   = isCYD  ? '' : 'none';
-        if (muchoBtn) muchoBtn.style.display = !isCYD ? '' : 'none';
+        const cydBtn       = document.getElementById('export-cyd-btn');
+        const muchoBtn     = document.getElementById('export-mucho-btn');
+        const importMucho  = document.getElementById('import-mucho-btn');
+        if (cydBtn)      cydBtn.style.display      = isCYD  ? '' : 'none';
+        if (muchoBtn)    muchoBtn.style.display    = !isCYD ? '' : 'none';
+        if (importMucho) importMucho.style.display = !isCYD ? '' : 'none';
     }
 
     // Cargar configuración global en los controles
@@ -996,6 +998,116 @@ document.addEventListener('DOMContentLoaded', async () => {
         reader.readAsText(file);
         // Reset input so same file can be selected again
         loadInput.value = '';
+    });
+
+    // Import from MuCho text file
+    function parseMuchoToNodes(text) {
+        const lines = text.split(/\r?\n/);
+        const blocks = [];
+        let currentBlock = null;
+        let lastOptionIdx = -1;
+
+        lines.forEach(line => {
+            if (line.startsWith('$Q ')) {
+                if (currentBlock) blocks.push(currentBlock);
+                const rest = line.substring(3).trim();
+                // label is the first token; rest may contain attr:N dattr:N iattr:N ...
+                const firstSpace = rest.search(/\s/);
+                const label = firstSpace > 0 ? rest.substring(0, firstSpace) : rest;
+                currentBlock = { label, descLines: [], options: [], inOptions: false };
+                lastOptionIdx = -1;
+            } else if (currentBlock) {
+                if (line.startsWith('$A ')) {
+                    currentBlock.inOptions = true;
+                    const afterA = line.substring(3).trim();
+                    const spaceIdx = afterA.search(/\s/);
+                    const targetLabel = spaceIdx > 0 ? afterA.substring(0, spaceIdx) : afterA;
+                    const flag = spaceIdx > 0 ? afterA.substring(spaceIdx + 1).trim() : '';
+                    currentBlock.options.push({ targetLabel, flag, text: '' });
+                    lastOptionIdx = currentBlock.options.length - 1;
+                } else if (currentBlock.inOptions && lastOptionIdx >= 0 &&
+                           currentBlock.options[lastOptionIdx].text === '') {
+                    currentBlock.options[lastOptionIdx].text = line.trim();
+                } else if (!currentBlock.inOptions) {
+                    currentBlock.descLines.push(line);
+                }
+            }
+        });
+        if (currentBlock) blocks.push(currentBlock);
+
+        if (blocks.length === 0) return [];
+
+        // Build label -> nodeId map first
+        const labelToId = {};
+        blocks.forEach((block, idx) => {
+            const nodeId = 'n' + (idx + 1);
+            labelToId[block.label.toLowerCase()] = nodeId;
+        });
+
+        // Create ScreenNode instances
+        const COLS = 5;
+        const COL_SPACING = 220;
+        const ROW_SPACING = 200;
+        const nodes = blocks.map((block, idx) => {
+            const nodeId = 'n' + (idx + 1);
+            const col = idx % COLS;
+            const row = Math.floor(idx / COLS);
+            const node = new ScreenNode(nodeId, 80 + col * COL_SPACING, 80 + row * ROW_SPACING);
+            node.title = block.label;
+            node.text  = block.descLines.join('\n').replace(/^\n+|\n+$/g, '');
+
+            if (block.options.length > 0) {
+                node.outputs = block.options.map(opt => ({
+                    label:  opt.text || opt.targetLabel,
+                    target: labelToId[opt.targetLabel.toLowerCase()] || null,
+                    flag:   opt.flag || ''
+                }));
+            } else {
+                node.outputs = [{ label: 'Next', target: null }];
+            }
+            return node;
+        });
+
+        return nodes;
+    }
+
+    const importMuchoInput = document.getElementById('import-mucho-input');
+    document.getElementById('import-mucho-btn').addEventListener('click', () => {
+        importMuchoInput.click();
+    });
+
+    importMuchoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const nodes = parseMuchoToNodes(event.target.result);
+                if (nodes.length === 0) {
+                    alert(t('messages.import_mucho_empty') || 'No MuCho blocks ($Q) found in the file.');
+                    return;
+                }
+                // Replace current project content
+                const wasInitialized = isInitialized;
+                isInitialized = false;
+                editor.nodes = [];
+                editor.groups = [];
+                editor.selectNode(null);
+                editor.selectGroup(null);
+                nodes.forEach(n => editor.nodes.push(n));
+                updateProjectName(file.name.replace(/\.[^.]+$/, ''));
+                editor.draw();
+                isInitialized = wasInitialized;
+                updateExportButtons();
+                autoSave();
+            } catch (err) {
+                console.error(err);
+                alert((t('messages.import_mucho_failed') || 'Import failed: ') + err.message);
+            }
+        };
+        reader.readAsText(file);
+        importMuchoInput.value = '';
     });
 
     // New Project
