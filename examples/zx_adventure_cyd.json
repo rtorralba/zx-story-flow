@@ -173,5 +173,6 @@
     }
   ],
   "cydGeneralCode": "[[\n   PAPER 0    /* Color de fondo negro  */\n   INK   7    /* Color de texto blanco */\n   BORDER 0   /* Borde de color negro  */\n   CLEAR      /* Borramos la pantalla*/\n\n   DECLARE 0 AS row\n   DECLARE 1 AS col\n]]",
-  "lastSaved": 1772369173510
+  "cydGeneralCodeEnd": "[[#IMPRIMIR_MARCO_COMPLETO\n    PICTURE 0\n  BLIT 0, 0, 2, 2 AT 0, 0\n  BLIT 4, 0, 2, 2 AT 30, 0\n  BLIT 12, 0, 2, 2 AT 0, 22\n  BLIT 14, 0, 2, 2 AT 30, 22\n  SET col TO 2\n  WHILE (@col <= 29)\n    BLIT 2, 0, 1, 2 AT @col,0\n    BLIT 3, 0, 1, 2 AT @col,22\n    SET col TO @col+1\n  WEND\n    SET row TO 2\n  WHILE (@row <= 21)\n    BLIT 6, 0, 2, 1 AT 0,@row\n    BLIT 6, 1, 2, 1 AT 30,@row\n    SET row TO @row+1\n  WEND\n  MARGINS 2, 2, 28, 20\n    CLEAR\n    RETURN\n]]",
+  "lastSaved": 1772381234180
 }
