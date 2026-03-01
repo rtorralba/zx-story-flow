@@ -251,7 +251,7 @@ function transpileMuchoToBasic(muchoCode) {
     return basicCode;
 }
 
-export function generateBasic(nodes, globalConfig = null) {
+export function generateBasicFromMucho(nodes, globalConfig = null) {
     if (!nodes || nodes.length === 0) return "10 REM No nodes";
 
     // 1. Convert everything to MuCho intermediate format

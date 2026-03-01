@@ -5,7 +5,8 @@
 
 import { NodeEditor } from './node-editor.js';
 import { ScreenNode, Group, NodeReference } from './nodes.js';
-import { generateBasic } from './basic-generator.js';
+import { generateBasicFromMucho } from './basic-generator.js';
+import { generateBasicFromCYD } from './cyd-basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
 import { generateTapFromBasic } from './tap-generator.js';
 import { generateCYD } from './cyd-generator.js';
@@ -49,6 +50,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const globalInterfaceFlash = document.getElementById('global-interface-flash');
     const globalViewMode = document.getElementById('global-view-mode');
     const globalProjectType = document.getElementById('global-project-type');
+
+    // Actualiza la visibilidad de los botones de exportación según tipo de proyecto
+    function updateExportButtons() {
+        const isCYD = projectType === 'CYD';
+        const cydBtn   = document.getElementById('export-cyd-btn');
+        const muchoBtn = document.getElementById('export-mucho-btn');
+        if (cydBtn)   cydBtn.style.display   = isCYD  ? '' : 'none';
+        if (muchoBtn) muchoBtn.style.display = !isCYD ? '' : 'none';
+    }
 
     // Cargar configuración global en los controles
     function loadGlobalConfig() {
@@ -134,6 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (cydGeneralSection) cydGeneralSection.style.display = 'none';
         }
         if (typeof autoSave === 'function') autoSave();
+        updateExportButtons();
     };
 
     globalPageInk.addEventListener('change', onGlobalConfigChange);
@@ -715,6 +726,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             editor.onStateChange = originalOnStateChange;
             editor.draw();
+            updateExportButtons();
             console.log("Restoration successful");
             return true;
         } catch (e) {
@@ -759,6 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Mark as initialized so FUTURE changes trigger auto-save
         isInitialized = true;
         editor.onStateChange = autoSave;
+        updateExportButtons();
     }
 
 
@@ -794,7 +807,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
-            const basicCode = generateBasic(editor.nodes, globalConfig);
+            const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
+            const basicCode = projectType === 'CYD'
+                ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode)
+                : generateBasicFromMucho(editor.nodes, globalConfig);
 
             // Collect all images from nodes
             const screenImages = [];
@@ -837,7 +853,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
-        const basicCode = generateBasic(editor.nodes, globalConfig);
+        const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
+        const basicCode = projectType === 'CYD'
+            ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode)
+            : generateBasicFromMucho(editor.nodes, globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([basicCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -992,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             editor.draw();
 
             isInitialized = true;
+            updateExportButtons();
             autoSave();
         }
     });
