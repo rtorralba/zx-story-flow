@@ -641,6 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 };
             }),
             cydGeneralCode: document.getElementById('cyd-general-code')?.value || '',
+            cydGeneralCodeEnd: document.getElementById('cyd-general-code-end')?.value || '',
             lastSaved: Date.now()
         };
     }
@@ -682,11 +683,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cydGeneralTextarea = document.getElementById('cyd-general-code');
             if (cydGeneralTextarea && data.cydGeneralCode != null) {
                 if (cydGeneralTextarea._cmInstance) {
-                    // Actualizar instancia CodeMirror directamente
                     cydGeneralTextarea._cmInstance.setValue(data.cydGeneralCode);
                 } else {
                     cydGeneralTextarea.value = data.cydGeneralCode;
                     cydGeneralTextarea.dispatchEvent(new Event('input'));
+                }
+            }
+            const cydGeneralTextareaEnd = document.getElementById('cyd-general-code-end');
+            if (cydGeneralTextareaEnd && data.cydGeneralCodeEnd != null) {
+                if (cydGeneralTextareaEnd._cmInstance) {
+                    cydGeneralTextareaEnd._cmInstance.setValue(data.cydGeneralCodeEnd);
+                } else {
+                    cydGeneralTextareaEnd.value = data.cydGeneralCodeEnd;
+                    cydGeneralTextareaEnd.dispatchEvent(new Event('input'));
                 }
             }
 
@@ -810,8 +819,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('export-tap-btn').addEventListener('click', () => {
         try {
             const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
+            const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
             const basicCode = projectType === 'CYD'
-                ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode)
+                ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
                 : generateBasicFromMucho(editor.nodes, globalConfig);
 
             // Collect all images from nodes
@@ -856,8 +866,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-btn').addEventListener('click', () => {
         const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
+        const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
         const basicCode = projectType === 'CYD'
-            ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode)
+            ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
             : generateBasicFromMucho(editor.nodes, globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([basicCode], { type: 'text/plain' });
@@ -937,7 +948,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             // Prepend CYD general code if present
             const cydGeneralCode = (document.getElementById('cyd-general-code')?.value || '').trim();
+            const cydGeneralCodeEnd = (document.getElementById('cyd-general-code-end')?.value || '').trim();
             if (cydGeneralCode) cydCode = cydGeneralCode + '\n\n' + cydCode;
+            cydCode = cydCode + '\n\n[[ END ]]';
+            if (cydGeneralCodeEnd) cydCode = cydCode + '\n\n' + cydGeneralCodeEnd;
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
             const blob = new Blob([cydCode], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -1971,6 +1985,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cydGeneralTextareaEl = document.getElementById('cyd-general-code');
     if (cydGeneralTextareaEl) {
         cydGeneralTextareaEl.addEventListener('input', () => {
+            if (typeof autoSave === 'function') autoSave();
+        });
+    }
+    const cydGeneralTextareaEndEl = document.getElementById('cyd-general-code-end');
+    if (cydGeneralTextareaEndEl) {
+        cydGeneralTextareaEndEl.addEventListener('input', () => {
             if (typeof autoSave === 'function') autoSave();
         });
     }

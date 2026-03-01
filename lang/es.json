@@ -58,7 +58,10 @@
         "default_view": "Modo de edición:",
         "view_simple": "Vista Sencilla",
         "view_advanced": "Vista Avanzada",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "cyd_general_title": "Código general",
+        "cyd_tab_start": "Código inicio",
+        "cyd_tab_end": "Código fin"
     },
     "editor": {
         "edit_node": "Editar Nodo",

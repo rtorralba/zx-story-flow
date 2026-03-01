@@ -335,8 +335,17 @@
                 
                 <!-- Sección Código general para CYD -->
                 <div id="cyd-general-code-section" style="display:none; margin-top:20px;">
-                    <h3>Código general CYD</h3>
-                    <textarea id="cyd-general-code" rows="10" style="width:100%; font-family:monospace;"></textarea>
+                    <h3 data-i18n="config.cyd_general_title">Código general CYD</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab-btn code-tab-active" data-target="cyd-tab-start" data-i18n="config.cyd_tab_start">Código inicio</button>
+                        <button class="code-tab-btn" data-target="cyd-tab-end" data-i18n="config.cyd_tab_end">Código fin</button>
+                    </div>
+                    <div id="cyd-tab-start" class="code-tab-panel">
+                        <textarea id="cyd-general-code" rows="10" style="width:100%; font-family:monospace;"></textarea>
+                    </div>
+                    <div id="cyd-tab-end" class="code-tab-panel" style="display:none;">
+                        <textarea id="cyd-general-code-end" rows="10" style="width:100%; font-family:monospace;"></textarea>
+                    </div>
                 </div>
             </div>
         </div>
@@ -360,12 +369,32 @@
         // Montar siempre al cargar (funciona aunque la sección esté oculta)
         window.addEventListener('DOMContentLoaded', () => {
             mountCYDEditor('cyd-general-code');
+            mountCYDEditor('cyd-general-code-end');
+
+            // Tab switching
+            document.querySelectorAll('.code-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.target;
+                    document.querySelectorAll('.code-tab-btn').forEach(b => b.classList.remove('code-tab-active'));
+                    document.querySelectorAll('.code-tab-panel').forEach(p => p.style.display = 'none');
+                    btn.classList.add('code-tab-active');
+                    const panel = document.getElementById(target);
+                    if (panel) {
+                        panel.style.display = '';
+                        const ta = panel.querySelector('textarea');
+                        if (ta && ta._cmInstance) setTimeout(() => ta._cmInstance.refresh(), 0);
+                    }
+                });
+            });
         });
         // Exponer para llamadas desde app.js: monta si no está montado, y siempre refresca
         window.showCYDEditor = function() {
             mountCYDEditor('cyd-general-code');
+            mountCYDEditor('cyd-general-code-end');
             const ta = document.getElementById('cyd-general-code');
             if (ta && ta._cmInstance) setTimeout(() => ta._cmInstance.refresh(), 0);
+            const taEnd = document.getElementById('cyd-general-code-end');
+            if (taEnd && taEnd._cmInstance) setTimeout(() => taEnd._cmInstance.refresh(), 0);
         };
     </script>
 </body>

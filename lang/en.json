@@ -58,7 +58,10 @@
         "default_view": "Default view mode:",
         "view_simple": "Simple View",
         "view_advanced": "Advanced View",
-        "close": "Close"
+        "close": "Close",
+        "cyd_general_title": "General Code",
+        "cyd_tab_start": "Start code",
+        "cyd_tab_end": "End code"
     },
     "editor": {
         "edit_node": "Edit Node",

@@ -239,6 +239,43 @@ canvas {
     display: block;
 }
 
+/* Code tabs (used in CYD general code section) */
+.code-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--accent-color);
+    margin-bottom: 0;
+}
+
+.code-tab-btn {
+    background-color: var(--node-bg);
+    color: var(--text-color);
+    border: 1px solid var(--node-border);
+    border-bottom: none;
+    padding: 5px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.92em;
+    margin-right: 3px;
+    transition: background-color 0.15s;
+}
+
+.code-tab-btn:hover {
+    background-color: #555;
+}
+
+.code-tab-btn.code-tab-active {
+    background-color: var(--accent-color);
+    color: #000;
+    border-color: var(--accent-color);
+    font-weight: bold;
+}
+
+.code-tab-panel {
+    border: 1px solid var(--node-border);
+    border-top: none;
+}
+
 /* Modal / Text Editor Window */
 .modal-overlay {
     position: fixed;

@@ -387,8 +387,9 @@ function transpileCYDToBasic(cydSrc) {
  * @param {Node[]} nodes
  * @param {object} globalConfig
  * @param {string} [cydGeneralCode]  - prepended general code from the global editor
+ * @param {string} [cydGeneralCodeEnd]  - appended general code (end) from the global editor
  */
-export function generateBasicFromCYD(nodes, globalConfig, cydGeneralCode = '') {
+export function generateBasicFromCYD(nodes, globalConfig, cydGeneralCode = '', cydGeneralCodeEnd = '') {
     // Build CYD source from nodes (same logic as export-cyd-btn for CYD projects)
     const screenNodes = (nodes || []).filter(n => n && (n.type === 'Screen' || (n.constructor && n.constructor.name === 'ScreenNode')));
     if (screenNodes.length === 0) return '10 REM No screens';
@@ -429,9 +430,12 @@ export function generateBasicFromCYD(nodes, globalConfig, cydGeneralCode = '') {
         return lines.join('\n');
     });
 
-    let cydSource = parts.join('\n\n');
+    let cydSource = parts.join('\n\n') + '\n\n[[ END ]]';
     if (cydGeneralCode && cydGeneralCode.trim()) {
         cydSource = cydGeneralCode.trim() + '\n\n' + cydSource;
+    }
+    if (cydGeneralCodeEnd && cydGeneralCodeEnd.trim()) {
+        cydSource = cydSource + '\n\n' + cydGeneralCodeEnd.trim();
     }
 
     return transpileCYDToBasic(cydSource);
