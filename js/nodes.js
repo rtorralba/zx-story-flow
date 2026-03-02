@@ -25,6 +25,8 @@ export class Node {
 export class ScreenNode extends Node {
     constructor(id, x, y) {
         super(id, x, y, "Screen");
+        // Añadir sufijo aleatorio de 3 dígitos para evitar colisiones
+        this.title = "Screen_" + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
         this.text = "Screen Text";
 
         // Option/Port Management
