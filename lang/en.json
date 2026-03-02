@@ -61,7 +61,10 @@
         "close": "Close",
         "cyd_general_title": "General Code",
         "cyd_tab_start": "Start code",
-        "cyd_tab_end": "End code"
+        "cyd_tab_end": "End code",
+        "basic_graphics": "Graphics (BASIC only)",
+        "separator_graphic": "Separator Graphic",
+        "selector_graphic": "Selector Graphic"
     },
     "editor": {
         "edit_node": "Edit Node",

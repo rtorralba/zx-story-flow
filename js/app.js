@@ -31,7 +31,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         page: { ink: 'white', paper: 'black', bright: false, flash: false },
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
         interface: { ink: 'white', paper: 'black', bright: false, flash: false },
-        viewMode: 'simple'
+        viewMode: 'simple',
+        basicGraphics: {
+            separator: Array(64).fill(false), // 8x8 matrix for BASIC separator
+            selector: Array(64).fill(false)   // 8x8 matrix for BASIC selector
+        }
     };
 
     // Referencias a la configuración global
@@ -50,6 +54,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     const globalInterfaceFlash = document.getElementById('global-interface-flash');
     const globalViewMode = document.getElementById('global-view-mode');
     const globalProjectType = document.getElementById('global-project-type');
+    const separatorMatrixEl = document.getElementById('separator-matrix');
+    const selectorMatrixEl = document.getElementById('selector-matrix');
+
+    // Helper: Convert color name to CSS color value
+    function zxColorToCSS(colorName, bright = false) {
+        const brightColors = { 'black': '#000000', 'blue': '#0000FF', 'red': '#FF0000', 'magenta': '#FF00FF', 'green': '#00FF00', 'cyan': '#00FFFF', 'yellow': '#FFFF00', 'white': '#FFFFFF' };
+        const normalColors = { 'black': '#000000', 'blue': '#0000CD', 'red': '#CD0000', 'magenta': '#CD00CD', 'green': '#00CD00', 'cyan': '#00CDCD', 'yellow': '#CDCD00', 'white': '#CDCDCD' };
+        return bright ? (brightColors[colorName] || '#FFFFFF') : (normalColors[colorName] || '#CDCDCD');
+    }
+
+    // Inicializar matrices UI
+    function initMatrixUI(containerEl, key, cfgSection, onChangeCallback) {
+        if (!containerEl) return;
+        containerEl.innerHTML = '';
+
+        // Apply styling to parent container directly to cascade colors via CSS vars
+        const cConfig = globalConfig[cfgSection];
+        const inkCSS = zxColorToCSS(cConfig.ink, cConfig.bright);
+        const paperCSS = zxColorToCSS(cConfig.paper, cConfig.bright);
+        containerEl.style.setProperty('--pixel-ink', inkCSS);
+        containerEl.style.setProperty('--pixel-paper', paperCSS);
+
+        for (let i = 0; i < 64; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'pixel-cell';
+            if (globalConfig.basicGraphics && globalConfig.basicGraphics[key] && globalConfig.basicGraphics[key][i]) cell.classList.add('active');
+
+            cell.addEventListener('mousedown', (e) => {
+                if (!globalConfig.basicGraphics) return;
+                const newState = !globalConfig.basicGraphics[key][i];
+                globalConfig.basicGraphics[key][i] = newState;
+                if (newState) cell.classList.add('active');
+                else cell.classList.remove('active');
+                if (onChangeCallback) onChangeCallback();
+            });
+            // Support dragging to draw (simple implementation)
+            cell.addEventListener('mouseenter', (e) => {
+                if (e.buttons === 1) { // Left mouse button pressed
+                    if (!globalConfig.basicGraphics) return;
+                    const newState = !cell.classList.contains('active');
+                    globalConfig.basicGraphics[key][i] = !globalConfig.basicGraphics[key][i];
+                    if (globalConfig.basicGraphics[key][i]) cell.classList.add('active');
+                    else cell.classList.remove('active');
+                    if (onChangeCallback) onChangeCallback();
+                }
+            });
+
+            containerEl.appendChild(cell);
+        }
+    }
+
+    function updateMatricesUI() {
+        if (!globalConfig.basicGraphics) {
+            globalConfig.basicGraphics = {
+                separator: Array(64).fill(false),
+                selector: Array(64).fill(false)
+            };
+        }
+
+        const onMatrixDrawn = () => {
+            saveGlobalConfig();
+            if (typeof autoSave === 'function') autoSave();
+        };
+
+        initMatrixUI(separatorMatrixEl, 'separator', 'separator', onMatrixDrawn);
+        initMatrixUI(selectorMatrixEl, 'selector', 'interface', onMatrixDrawn);
+    }
 
     // Actualiza la visibilidad de los botones de exportación según tipo de proyecto
     function updateExportButtons() {
@@ -82,6 +153,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         globalInterfaceFlash.checked = globalConfig.interface.flash;
         if (globalViewMode) globalViewMode.value = globalConfig.viewMode || 'simple';
         if (globalProjectType) globalProjectType.value = (globalConfig.projectType || projectType || 'MuCho');
+
+        updateMatricesUI();
     }
 
     // Guardar configuración global desde los controles
@@ -109,6 +182,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (globalProjectType) {
             projectType = globalProjectType.value || projectType;
             globalConfig.projectType = projectType;
+        }
+
+        // basicGraphics ya se actualiza en tiempo real en los arrays al hacer mousedown/drag, 
+        // pero asegurémonos de que el objeto existe si no estaba
+        if (!globalConfig.basicGraphics) {
+            globalConfig.basicGraphics = {
+                separator: Array(64).fill(false),
+                selector: Array(64).fill(false)
+            };
         }
     }
 
@@ -151,6 +233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (typeof autoSave === 'function') autoSave();
         updateExportButtons();
+        updateMatricesUI();
     };
 
     globalPageInk.addEventListener('change', onGlobalConfigChange);

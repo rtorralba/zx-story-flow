@@ -43,7 +43,7 @@ function wrapText(text, maxWidth = 32) {
  * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
  * cursor-based option selection with p() jump table and system subroutines.
  */
-function transpileMuchoToBasic(muchoCode) {
+function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     if (!muchoCode) return "10 REM Project is empty";
 
     const lines = muchoCode.split(/\r?\n/);
@@ -113,8 +113,36 @@ function transpileMuchoToBasic(muchoCode) {
     }
 
     basicCode += `70 REM 23675 for divider and selector.\n`;
-    // UDG A = filled arrow (pointer), UDG B = cursor marker
-    basicCode += `80 POKE USR("A")+0,BIN 00000000:POKE USR("A")+1,BIN 00010000:POKE USR("A")+2,BIN 00111000:POKE USR("A")+3,BIN 01111100:POKE USR("A")+4,BIN 11111110:POKE USR("A")+5,BIN 11111111:POKE USR("A")+6,BIN 11111111:POKE USR("A")+7,BIN 11111111:POKE USR("B")+0,BIN 00000000:POKE USR("B")+1,BIN 10001000:POKE USR("B")+2,BIN 11001100:POKE USR("B")+3,BIN 11101110:POKE USR("B")+4,BIN 11001100:POKE USR("B")+5,BIN 10001000:POKE USR("B")+6,BIN 00000000:POKE USR("B")+7,BIN 00000000:\n`;
+
+    // Get UDGs from globalConfig or use defaults
+    let udgA = ["00000000", "00010000", "00111000", "01111100", "11111110", "11111111", "11111111", "11111111"]; // Default arrow (A)
+    let udgB = ["00000000", "10001000", "11001100", "11101110", "11001100", "10001000", "00000000", "00000000"]; // Default cursor (B)
+
+    if (globalConfig && globalConfig.basicGraphics) {
+        if (globalConfig.basicGraphics.separator) {
+            udgA = [];
+            for (let i = 0; i < 8; i++) {
+                let row = "";
+                for (let j = 0; j < 8; j++) {
+                    row += globalConfig.basicGraphics.separator[i * 8 + j] ? "1" : "0";
+                }
+                udgA.push(row);
+            }
+        }
+        if (globalConfig.basicGraphics.selector) {
+            udgB = [];
+            for (let i = 0; i < 8; i++) {
+                let row = "";
+                for (let j = 0; j < 8; j++) {
+                    row += globalConfig.basicGraphics.selector[i * 8 + j] ? "1" : "0";
+                }
+                udgB.push(row);
+            }
+        }
+    }
+
+    basicCode += `80 POKE USR("A")+0,BIN ${udgA[0]}:POKE USR("A")+1,BIN ${udgA[1]}:POKE USR("A")+2,BIN ${udgA[2]}:POKE USR("A")+3,BIN ${udgA[3]}:POKE USR("A")+4,BIN ${udgA[4]}:POKE USR("A")+5,BIN ${udgA[5]}:POKE USR("A")+6,BIN ${udgA[6]}:POKE USR("A")+7,BIN ${udgA[7]}:POKE USR("B")+0,BIN ${udgB[0]}:POKE USR("B")+1,BIN ${udgB[1]}:POKE USR("B")+2,BIN ${udgB[2]}:POKE USR("B")+3,BIN ${udgB[3]}:POKE USR("B")+4,BIN ${udgB[4]}:POKE USR("B")+5,BIN ${udgB[5]}:POKE USR("B")+6,BIN ${udgB[6]}:POKE USR("B")+7,BIN ${udgB[7]}:\n`;
+
     basicCode += `90 REM Va a primera pantalla\n`;
     basicCode += `100 GO SUB 110:GO TO ${labelLines[startLabel] || 1000}\n`;
     basicCode += `110 REM Set default attributes\n`;
@@ -138,19 +166,19 @@ function transpileMuchoToBasic(muchoCode) {
 
         let lineNr = baseLineNr;
 
-        basicCode += `${lineNr} REM --- ${blockLabel} ---\n`;
+        basicCode += `${lineNr} REM-- - ${blockLabel} ---\n`;
         lineNr += 10;
 
         // Set custom attrs (if diverge from defaults) then call screen-init subroutine
         if (hasCustomAttr) {
-            basicCode += `${lineNr} LET tattr=${tattr}:LET dattr=${dattr}:LET iattr=${iattr}:GO SUB 9988:\n`;
+            basicCode += `${lineNr} LET tattr = ${tattr}:LET dattr = ${dattr}:LET iattr = ${iattr}:GO SUB 9988: \n`;
         } else {
-            basicCode += `${lineNr} GO SUB 9988:\n`;
+            basicCode += `${lineNr} GO SUB 9988: \n`;
         }
         lineNr += 10;
 
         if (borderMatch) {
-            basicCode += `${lineNr} BORDER ${borderMatch[1]}\n`;
+            basicCode += `${lineNr} BORDER ${borderMatch[1]} \n`;
             lineNr += 10;
         }
 
@@ -383,7 +411,7 @@ export function generateBasicFromMucho(nodes, globalConfig = null) {
     const muchoText = generateMucho(nodes, globalConfig);
 
     // 2. Transpile MuCho to ZX Basic
-    const rawBasic = transpileMuchoToBasic(muchoText);
+    const rawBasic = transpileMuchoToBasic(muchoText, globalConfig);
 
     // 3. Renumber lines compactly to free up space
     return renumberBasic(rawBasic);

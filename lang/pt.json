@@ -61,7 +61,10 @@
         "close": "Fechar",
         "cyd_general_title": "Código geral",
         "cyd_tab_start": "Código início",
-        "cyd_tab_end": "Código fim"
+        "cyd_tab_end": "Código fim",
+        "basic_graphics": "Gráficos (apenas BASIC)",
+        "separator_graphic": "Gráfico Separador",
+        "selector_graphic": "Gráfico Seletor"
     },
     "editor": {
         "edit_node": "Editar Nó",
