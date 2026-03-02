@@ -315,6 +315,67 @@ function transpileMuchoToBasic(muchoCode) {
     return basicCode;
 }
 
+/**
+ * Renumbers BASIC lines safely starting from 10, incrementing by 10.
+ * Preserves the system subroutines at 9988-9999.
+ */
+function renumberBasic(basicCode) {
+    const lines = basicCode.split('\n').filter(l => l.trim() !== '');
+    if (lines.length === 0) return basicCode;
+
+    const oldToNew = {};
+    let nextNum = 10;
+
+    // Pass 1: generate mapping
+    lines.forEach(line => {
+        const match = line.match(/^(\d+)/);
+        if (match) {
+            const oldNum = parseInt(match[1]);
+            if (oldNum < 9988) {
+                oldToNew[oldNum] = nextNum;
+                nextNum += 10;
+            } else {
+                // Keep system routines where they are
+                oldToNew[oldNum] = oldNum;
+            }
+        }
+    });
+
+    // Pass 2: apply mapping to line numbers and references:
+    // References can be like: GO TO 1000, GO SUB 110, p(n)=2000
+    const processedLines = lines.map(line => {
+        // Change the line number itself
+        let newLine = line.replace(/^(\d+)/, (match, p1) => {
+            const oldNum = parseInt(p1);
+            return oldToNew[oldNum] ? oldToNew[oldNum] : oldNum;
+        });
+
+        // Replace GO TO, GO SUB, RESTORE, RUN, etc. targets
+        // Note: carefully skipping PEEK, POKE, which might look like commands with numbers but aren't line pointers.
+        newLine = newLine.replace(/(GO\s+TO|GO\s+SUB|GOTO|GOSUB|RESTORE|RUN)\s+(\d+)/gi, (match, cmd, numStr) => {
+            const num = parseInt(numStr);
+            if (oldToNew[num]) {
+                return `${cmd} ${oldToNew[num]}`;
+            }
+            return match;
+        });
+
+        // Replace dynamic pointers assigned to the p() array (e.g. LET p(n)=2000)
+        newLine = newLine.replace(/(p\([\w\d]+\)=)(\d+)/gi, (match, assignment, numStr) => {
+            const num = parseInt(numStr);
+            if (oldToNew[num]) {
+                return `${assignment}${oldToNew[num]}`;
+            }
+            return match;
+        });
+
+        return newLine;
+    });
+
+    return processedLines.join('\n') + '\n';
+}
+
+
 export function generateBasicFromMucho(nodes, globalConfig = null) {
     if (!nodes || nodes.length === 0) return "10 REM No nodes";
 
@@ -322,5 +383,8 @@ export function generateBasicFromMucho(nodes, globalConfig = null) {
     const muchoText = generateMucho(nodes, globalConfig);
 
     // 2. Transpile MuCho to ZX Basic
-    return transpileMuchoToBasic(muchoText);
+    const rawBasic = transpileMuchoToBasic(muchoText);
+
+    // 3. Renumber lines compactly to free up space
+    return renumberBasic(rawBasic);
 }
