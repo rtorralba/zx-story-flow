@@ -100,7 +100,7 @@ header h1 {
 }
 
 /* Show submenu on hover */
-.menu:hover > .submenu {
+.menu:hover>.submenu {
     display: block;
 }
 
@@ -823,7 +823,8 @@ input:checked+.slider:before {
 #global-config-modal .config-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 18px 24px; /* more vertical and horizontal spacing */
+    gap: 18px 24px;
+    /* more vertical and horizontal spacing */
     margin-top: 8px;
     align-items: center;
 }
@@ -836,7 +837,6 @@ input:checked+.slider:before {
 }
 
 #global-config-modal .config-row label {
-    flex: 0 0 120px;
     color: var(--text-color);
     font-size: 13px;
 }
@@ -845,11 +845,13 @@ input:checked+.slider:before {
     margin-top: 12px;
     margin-bottom: 6px;
     width: 100%;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     padding-bottom: 6px;
 }
 
-#global-config-modal .config-options { margin-bottom: 14px; }
+#global-config-modal .config-options {
+    margin-bottom: 14px;
+}
 
 /* Tooltip de ayuda con icono ? */
 .tooltip-icon {
@@ -909,6 +911,7 @@ input:checked+.slider:before {
     width: 18px;
     height: 18px;
 }
+
 .config-row {
     display: flex;
     flex-direction: row;
@@ -1097,11 +1100,23 @@ input:checked+.slider:before {
 /* texto normal */
 
 /* CYD highlighting (simple) */
-.cyd-key { color: #7ec699; font-weight: 700; }
-.cyd-kw { color: #ffd479; font-weight: 700; }
-.cyd-inner { color: #cfcfcf; }
+.cyd-key {
+    color: #7ec699;
+    font-weight: 700;
+}
 
-.cyd-editor-container { /* reuse mucho editor layout */ }
+.cyd-kw {
+    color: #ffd479;
+    font-weight: 700;
+}
+
+.cyd-inner {
+    color: #cfcfcf;
+}
+
+.cyd-editor-container {
+    /* reuse mucho editor layout */
+}
 
 .mucho-help-panel {
     background: #2a2a2a;

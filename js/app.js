@@ -54,11 +54,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Actualiza la visibilidad de los botones de exportación según tipo de proyecto
     function updateExportButtons() {
         const isCYD = projectType === 'CYD';
-        const cydBtn       = document.getElementById('export-cyd-btn');
-        const muchoBtn     = document.getElementById('export-mucho-btn');
-        const importMucho  = document.getElementById('import-mucho-btn');
-        if (cydBtn)      cydBtn.style.display      = isCYD  ? '' : 'none';
-        if (muchoBtn)    muchoBtn.style.display    = !isCYD ? '' : 'none';
+        const cydBtn = document.getElementById('export-cyd-btn');
+        const muchoBtn = document.getElementById('export-mucho-btn');
+        const importMucho = document.getElementById('import-mucho-btn');
+        if (cydBtn) cydBtn.style.display = isCYD ? '' : 'none';
+        if (muchoBtn) muchoBtn.style.display = !isCYD ? '' : 'none';
         if (importMucho) importMucho.style.display = !isCYD ? '' : 'none';
     }
 
@@ -568,7 +568,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (compactEditModal) {
         // Eliminado: no cerrar modal al hacer clic fuera
         // El cierre solo será posible con el botón X/cruz
-    // (no hay llave de cierre aquí)
+        // (no hay llave de cierre aquí)
     }
 
     // Initialize Editor
@@ -1040,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     currentBlock.options.push({ targetLabel, flag, text: '' });
                     lastOptionIdx = currentBlock.options.length - 1;
                 } else if (currentBlock.inOptions && lastOptionIdx >= 0 &&
-                           currentBlock.options[lastOptionIdx].text === '') {
+                    currentBlock.options[lastOptionIdx].text === '') {
                     currentBlock.options[lastOptionIdx].text = line.trim();
                 } else if (!currentBlock.inOptions) {
                     currentBlock.descLines.push(line);
@@ -1068,13 +1068,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = Math.floor(idx / COLS);
             const node = new ScreenNode(nodeId, 80 + col * COL_SPACING, 80 + row * ROW_SPACING);
             node.title = block.label;
-            node.text  = block.descLines.join('\n').replace(/^\n+|\n+$/g, '');
+            node.text = block.descLines.join('\n').replace(/^\n+|\n+$/g, '');
 
             if (block.options.length > 0) {
                 node.outputs = block.options.map(opt => ({
-                    label:  opt.text || opt.targetLabel,
+                    label: opt.text || opt.targetLabel,
                     target: labelToId[opt.targetLabel.toLowerCase()] || null,
-                    flag:   opt.flag || ''
+                    flag: opt.flag || ''
                 }));
             } else {
                 node.outputs = [{ label: 'Next', target: null }];
@@ -1451,6 +1451,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             rulerSelect.appendChild(el);
         });
 
+        let editorWidget = null;
+
         const updateRuler = (val) => {
             editorRulerWidth = val;
             if (val === 'hidden') {
@@ -1458,6 +1460,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 editorContainer.style.setProperty('--ruler-display', 'block');
                 editorContainer.style.setProperty('--ruler-width', val);
+            }
+
+            if (editorWidget && editorWidget.cm) {
+                if (val === 'hidden') {
+                    editorWidget.cm.setOption('rulers', []);
+                } else {
+                    const cols = parseInt(val);
+                    if (!isNaN(cols)) {
+                        editorWidget.cm.setOption('rulers', [{ column: cols, color: 'rgba(255, 255, 255, 0.3)', lineStyle: 'dashed' }]);
+                    }
+                }
             }
         };
 
@@ -1474,11 +1487,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Choose editor implementation based on project type (MuCho or CYD)
         const EditorClass = (projectType === 'CYD') ? CYDEditor : MuchoEditor;
         const initialText = EditorClass.generateFromNode(node);
-        const editorWidget = new EditorClass(editorContainer, initialText, (newText) => {
+        editorWidget = new EditorClass(editorContainer, initialText, (newText) => {
             EditorClass.parseToNode(newText, node);
             editor.draw();
             autoSave();
         });
+
+        // Apply ruler to the newly created CodeMirror instance
+        updateRuler(editorRulerWidth);
 
         hiddenFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
