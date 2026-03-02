@@ -155,44 +155,76 @@ function transpileMuchoToBasic(muchoCode) {
         }
 
         // --- Content lines ---
+        // First, group lines into paragraphs for proper block handling
+        const paragraphs = [];
+        let currentPara = [];
+        let pendingCommand = null;
+
         for (let i = 0; i < block.content.length; i++) {
             const line = block.content[i];
             const trimmed = line.trim();
 
             if (trimmed === "" || trimmed === "$P") {
-                basicCode += `${lineNr} PRINT ""\n`;
-                lineNr += 10;
-            } else if (trimmed.startsWith('$I ')) {
-                // Images skipped (tape-loading complexity)
-            } else if (trimmed.startsWith('$O ')) {
-                // Conditional content: $O has:flag AND not:other
-                const condStr = trimmed.substring(3);
-                const conditions = condStr.split(' AND ').map(p => {
-                    const c = p.trim();
-                    if (c.startsWith('has:')) return `f${c.split(':')[1]}=1`;
-                    if (c.startsWith('not:') || c.startsWith('!')) {
-                        const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
-                        return `f${f}=0`;
-                    }
-                    return c;
-                });
-                const nextLineText = block.content[i + 1] || "";
-                if (nextLineText && !nextLineText.startsWith('$')) {
-                    wrapText(nextLineText).forEach(wl => {
-                        if (wl.trim()) {
-                            basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT "${wl}"\n`;
-                            lineNr += 10;
-                        }
-                    });
-                    i++;
+                if (currentPara.length > 0) {
+                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+                    currentPara = [];
+                    pendingCommand = null;
                 }
-            } else if (!trimmed.startsWith('$')) {
-                wrapText(line).forEach(wl => {
-                    basicCode += `${lineNr} PRINT "${wl}"\n`;
-                    lineNr += 10;
-                });
+                paragraphs.push({ type: 'empty' });
+            } else if (trimmed.startsWith('$I ')) {
+                // Images skipped for BASIC
+            } else if (trimmed.startsWith('$O ')) {
+                if (currentPara.length > 0) {
+                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+                    currentPara = [];
+                }
+                pendingCommand = trimmed;
+            } else if (trimmed.startsWith('$')) {
+                // Other commands, flush paragraph if any
+                if (currentPara.length > 0) {
+                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+                    currentPara = [];
+                    pendingCommand = null;
+                }
+            } else {
+                currentPara.push(line);
             }
         }
+        if (currentPara.length > 0) {
+            paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+        }
+
+        // Now generate BASIC for each paragraph
+        paragraphs.forEach(para => {
+            if (para.type === 'empty') {
+                basicCode += `${lineNr} PRINT ""\n`;
+                lineNr += 10;
+            } else if (para.type === 'text') {
+                const fullText = para.lines.join('\n');
+                const wrappedLines = wrapText(fullText).filter(wl => wl.trim());
+
+                if (wrappedLines.length > 0) {
+                    const combinedPrint = `"${wrappedLines.join(`" '"`)}"`;
+
+                    if (para.command && para.command.startsWith('$O ')) {
+                        const condStr = para.command.substring(3);
+                        const conditions = condStr.split(' AND ').map(p => {
+                            const c = p.trim();
+                            if (c.startsWith('has:')) return `f${c.split(':')[1]}=1`;
+                            if (c.startsWith('not:') || c.startsWith('!')) {
+                                const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
+                                return `f${f}=0`;
+                            }
+                            return c;
+                        });
+                        basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT ${combinedPrint}\n`;
+                    } else {
+                        basicCode += `${lineNr} PRINT ${combinedPrint}\n`;
+                    }
+                    lineNr += 10;
+                }
+            }
+        });
 
         // --- Parse options: separate conditions (has:/not:) from actions (set:/clear:/toggle:) ---
         const effectiveOptions = block.options.length > 0
