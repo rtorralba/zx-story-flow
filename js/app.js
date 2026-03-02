@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         page: { ink: 'white', paper: 'black', bright: false, flash: false },
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
         interface: { ink: 'white', paper: 'black', bright: false, flash: false },
+        border: 'black',
         viewMode: 'simple',
         basicGraphics: {
             separator: Array(64).fill(false), // 8x8 matrix for BASIC separator
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const globalInterfaceFlash = document.getElementById('global-interface-flash');
     const globalViewMode = document.getElementById('global-view-mode');
     const globalProjectType = document.getElementById('global-project-type');
+    const globalBorderColor = document.getElementById('global-border-color');
     const separatorMatrixEl = document.getElementById('separator-matrix');
     const selectorMatrixEl = document.getElementById('selector-matrix');
 
@@ -151,6 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         globalInterfacePaper.value = globalConfig.interface.paper;
         globalInterfaceBright.checked = globalConfig.interface.bright;
         globalInterfaceFlash.checked = globalConfig.interface.flash;
+        if (globalBorderColor) globalBorderColor.value = globalConfig.border || 'black';
         if (globalViewMode) globalViewMode.value = globalConfig.viewMode || 'simple';
         if (globalProjectType) globalProjectType.value = (globalConfig.projectType || projectType || 'MuCho');
 
@@ -177,6 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             bright: globalInterfaceBright.checked,
             flash: globalInterfaceFlash.checked
         };
+        if (globalBorderColor) globalConfig.border = globalBorderColor.value;
         if (globalViewMode) globalConfig.viewMode = globalViewMode.value;
         // project type selector
         if (globalProjectType) {
@@ -248,6 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     globalInterfacePaper.addEventListener('change', onGlobalConfigChange);
     globalInterfaceBright.addEventListener('change', onGlobalConfigChange);
     globalInterfaceFlash.addEventListener('change', onGlobalConfigChange);
+    if (globalBorderColor) globalBorderColor.addEventListener('change', onGlobalConfigChange);
     if (globalViewMode) globalViewMode.addEventListener('change', onGlobalConfigChange);
     if (globalProjectType) globalProjectType.addEventListener('change', onGlobalConfigChange);
     document.querySelectorAll('.lang-option').forEach(btn => {

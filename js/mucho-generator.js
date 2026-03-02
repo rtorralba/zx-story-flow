@@ -98,9 +98,12 @@ export function generateMucho(nodes, globalConfig = null) {
             : globalConfig.interface;
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
 
+        // Border color
+        const borderVal = colorToZX(globalConfig.border || 'black');
+
         // Build $Q line, appending any node-level actions
         const actionsStr = node.actions && node.actions.trim() ? ' ' + node.actions.trim() : '';
-        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}${actionsStr}\n`;
+        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr} border:${borderVal}${actionsStr}\n`;
         muchoCode += description + '\n';
 
         // Iterate all options

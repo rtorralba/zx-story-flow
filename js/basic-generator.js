@@ -169,6 +169,11 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         basicCode += `${lineNr} REM-- - ${blockLabel} ---\n`;
         lineNr += 10;
 
+        if (borderMatch) {
+            basicCode += `${lineNr} BORDER ${borderMatch[1]} \n`;
+            lineNr += 10;
+        }
+
         // Set custom attrs (if diverge from defaults) then call screen-init subroutine
         if (hasCustomAttr) {
             basicCode += `${lineNr} LET tattr = ${tattr}:LET dattr = ${dattr}:LET iattr = ${iattr}:GO SUB 9988: \n`;
@@ -176,11 +181,6 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
             basicCode += `${lineNr} GO SUB 9988: \n`;
         }
         lineNr += 10;
-
-        if (borderMatch) {
-            basicCode += `${lineNr} BORDER ${borderMatch[1]} \n`;
-            lineNr += 10;
-        }
 
         // --- Content lines ---
         // First, group lines into paragraphs for proper block handling

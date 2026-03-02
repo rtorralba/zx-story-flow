@@ -35,6 +35,7 @@
         "group_color": "Cor do Grupo",
         "contains_nodes": "Contém {n} nó(s)",
         "delete_group": "Excluir Grupo",
+        "border": "Borda",
         "node_reference": "Referência de Nó",
         "target_node": "Nó de Destino:",
         "none": "(Nenhum)"

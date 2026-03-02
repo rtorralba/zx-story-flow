@@ -35,6 +35,7 @@
         "group_color": "Group Color",
         "contains_nodes": "Contains {n} node(s)",
         "delete_group": "Delete Group",
+        "border": "Border",
         "node_reference": "Node Reference",
         "target_node": "Target Node:",
         "none": "(None)"
