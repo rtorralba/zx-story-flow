@@ -40,7 +40,8 @@ function wrapText(text, maxWidth = 32) {
 }
 
 /**
- * Transpiles MuCho code into ZX Basic.
+ * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
+ * cursor-based option selection with p() jump table and system subroutines.
  */
 function transpileMuchoToBasic(muchoCode) {
     if (!muchoCode) return "10 REM Project is empty";
@@ -58,10 +59,8 @@ function transpileMuchoToBasic(muchoCode) {
             if (line.startsWith('$A ')) {
                 currentBlock.options.push({ header: line, text: null });
             } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
-                // First non-$A line after a $A is the option text
                 currentBlock.options[currentBlock.options.length - 1].text = line.trim() || "Continuar";
             } else {
-                // Everything else is content (including empty lines and $P)
                 currentBlock.content.push(line);
             }
         }
@@ -69,28 +68,14 @@ function transpileMuchoToBasic(muchoCode) {
 
     if (blocks.length === 0) return "10 REM No screens found in MuCho code";
 
-    // Phase 2: Identify all flags to initialize them
+    // Phase 2: Collect all flag names used anywhere
     const allFlags = new Set();
     muchoCode.match(/(?:set:|clear:|clr:|toggle:|has:|not:|!)([a-zA-Z0-9_]+)/g)?.forEach(match => {
         const name = match.split(':')[1] || match.substring(1);
         allFlags.add(name);
     });
 
-    // Phase 3: Identify unique images for caching
-    const images = [];
-    muchoCode.match(/\$I\s+([^\s\n\r]+)/g)?.forEach(match => {
-        const name = match.substring(3).trim().replace(/\.scr$/i, '').toUpperCase();
-        if (!images.includes(name)) images.push(name);
-    });
-
-    const imageMap = {};
-    let currentAddr = 65536;
-    images.forEach(img => {
-        currentAddr -= 6912;
-        imageMap[img] = currentAddr;
-    });
-
-    // Phase 4: Map labels to line numbers (1000 per block) - Case Insensitive
+    // Phase 3: Map labels to line numbers (1000 per block, max ~9 screens before 9988)
     const labelLines = {};
     blocks.forEach((block, idx) => {
         const match = block.header.match(/^\$Q\s+([^\s]+)/);
@@ -100,59 +85,76 @@ function transpileMuchoToBasic(muchoCode) {
         }
     });
 
+    // Phase 4: Extract default attributes from the first block header
+    const firstHeader = blocks[0].header;
+    const defaultTattr = parseInt(firstHeader.match(/attr:(\d+)/)?.[1]  || "15");
+    const defaultDattr = parseInt(firstHeader.match(/dattr:(\d+)/)?.[1] || "11");
+    const defaultIattr = parseInt(firstHeader.match(/iattr:(\d+)/)?.[1] || "24");
+
+    const firstMatch = blocks[0].header.match(/^\$Q\s+([^\s]+)/);
+    const startLabel = firstMatch ? firstMatch[1].toLowerCase() : "start";
+
     let basicCode = "";
 
-    // Header
-    const firstBlockMatch = blocks[0].header.match(/^\$Q\s+([^\s]+)/);
-    const startLabel = firstBlockMatch ? firstBlockMatch[1].toLowerCase() : "start";
+    // =========================================================
+    // GLOBAL INIT  (lines 10 – 120)
+    // =========================================================
+    basicCode += `10 REM = init global =\n`;
+    basicCode += `20 POKE 23693,0:BORDER 0:CLS\n`;
+    basicCode += `30 REM p() table of line pointers.\n`;
+    basicCode += `40 DIM p(10)\n`;
+    basicCode += `50 REM Inicializa variables del juego.\n`;
 
-    // Extract initial attributes for global state
-    const attrMatch = blocks[0].header.match(/attr:(\d+)/);
-    const initialAttr = attrMatch ? parseInt(attrMatch[1]) : 7;
+    // Initialise all flags to 0 on a single line
+    if (allFlags.size > 0) {
+        basicCode += `60 LET ` + [...allFlags].map(f => `f${f}=0`).join(':LET ') + `:\n`;
+    } else {
+        basicCode += `60 REM no flags\n`;
+    }
 
-    const paper = (initialAttr >> 3) & 7;
-    const ink = initialAttr & 7;
-    const bright = (initialAttr >> 6) & 1;
-    const flash = (initialAttr >> 7) & 1;
+    basicCode += `70 REM 23675 for divider and selector.\n`;
+    // UDG A = filled arrow (pointer), UDG B = cursor marker
+    basicCode += `80 POKE USR("A")+0,BIN 00000000:POKE USR("A")+1,BIN 00010000:POKE USR("A")+2,BIN 00111000:POKE USR("A")+3,BIN 01111100:POKE USR("A")+4,BIN 11111110:POKE USR("A")+5,BIN 11111111:POKE USR("A")+6,BIN 11111111:POKE USR("A")+7,BIN 11111111:POKE USR("B")+0,BIN 00000000:POKE USR("B")+1,BIN 10001000:POKE USR("B")+2,BIN 11001100:POKE USR("B")+3,BIN 11101110:POKE USR("B")+4,BIN 11001100:POKE USR("B")+5,BIN 10001000:POKE USR("B")+6,BIN 00000000:POKE USR("B")+7,BIN 00000000:\n`;
+    basicCode += `90 REM Va a primera pantalla\n`;
+    basicCode += `100 GO SUB 110:GO TO ${labelLines[startLabel] || 1000}\n`;
+    basicCode += `110 REM Set default attributes\n`;
+    basicCode += `120 LET tattr=${defaultTattr}:LET dattr=${defaultDattr}:LET iattr=${defaultIattr}:RETURN\n`;
 
-    basicCode += `10 INK ${ink}: PAPER ${paper}: BRIGHT ${bright}: FLASH ${flash}\n`;
-    basicCode += `20 CLS\n`;
-
-    let currentLine = 30;
-    allFlags.forEach(flag => {
-        basicCode += `${currentLine} LET f${flag}=0\n`;
-        currentLine += 10;
-    });
-
-    basicCode += `${currentLine} GO TO ${labelLines[startLabel] || 1000}\n`;
-
-    // Phase 5: Generate code for each block
-    blocks.forEach(block => {
+    // =========================================================
+    // SCREEN BLOCKS
+    // =========================================================
+    blocks.forEach((block, idx) => {
         const match = block.header.match(/^\$Q\s+([^\s]+)/);
-        const blockLabel = match ? match[1] : "Unknown";
-        let lineNr = labelLines[blockLabel.toLowerCase()] || 9999;
+        const blockLabel = match ? match[1] : "Screen" + idx;
+        const baseLineNr = labelLines[blockLabel.toLowerCase()] || (1000 + idx * 1000);
         const header = block.header;
 
-        // Parse attributes
-        const attr = parseInt(header.match(/attr:(\d+)/)?.[1] || "7");
-        const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || "7");
-        const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || "7");
+        // Parse attributes for this screen
+        const tattr = parseInt(header.match(/attr:(\d+)/)?.[1]  || defaultTattr);
+        const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || defaultDattr);
+        const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || defaultIattr);
+        const hasCustomAttr = (tattr !== defaultTattr || dattr !== defaultDattr || iattr !== defaultIattr);
+        const borderMatch = header.match(/border:(\d+)/);
+
+        let lineNr = baseLineNr;
 
         basicCode += `${lineNr} REM --- ${blockLabel} ---\n`;
         lineNr += 10;
 
-        // Apply page attributes
-        basicCode += `${lineNr} INK ${attr & 7}: PAPER ${(attr >> 3) & 7}: BRIGHT ${(attr >> 6) & 1}: FLASH ${(attr >> 7) & 1}: CLS\n`;
+        // Set custom attrs (if diverge from defaults) then call screen-init subroutine
+        if (hasCustomAttr) {
+            basicCode += `${lineNr} LET tattr=${tattr}:LET dattr=${dattr}:LET iattr=${iattr}:GO SUB 9988:\n`;
+        } else {
+            basicCode += `${lineNr} GO SUB 9988:\n`;
+        }
         lineNr += 10;
 
-        // Process block actions (borders, etc)
-        const borderMatch = header.match(/border:(\d+)/);
         if (borderMatch) {
             basicCode += `${lineNr} BORDER ${borderMatch[1]}\n`;
             lineNr += 10;
         }
 
-        // Content
+        // --- Content lines ---
         for (let i = 0; i < block.content.length; i++) {
             const line = block.content[i];
             const trimmed = line.trim();
@@ -161,92 +163,113 @@ function transpileMuchoToBasic(muchoCode) {
                 basicCode += `${lineNr} PRINT ""\n`;
                 lineNr += 10;
             } else if (trimmed.startsWith('$I ')) {
-                // Skiping images for now to avoid tape loading issues
-                lineNr += 0;
+                // Images skipped (tape-loading complexity)
             } else if (trimmed.startsWith('$O ')) {
+                // Conditional content: $O has:flag AND not:other
                 const condStr = trimmed.substring(3);
-                const condParts = condStr.split(' AND ');
-                const conditions = condParts.map(p => {
+                const conditions = condStr.split(' AND ').map(p => {
                     const c = p.trim();
-                    if (c.startsWith('has:') || c.startsWith('set:')) return `f${c.split(':')[1]}=1`;
-                    if (c.startsWith('not:') || c.startsWith('clr:') || c.startsWith('!')) {
+                    if (c.startsWith('has:')) return `f${c.split(':')[1]}=1`;
+                    if (c.startsWith('not:') || c.startsWith('!')) {
                         const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
                         return `f${f}=0`;
                     }
                     return c;
                 });
-
                 const nextLineText = block.content[i + 1] || "";
                 if (nextLineText && !nextLineText.startsWith('$')) {
-                    const wLines = wrapText(nextLineText);
-                    wLines.forEach(wl => {
-                        if (wl.trim() !== "") {
+                    wrapText(nextLineText).forEach(wl => {
+                        if (wl.trim()) {
                             basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT "${wl}"\n`;
                             lineNr += 10;
                         }
                     });
-                    i++; // Skip next line
+                    i++;
                 }
             } else if (!trimmed.startsWith('$')) {
-                const wLines = wrapText(line);
-                wLines.forEach(wl => {
+                wrapText(line).forEach(wl => {
                     basicCode += `${lineNr} PRINT "${wl}"\n`;
                     lineNr += 10;
                 });
             }
         }
 
-        // Options / Menu
+        // --- Parse options: separate conditions (has:/not:) from actions (set:/clear:/toggle:) ---
         const effectiveOptions = block.options.length > 0
             ? block.options
-            : [{ header: "$A " + startLabel, text: "Jugar de nuevo" }];
+            : [{ header: `$A ${startLabel}`, text: "Jugar de nuevo" }];
 
-        const totalLines = 1 + effectiveOptions.length;
-        const startPosLine = 21 - totalLines + 1;
+        // Action blocks will be placed at baseLineNr + 500 onward (safe gap after content)
+        const actionBlockBase = baseLineNr + 500;
 
-        // Separator
-        basicCode += `${lineNr} INK ${dattr & 7}: PAPER ${(dattr >> 3) & 7}: BRIGHT ${(dattr >> 6) & 1}: FLASH ${(dattr >> 7) & 1}\n`;
-        lineNr += 10;
-        basicCode += `${lineNr} PRINT AT ${startPosLine},0;"--------------------------------"\n`;
-        lineNr += 10;
+        const parsedOptions = effectiveOptions.map((opt, optIdx) => {
+            const parts = opt.header.split(/\s+/);
+            const targetLabelRaw = parts[1] || "";
+            const targetLine = labelLines[targetLabelRaw.toLowerCase()] || baseLineNr;
+            const tokens = parts.slice(2);
 
-        // Options
-        basicCode += `${lineNr} INK ${iattr & 7}: PAPER ${(iattr >> 3) & 7}: BRIGHT ${(iattr >> 6) & 1}: FLASH ${(iattr >> 7) & 1}\n`;
-        lineNr += 10;
+            const conditions = [];
+            const actions = [];
 
-        effectiveOptions.forEach((opt, idx) => {
-            const optText = opt.text || "Continuar";
-            const safeLabel = optText.replace(/"/g, "'").substring(0, 28);
-            basicCode += `${lineNr} PRINT AT ${startPosLine + 1 + idx},0;"${idx + 1}. ${safeLabel}"\n`;
+            tokens.forEach(tok => {
+                const [verb, name] = tok.split(':');
+                if (!name) return;
+                if (verb === 'has')                       conditions.push(`f${name}=1`);
+                else if (verb === 'not')                  conditions.push(`f${name}=0`);
+                else if (verb === 'set')                  actions.push(`LET f${name}=1`);
+                else if (verb === 'clear' || verb === 'clr') actions.push(`LET f${name}=0`);
+                else if (verb === 'toggle')               actions.push(`LET f${name}=1-f${name}`);
+            });
+
+            const needsActionBlock = actions.length > 0;
+            const actionLine = needsActionBlock ? actionBlockBase + (optIdx * 20) : null;
+            const jumpTarget = needsActionBlock ? actionLine : targetLine;
+
+            return { targetLine, conditions, actions, needsActionBlock, actionLine,
+                     jumpTarget, text: opt.text || "Continuar" };
+        });
+
+        // --- Option display lines (fill p() table, PRINT #1 for the menu area) ---
+        parsedOptions.forEach(opt => {
+            const safeText = (opt.text || "Continuar").replace(/"/g, "'").substring(0, 28);
+            const condPart = opt.conditions.length > 0
+                ? `IF ${opt.conditions.join(' AND ')} THEN ` : '';
+            basicCode += `${lineNr} ${condPart}LET n=n+1:LET p(n)=${opt.jumpTarget}:PRINT #1;"   ${safeText}"\n`;
             lineNr += 10;
         });
 
-        // Use interface colors for INPUT prompt too
-        basicCode += `${lineNr} INK ${iattr & 7}: PAPER ${(iattr >> 3) & 7}: BRIGHT ${(iattr >> 6) & 1}: FLASH ${(iattr >> 7) & 1}: INPUT A$\n`;
+        // Hand control to the cursor-selection loop
+        basicCode += `${lineNr} GO TO 9993\n`;
         lineNr += 10;
 
-        effectiveOptions.forEach((opt, idx) => {
-            const matchA = opt.header.match(/^\$A\s+([^\s]+)/);
-            const target = matchA ? matchA[1].toLowerCase() : startLabel;
-            const targetLine = labelLines[target] || 1000;
-
-            const flagActions = opt.header.split(/\s+/).slice(2).map(f => {
-                const parts = f.split(':');
-                const action = parts[0];
-                const name = parts[1];
-                if (action === 'set') return `LET f${name}=1`;
-                if (action === 'clear' || action === 'clr') return `LET f${name}=0`;
-                if (action === 'toggle') return `LET f${name}=1-f${name}`;
-                return "";
-            }).filter(a => a !== "").join(': ');
-
-            basicCode += `${lineNr} IF A$="${idx + 1}" THEN ${flagActions ? flagActions + ': ' : ''}GO TO ${targetLine}\n`;
-            lineNr += 10;
+        // --- Action blocks: set flags then jump to target ---
+        // These live at actionBlockBase + optIdx*20 within this screen's number range
+        parsedOptions.forEach((opt, optIdx) => {
+            if (opt.needsActionBlock) {
+                const ab = opt.actionLine;
+                const safeComment = (opt.text || "option").replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 30);
+                basicCode += `${ab} REM ${safeComment}\n`;
+                basicCode += `${ab + 10} ${opt.actions.join(':')}:GO TO ${opt.targetLine}\n`;
+            }
         });
-
-        // Loop back to current node
-        basicCode += `${lineNr} GO TO ${labelLines[blockLabel.toLowerCase()] || 1000}\n`;
     });
+
+    // =========================================================
+    // SYSTEM SUBROUTINES  (9988 – 9999)
+    // Identical in structure to flow3.zx.bas
+    // =========================================================
+    basicCode += `9988 REM New screen. Clear and set attributes.\n`;
+    basicCode += `9989 POKE 23693,tattr:POKE 23624,dattr:CLS:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:\n`;
+    basicCode += `9990 LET n=0:REM contador opciones.\n`;
+    basicCode += `9991 LET i=1\n`;
+    basicCode += `9992 RETURN\n`;
+    basicCode += `9993 REM choose an option\n`;
+    basicCode += `9994 IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO 0:\n`;
+    basicCode += `9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";:\n`;
+    basicCode += `9996 IF k=10 THEN LET i=i+1-(n AND i=n)\n`;
+    basicCode += `9997 IF k=11 THEN LET i=i-1+(n AND i=1)\n`;
+    basicCode += `9998 IF k=13 THEN GO SUB 110:GO TO p(i)\n`;
+    basicCode += `9999 GO TO 9993\n`;
 
     return basicCode;
 }
