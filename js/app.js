@@ -57,9 +57,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cydBtn = document.getElementById('export-cyd-btn');
         const muchoBtn = document.getElementById('export-mucho-btn');
         const importMucho = document.getElementById('import-mucho-btn');
+        const basicBtn = document.getElementById('export-btn');
+        const tapBtn = document.getElementById('export-tap-btn');
         if (cydBtn) cydBtn.style.display = isCYD ? '' : 'none';
         if (muchoBtn) muchoBtn.style.display = !isCYD ? '' : 'none';
         if (importMucho) importMucho.style.display = !isCYD ? '' : 'none';
+        if (basicBtn) basicBtn.style.display = !isCYD ? '' : 'none';
+        if (tapBtn) tapBtn.style.display = !isCYD ? '' : 'none';
     }
 
     // Cargar configuración global en los controles
