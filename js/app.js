@@ -898,12 +898,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Helper: validate no duplicated labels
+    function hasDuplicateLabels() {
+        const screenNodes = editor.nodes.filter(n => n && (n.type === 'screen' || n.type === 'Screen' || n.constructor.name === 'ScreenNode'));
+        const slugify = (text) => (text || '').toString().replace(/[^a-zA-Z0-9_]/g, '') || null;
+        const labels = {};
+        const duplicates = [];
+
+        screenNodes.forEach(node => {
+            const lbl = slugify(node.title) || `Node${node.id}`;
+            const lblLower = lbl.toLowerCase();
+            if (labels[lblLower]) {
+                if (!duplicates.includes(lbl)) duplicates.push(lbl);
+            } else {
+                labels[lblLower] = true;
+            }
+        });
+
+        if (duplicates.length > 0) {
+            const title = window.translate ? window.translate('messages.duplicate_labels_title') : 'No se puede exportar. Hay pantallas con nombres que resultan en etiquetas duplicadas:\n';
+            const desc = window.translate ? window.translate('messages.duplicate_labels_desc') : '\n\nPor favor, asegúrate de que cada pantalla tenga un nombre único.';
+            alert(`${title}- ${duplicates.join('\n- ')}${desc}`);
+            return true;
+        }
+        return false;
+    }
+
     document.getElementById('export-png-btn').addEventListener('click', () => {
         const exportName = (projectName || 'workflow').replace(/\s+/g, '_');
         editor.exportToPNG(exportName);
     });
 
     document.getElementById('export-tap-btn').addEventListener('click', () => {
+        if (hasDuplicateLabels()) return;
         try {
             const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
             const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
@@ -952,6 +979,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
+        if (hasDuplicateLabels()) return;
         const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
         const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
         const basicCode = projectType === 'CYD'
@@ -968,6 +996,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('export-mucho-btn').addEventListener('click', () => {
+        if (hasDuplicateLabels()) return;
         const muchoCode = generateMucho(editor.nodes, globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([muchoCode], { type: 'text/plain' });

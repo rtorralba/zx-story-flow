@@ -117,6 +117,8 @@
         "save_failed": "Save failed: ",
         "load_failed": "Failed to load project: ",
         "import_mucho_empty": "No MuCho blocks ($Q) found in the file.",
-        "import_mucho_failed": "MuCho import failed: "
+        "import_mucho_failed": "MuCho import failed: ",
+        "duplicate_labels_title": "Cannot export. There are screens with names that result in duplicate labels:\n",
+        "duplicate_labels_desc": "\n\nPlease ensure each screen has a unique name."
     }
 }

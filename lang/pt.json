@@ -117,6 +117,8 @@
         "save_failed": "Falha ao salvar: ",
         "load_failed": "Falha ao carregar o projeto: ",
         "import_mucho_empty": "Nenhum bloco MuCho ($Q) encontrado no arquivo.",
-        "import_mucho_failed": "Falha ao importar MuCho: "
+        "import_mucho_failed": "Falha ao importar MuCho: ",
+        "duplicate_labels_title": "Não é possível exportar. Existem telas com nomes que resultam em rótulos duplicados:\n",
+        "duplicate_labels_desc": "\n\nPor favor, certifique-se de que cada tela tenha um nome único."
     }
 }
