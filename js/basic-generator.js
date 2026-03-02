@@ -72,7 +72,7 @@ function transpileMuchoToBasic(muchoCode) {
     const allFlags = new Set();
     muchoCode.match(/(?:set:|clear:|clr:|toggle:|has:|not:|!)([a-zA-Z0-9_]+)/g)?.forEach(match => {
         const name = match.split(':')[1] || match.substring(1);
-        allFlags.add(name);
+        if (name !== 'border') allFlags.add(name); // Exclude border from normal flags
     });
 
     // Phase 3: Map labels to line numbers (1000 per block, max ~9 screens before 9988)
@@ -87,7 +87,7 @@ function transpileMuchoToBasic(muchoCode) {
 
     // Phase 4: Extract default attributes from the first block header
     const firstHeader = blocks[0].header;
-    const defaultTattr = parseInt(firstHeader.match(/attr:(\d+)/)?.[1]  || "15");
+    const defaultTattr = parseInt(firstHeader.match(/attr:(\d+)/)?.[1] || "15");
     const defaultDattr = parseInt(firstHeader.match(/dattr:(\d+)/)?.[1] || "11");
     const defaultIattr = parseInt(firstHeader.match(/iattr:(\d+)/)?.[1] || "24");
 
@@ -130,7 +130,7 @@ function transpileMuchoToBasic(muchoCode) {
         const header = block.header;
 
         // Parse attributes for this screen
-        const tattr = parseInt(header.match(/attr:(\d+)/)?.[1]  || defaultTattr);
+        const tattr = parseInt(header.match(/attr:(\d+)/)?.[1] || defaultTattr);
         const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || defaultDattr);
         const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || defaultIattr);
         const hasCustomAttr = (tattr !== defaultTattr || dattr !== defaultDattr || iattr !== defaultIattr);
@@ -214,19 +214,28 @@ function transpileMuchoToBasic(muchoCode) {
             tokens.forEach(tok => {
                 const [verb, name] = tok.split(':');
                 if (!name) return;
-                if (verb === 'has')                       conditions.push(`f${name}=1`);
-                else if (verb === 'not')                  conditions.push(`f${name}=0`);
-                else if (verb === 'set')                  actions.push(`LET f${name}=1`);
+
+                // Handle border action specifically
+                if (verb === 'border') {
+                    actions.push(`BORDER ${name}`);
+                    return;
+                }
+
+                if (verb === 'has') conditions.push(`f${name}=1`);
+                else if (verb === 'not') conditions.push(`f${name}=0`);
+                else if (verb === 'set') actions.push(`LET f${name}=1`);
                 else if (verb === 'clear' || verb === 'clr') actions.push(`LET f${name}=0`);
-                else if (verb === 'toggle')               actions.push(`LET f${name}=1-f${name}`);
+                else if (verb === 'toggle') actions.push(`LET f${name}=1-f${name}`);
             });
 
             const needsActionBlock = actions.length > 0;
             const actionLine = needsActionBlock ? actionBlockBase + (optIdx * 20) : null;
             const jumpTarget = needsActionBlock ? actionLine : targetLine;
 
-            return { targetLine, conditions, actions, needsActionBlock, actionLine,
-                     jumpTarget, text: opt.text || "Continuar" };
+            return {
+                targetLine, conditions, actions, needsActionBlock, actionLine,
+                jumpTarget, text: opt.text || "Continuar"
+            };
         });
 
         // --- Option display lines (fill p() table, PRINT #1 for the menu area) ---
