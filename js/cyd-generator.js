@@ -10,8 +10,15 @@ function colorToZX(colorName) {
     return (colors[colorName] !== undefined) ? colors[colorName] : 7;
 }
 
-function slugify(text) {
-    return (text || '').toString().replace(/[^a-zA-Z0-9_]/g, '') || null;
+function slugify(str) {
+    if (!str) return null;
+    return str.toString().normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, "") // remove diacritics
+        .replace(/[^\w\s-]/g, '')       // eliminate symbols
+        .replace(/[\s-]+/g, '_')         // spaces and hyphens to _
+        .replace(/^_+|_+$/g, '')         // remove leading/trailing _
+        .replace(/^[^a-zA-Z]+/, '')      // ensure it starts with a letter
+        .substring(0, 32) || null;       // max 32 chars
 }
 
 function parseFlagToCmds(flagStr) {
@@ -108,7 +115,7 @@ export function generateCYD(nodes, globalConfig = null) {
 
     // Emit image mapping as comments (optional) -- user may need to place images in IMAGES folder
     if (imageSet.length > 0) {
-        out.push(`/* Images used: ${imageSet.map((n,i) => `${i+1}=${n}`).join(', ')} */`);
+        out.push(`/* Images used: ${imageSet.map((n, i) => `${i + 1}=${n}`).join(', ')} */`);
     }
 
     // Iterate screens
@@ -213,15 +220,19 @@ export function generateCYD(nodes, globalConfig = null) {
 
         // Options
         const intermediateLabels = [];
-        if (node.outputs && node.outputs.length > 0) {
-            node.outputs.forEach((opt, idx) => {
-                const choiceText = (opt.label || (`Option ${idx+1}`)).replace(/\r?\n/g, ' ').trim();
+        const eligibleOptions = (node.outputs || []).filter(opt => opt.eligible !== false);
+
+        if (eligibleOptions.length > 0) {
+            eligibleOptions.forEach((opt, idx) => {
+                const choiceText = (opt.label || (`Option ${idx + 1}`)).replace(/\r?\n/g, ' ').trim();
+                const portIndex = node.outputs.indexOf(opt); // Original index for label generation uniqueness if needed, but we use idx here
+
                 if (opt.target) {
                     const resolved = resolveNodeId(opt.target);
                     const targetLabel = (resolved && labelMap[resolved]) ? labelMap[resolved] : (slugify(opt.target) || `Node${opt.target}`);
 
                     if (opt.flag && opt.flag.trim()) {
-                        const optLabel = `${label}_opt${idx}`;
+                        const optLabel = `${label}_opt${portIndex}`;
                         const cmds = parseFlagToCmds(opt.flag);
                         const inline = [...cmds, `GOTO ${targetLabel}`].join(' : ');
                         intermediateLabels.push(`[[ #${optLabel} : ${inline} ]]`);

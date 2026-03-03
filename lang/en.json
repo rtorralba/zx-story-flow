@@ -82,6 +82,7 @@
         "option_placeholder": "Option Label",
         "actions_option_title": "Actions when choosing this option",
         "delete_option": "Delete option",
+        "eligible": "Eligible",
         "add_option": "+ Add option",
         "color_config_title": "Color Configuration",
         "use_custom_node": "Use specific configuration for this node",

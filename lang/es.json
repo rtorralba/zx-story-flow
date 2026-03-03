@@ -82,6 +82,7 @@
         "option_placeholder": "Etiqueta de la opción",
         "actions_option_title": "Acciones al elegir esta opción",
         "delete_option": "Eliminar opción",
+        "eligible": "Elegible",
         "add_option": "+ Añadir opción",
         "color_config_title": "Configuración de Colores",
         "use_custom_node": "Usar configuración específica para este nodo",

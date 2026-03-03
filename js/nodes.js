@@ -30,7 +30,7 @@ export class ScreenNode extends Node {
         this.text = "Screen Text";
 
         // Option/Port Management
-        this.outputs = [{ label: "Next", target: null }]; // Default 1 option
+        this.outputs = [{ label: "Next", target: null, eligible: true }]; // Default 1 option
         this.borderColor = 'black'; // Default border color
         this.baseHeight = 80;
         this.optionHeight = 30;
@@ -48,7 +48,7 @@ export class ScreenNode extends Node {
     }
 
     addOption(label = "New Option") {
-        this.outputs.push({ label: label, target: null });
+        this.outputs.push({ label: label, target: null, eligible: true });
         // Increase height to accommodate new option
         this.height += this.optionHeight;
     }

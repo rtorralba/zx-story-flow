@@ -82,6 +82,7 @@
         "option_placeholder": "Rótulo da opção",
         "actions_option_title": "Ações ao escolher esta opção",
         "delete_option": "Excluir opção",
+        "eligible": "Elegível",
         "add_option": "+ Adicionar opção",
         "color_config_title": "Configuração de Cores",
         "use_custom_node": "Usar configuração específica para este nó",

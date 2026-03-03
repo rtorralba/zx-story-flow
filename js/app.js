@@ -698,7 +698,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     type: n.type,
                     title: n.title,
                     text: n.text,
-                    outputs: n.outputs,
+                    outputs: n.outputs ? n.outputs.map(o => ({
+                        label: o.label,
+                        target: o.target,
+                        flag: o.flag,
+                        eligible: o.eligible !== false
+                    })) : [],
                     actions: n.actions
                 };
 
@@ -807,7 +812,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         newNode.actions = n.actions || "";
                         newNode.width = n.width || newNode.width;
                         newNode.height = n.height || newNode.height;
-                        if (n.outputs) newNode.outputs = n.outputs;
+                        if (n.outputs) {
+                            newNode.outputs = n.outputs.map(o => ({
+                                label: o.label,
+                                target: o.target,
+                                flag: o.flag,
+                                eligible: o.eligible !== false
+                            }));
+                        }
                         if (n.conditionalParagraphs) newNode.conditionalParagraphs = n.conditionalParagraphs;
                         if (n.paragraphImages) newNode.paragraphImages = n.paragraphImages;
                         if (n.useCustomConfig) {
@@ -1021,58 +1033,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-cyd-btn').addEventListener('click', () => {
         try {
-            let cydCode;
-            if (projectType === 'CYD') {
-                // Export each node: LABEL, title, text (verbatim), options (CYD format)
-                const screenNodes = editor.nodes.filter(n => n && (n.type === 'Screen' || (n.constructor && n.constructor.name === 'ScreenNode')));
-                // Helper para generar identificadores válidos
-                function slugify(str) {
-                    return (str || '').normalize('NFD')
-                        .replace(/[^\w\s-]/g, '') // elimina acentos y símbolos
-                        .replace(/[\s-]+/g, '_')   // espacios y guiones a _
-                        .replace(/^_+|_+$/g, '')   // quita _ al inicio/fin
-                        .replace(/^[^a-zA-Z]+/, '') // empieza por letra
-                        .substring(0, 32); // máximo 32 caracteres
-                }
-                function getNodeLabelById(id) {
-                    // Si es referencia, buscar el nodo referenciado
-                    let destNode = screenNodes.find(nd => nd.id === id);
-                    if (!destNode && id && id.startsWith('ref_')) {
-                        // Buscar referencia en todos los nodos
-                        const allNodes = editor.nodes;
-                        const refNode = allNodes.find(nd => nd.id === id && nd.type === 'Reference');
-                        if (refNode && refNode.targetNodeId) {
-                            destNode = screenNodes.find(nd => nd.id === refNode.targetNodeId);
-                        }
-                    }
-                    return destNode && destNode.title ? slugify(destNode.title) : slugify(id);
-                }
-                const parts = screenNodes.map(n => {
-                    let block = [];
-                    // LABEL (título del nodo, slugificado)
-                    block.push(`[[ LABEL ${slugify(n.title || n.id)} ]]`);
-                    // Texto del nodo
-                    if (n.text) block.push(n.text.replace(/\r\n/g, '\n'));
-                    // Opciones en formato CYD (outputs)
-                    let opciones = [];
-                    if (Array.isArray(n.outputs) && n.outputs.length > 0) {
-                        n.outputs.forEach(opt => {
-                            if (opt.target && opt.label) {
-                                const destino = getNodeLabelById(opt.target);
-                                opciones.push(`[[ OPTION GOTO ${destino} ]]${opt.label}`);
-                            }
-                        });
-                        if (opciones.length > 0) {
-                            block.push(opciones.join('\n'));
-                            block.push('[[ CHOOSE ]]');
-                        }
-                    }
-                    return block.join('\n');
-                });
-                cydCode = parts.join('\n\n');
-            } else {
-                cydCode = generateCYD(editor.nodes, globalConfig);
-            }
+            const cydCodeResult = generateCYD(editor.nodes, globalConfig);
+            let cydCode = cydCodeResult;
             // Prepend CYD general code if present
             const cydGeneralCode = (document.getElementById('cyd-general-code')?.value || '').trim();
             const cydGeneralCodeEnd = (document.getElementById('cyd-general-code-end')?.value || '').trim();
@@ -1868,6 +1830,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 inputsRow.appendChild(inp);
                 inputsRow.appendChild(flagInp);
+
+                // "Eligible" switch for CYD projects
+                if (projectType === 'CYD') {
+                    const eligibleContainer = document.createElement('div');
+                    eligibleContainer.style.display = 'flex';
+                    eligibleContainer.style.alignItems = 'center';
+                    eligibleContainer.style.gap = '5px';
+                    eligibleContainer.style.backgroundColor = '#2a2a2a';
+                    eligibleContainer.style.padding = '2px 8px';
+                    eligibleContainer.style.borderRadius = '3px';
+                    eligibleContainer.style.border = '1px solid #444';
+
+                    const eligibleLabel = document.createElement('span');
+                    eligibleLabel.textContent = t('editor.eligible');
+                    eligibleLabel.style.fontSize = '11px';
+                    eligibleLabel.style.color = '#ccc';
+
+                    const eligibleSwitch = document.createElement('input');
+                    eligibleSwitch.type = 'checkbox';
+                    eligibleSwitch.checked = (opt.eligible !== false); // Default true
+                    eligibleSwitch.style.cursor = 'pointer';
+                    eligibleSwitch.addEventListener('change', (e) => {
+                        opt.eligible = e.target.checked;
+                        editor.draw();
+                        autoSave();
+                    });
+
+                    eligibleContainer.appendChild(eligibleLabel);
+                    eligibleContainer.appendChild(eligibleSwitch);
+                    inputsRow.appendChild(eligibleContainer);
+                }
+
                 inputsRow.appendChild(del);
 
                 row.appendChild(inputsRow);
