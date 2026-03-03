@@ -879,27 +879,74 @@ export class NodeEditor {
                 const maxWidth = node.width - (margin * 2);
                 const maxHeight = node.height - (node instanceof ScreenNode ? (node.outputs.length * node.optionHeight + 50) : 40);
 
-                const words = text.split(' ');
-                let line = '';
+                const lines = text.split('\n');
                 let yPos = node.y + 45;
                 const lineHeight = 15;
 
-                for (let n = 0; n < words.length; n++) {
-                    let testLine = line + words[n] + ' ';
-                    let metrics = this.ctx.measureText(testLine);
-                    let testWidth = metrics.width;
-                    if (testWidth > maxWidth && n > 0) {
-                        if (yPos < node.y + 45 + maxHeight) {
-                            this.ctx.fillText(line, node.x + margin, yPos);
-                        }
-                        line = words[n] + ' ';
+                for (let i = 0; i < lines.length; i++) {
+                    const currentLineText = lines[i];
+                    // Split line into segments of [[tags]] and plain text
+                    const segments = currentLineText.split(/(\[\[.*?\]\])/g).filter(s => s !== '');
+                    let currentLine = [];
+                    let currentLineWidth = 0;
+
+                    const flushLine = (lineSegments) => {
+                        if (lineSegments.length === 0) return;
+                        let xOff = 0;
+                        lineSegments.forEach(seg => {
+                            this.ctx.font = seg.bold ? "bold 12px Courier New" : "12px Courier New";
+                            this.ctx.fillStyle = seg.bold ? "#4a9eff" : "#ccc";
+                            this.ctx.fillText(seg.text, node.x + margin + xOff, yPos);
+                            xOff += this.ctx.measureText(seg.text).width;
+                        });
                         yPos += lineHeight;
-                    } else {
-                        line = testLine;
+                    };
+
+                    for (const segText of segments) {
+                        const isBold = segText.startsWith('[[') && segText.endsWith(']]');
+                        this.ctx.font = isBold ? "bold 12px Courier New" : "12px Courier New";
+
+                        // Split segment into words but keep spaces
+                        const words = segText.split(/(\s+)/g).filter(w => w !== '');
+
+                        for (const word of words) {
+                            const wordWidth = this.ctx.measureText(word).width;
+
+                            if (currentLineWidth + wordWidth > maxWidth && currentLineWidth > 0) {
+                                // Draw existing line
+                                if (yPos < node.y + 45 + maxHeight) {
+                                    flushLine(currentLine);
+                                }
+                                currentLine = [];
+                                currentLineWidth = 0;
+                            }
+
+                            if (wordWidth > maxWidth) {
+                                // Word itself is too long, must break by character
+                                let tempWord = '';
+                                for (const char of word) {
+                                    const charWidth = this.ctx.measureText(tempWord + char).width;
+                                    if (charWidth > maxWidth) {
+                                        if (yPos < node.y + 45 + maxHeight) {
+                                            flushLine([{ text: tempWord, bold: isBold }]);
+                                        }
+                                        tempWord = char;
+                                    } else {
+                                        tempWord += char;
+                                    }
+                                }
+                                currentLine.push({ text: tempWord, bold: isBold });
+                                currentLineWidth = this.ctx.measureText(tempWord).width;
+                            } else {
+                                currentLine.push({ text: word, bold: isBold });
+                                currentLineWidth += wordWidth;
+                            }
+                        }
                     }
-                }
-                if (yPos < node.y + 45 + maxHeight) {
-                    this.ctx.fillText(line, node.x + margin, yPos);
+
+                    if (currentLine.length > 0 && yPos < node.y + 45 + maxHeight) {
+                        flushLine(currentLine);
+                    }
                 }
 
                 // Draw Ports and Options
