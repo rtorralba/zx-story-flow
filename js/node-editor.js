@@ -16,6 +16,7 @@ export class NodeEditor {
 
         this.selectedNode = null;
         this.selectedGroup = null;
+        this.highlightedNodes = new Set();
         this.dragState = null; // { type: 'node'|'connection'|'group', ... }
         this.hoveredConnection = null; // Track which connection is being hovered
         this.onStateChange = null;
@@ -26,9 +27,10 @@ export class NodeEditor {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e)); // This listener will now call the combined handler
         this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
-        this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
+        // Removed duplicate contextmenu listener
 
         // Start render loop
         this.animate();
@@ -122,6 +124,23 @@ export class NodeEditor {
         }
         this.draw();
         if (this.onStateChange) this.onStateChange();
+    }
+
+    getDescendants(node, visited = new Set()) {
+        if (!node || visited.has(node.id)) return visited;
+        visited.add(node.id);
+
+        if (node.outputs) {
+            node.outputs.forEach(opt => {
+                if (opt.target) {
+                    const child = this.nodes.find(n => n.id === opt.target);
+                    if (child) {
+                        this.getDescendants(child, visited);
+                    }
+                }
+            });
+        }
+        return visited;
     }
 
     openGroupPropertyPanel(group) {
@@ -298,6 +317,14 @@ export class NodeEditor {
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
         const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
+
+        // Clear any existing highlights on left click
+        if (e.button === 0) { // Left mouse button
+            if (this.highlightedNodes.size > 0) {
+                this.highlightedNodes.clear();
+                this.draw();
+            }
+        }
 
         const port = this.getPortAt(x, y);
         if (port) {
@@ -615,6 +642,33 @@ export class NodeEditor {
         if (this.onStateChange) this.onStateChange();
     }
 
+    handleContextMenu(e) {
+        e.preventDefault();
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
+        const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
+
+        // Check if right-clicking on a connection
+        const connection = this.getConnectionAt(x, y);
+        if (connection) {
+            // Remove the connection
+            connection.fromNode.outputs[connection.outputIndex].target = null;
+            this.draw();
+            return;
+        }
+
+        // If not a connection, check for node to highlight descendants
+        const node = this.getNodeAt(x, y);
+        this.highlightedNodes.clear(); // Clear previous highlights
+
+        if (node) {
+            const descendants = this.getDescendants(node);
+            this.highlightedNodes = descendants;
+        }
+
+        this.draw();
+    }
+
     handleDoubleClick(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
@@ -656,22 +710,6 @@ export class NodeEditor {
 
         this.draw();
         if (this.onStateChange) this.onStateChange();
-    }
-
-    handleContextMenu(e) {
-        e.preventDefault();
-        const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
-        const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
-
-        // Check if right-clicking on a connection
-        const connection = this.getConnectionAt(x, y);
-        if (connection) {
-            // Remove the connection
-            connection.fromNode.outputs[connection.outputIndex].target = null;
-            this.draw();
-            return;
-        }
     }
 
     draw() {
@@ -780,12 +818,13 @@ export class NodeEditor {
         // Draw Nodes
         this.nodes.forEach(node => {
             const isSelected = this.selectedNode === node;
+            const isHighlighted = this.highlightedNodes.has(node.id);
 
             // Draw differently for NodeReference
             if (node instanceof NodeReference) {
                 // Draw Reference Box (smaller and different style)
                 this.ctx.fillStyle = isSelected ? "#2a4a5a" : "#1a3a4a";
-                this.ctx.strokeStyle = isSelected ? "#4a9eff" : "#3a7acc";
+                this.ctx.strokeStyle = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#3a7acc");
                 this.ctx.lineWidth = 2;
                 this.ctx.setLineDash([5, 3]);
                 this.ctx.beginPath();
@@ -806,12 +845,24 @@ export class NodeEditor {
                 this.ctx.fillText(displayTitle, node.x + 35, node.y + 30);
             } else {
                 // Draw Normal Node Body
-                this.ctx.fillStyle = isSelected ? "#444" : "#333";
-                this.ctx.strokeStyle = isSelected ? "#00d022" : "#666";
-                this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
-                this.ctx.roundRect(node.x, node.y, node.width, node.height, 5);
+                this.ctx.roundRect(node.x, node.y, node.width, node.height, 8);
+
+                // Glow effect for highlighting
+                if (isHighlighted) {
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.shadowColor = "#4a9eff";
+                }
+
+                this.ctx.fillStyle = isSelected ? "#333" : "#222";
                 this.ctx.fill();
+
+                if (isHighlighted) {
+                    this.ctx.shadowBlur = 0; // Reset shadow for subsequent drawing
+                }
+
+                this.ctx.strokeStyle = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#444");
+                this.ctx.lineWidth = isSelected || isHighlighted ? 3 : 2;
                 this.ctx.stroke();
 
                 // Draw Node Title
