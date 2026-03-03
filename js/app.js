@@ -693,6 +693,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     id: n.id,
                     x: n.x,
                     y: n.y,
+                    width: n.width,
+                    height: n.height,
                     type: n.type,
                     title: n.title,
                     text: n.text,
@@ -803,6 +805,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         newNode.text = n.text || "";
                         newNode.title = n.title || n.type;
                         newNode.actions = n.actions || "";
+                        newNode.width = n.width || newNode.width;
+                        newNode.height = n.height || newNode.height;
                         if (n.outputs) newNode.outputs = n.outputs;
                         if (n.conditionalParagraphs) newNode.conditionalParagraphs = n.conditionalParagraphs;
                         if (n.paragraphImages) newNode.paragraphImages = n.paragraphImages;

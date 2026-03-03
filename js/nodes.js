@@ -34,30 +34,40 @@ export class ScreenNode extends Node {
         this.borderColor = 'black'; // Default border color
         this.baseHeight = 80;
         this.optionHeight = 30;
-    }
 
-    // Dynamic height based on options
-    get height() {
-        return this.baseHeight + (this.outputs.length * this.optionHeight);
+        // Initial auto-size
+        this.height = this.baseHeight + (this.outputs.length * this.optionHeight);
     }
-
-    // Setter needed because parent class or restore logic might try to set it, 
-    // but we want it computed. 
-    set height(v) { /* no-op */ }
 
     getOutputPort(index) {
-        const y = this.y + this.baseHeight + (index * this.optionHeight) - (this.optionHeight / 2);
+        // Position options at the bottom of the node
+        const totalOptionsHeight = this.outputs.length * this.optionHeight;
+        const optionsStartY = this.height - totalOptionsHeight;
+        const y = this.y + optionsStartY + (index * this.optionHeight) + (this.optionHeight / 2);
         return { x: this.x + this.width, y: y };
     }
 
     addOption(label = "New Option") {
         this.outputs.push({ label: label, target: null });
+        // Increase height to accommodate new option
+        this.height += this.optionHeight;
     }
 
     removeOption(index) {
         if (this.outputs.length > 0) {
             this.outputs.splice(index, 1);
+            // Decrease height
+            this.height -= this.optionHeight;
         }
+    }
+
+    // Check if the resize handle is being clicked (bottom-right corner)
+    isResizeHandleHit(x, y) {
+        const handleSize = 20;
+        return x >= this.x + this.width - handleSize &&
+            x <= this.x + this.width &&
+            y >= this.y + this.height - handleSize &&
+            y <= this.y + this.height;
     }
 }
 

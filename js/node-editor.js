@@ -366,6 +366,23 @@ export class NodeEditor {
             }
         }
 
+        // Check if clicking on a node resize handle
+        for (let i = this.nodes.length - 1; i >= 0; i--) {
+            const node = this.nodes[i];
+            if (node instanceof ScreenNode && node.isResizeHandleHit(x, y)) {
+                this.selectNode(node);
+                this.dragState = {
+                    type: 'resize-node',
+                    node: node,
+                    startX: x,
+                    startY: y,
+                    initialWidth: node.width,
+                    initialHeight: node.height
+                };
+                return;
+            }
+        }
+
         // Check if clicking on a node first (nodes are on top of groups)
         const node = this.getNodeAt(x, y);
         if (node) {
@@ -465,11 +482,23 @@ export class NodeEditor {
                 }
             }
 
-            // Check if hovering over a resize handle
+            // Check if hovering over a group resize handle
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
                     const group = this.groups[i];
                     if (group.isResizeHandleHit(x, y)) {
+                        this.canvas.style.cursor = 'nwse-resize';
+                        cursorSet = true;
+                        break;
+                    }
+                }
+            }
+
+            // Check if hovering over a node resize handle
+            if (!cursorSet) {
+                for (let i = this.nodes.length - 1; i >= 0; i--) {
+                    const node = this.nodes[i];
+                    if (node instanceof ScreenNode && node.isResizeHandleHit(x, y)) {
                         this.canvas.style.cursor = 'nwse-resize';
                         cursorSet = true;
                         break;
@@ -509,6 +538,17 @@ export class NodeEditor {
                 // Update width and height with minimum constraints
                 group.width = Math.max(150, this.dragState.initialWidth + deltaX);
                 group.height = Math.max(100, this.dragState.initialHeight + deltaY);
+
+                this.draw();
+            } else if (this.dragState.type === 'resize-node') {
+                const node = this.dragState.node;
+                const deltaX = x - this.dragState.startX;
+                const deltaY = y - this.dragState.startY;
+
+                // Update width and height with minimum constraints
+                node.width = Math.max(150, this.dragState.initialWidth + deltaX);
+                const minHeight = node.baseHeight + (node.outputs.length * node.optionHeight);
+                node.height = Math.max(minHeight, this.dragState.initialHeight + deltaY);
 
                 this.draw();
             } else if (this.dragState.type === 'group') {
@@ -779,15 +819,59 @@ export class NodeEditor {
                 this.ctx.font = "bold 14px Courier New";
                 this.ctx.fillText(node.title, node.x + 10, node.y + 25);
 
-                // Draw Node Specific Content
                 this.ctx.font = "12px Courier New";
                 this.ctx.fillStyle = "#ccc";
-                let content = node.text || "Empty screen text";
-                if (content.length > 20) content = content.substring(0, 17) + "...";
-                this.ctx.fillText(content, node.x + 10, node.y + 45);
+                let text = node.text || "";
+
+                // Canvas text wrapping
+                const margin = 10;
+                const maxWidth = node.width - (margin * 2);
+                const maxHeight = node.height - (node instanceof ScreenNode ? (node.outputs.length * node.optionHeight + 50) : 40);
+
+                const words = text.split(' ');
+                let line = '';
+                let yPos = node.y + 45;
+                const lineHeight = 15;
+
+                for (let n = 0; n < words.length; n++) {
+                    let testLine = line + words[n] + ' ';
+                    let metrics = this.ctx.measureText(testLine);
+                    let testWidth = metrics.width;
+                    if (testWidth > maxWidth && n > 0) {
+                        if (yPos < node.y + 45 + maxHeight) {
+                            this.ctx.fillText(line, node.x + margin, yPos);
+                        }
+                        line = words[n] + ' ';
+                        yPos += lineHeight;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (yPos < node.y + 45 + maxHeight) {
+                    this.ctx.fillText(line, node.x + margin, yPos);
+                }
 
                 // Draw Ports and Options
                 if (node instanceof ScreenNode) {
+                    // Draw resize handle
+                    if (isSelected) {
+                        const handleSize = 15;
+                        const handleX = node.x + node.width - handleSize;
+                        const handleY = node.y + node.height - handleSize;
+
+                        this.ctx.fillStyle = "#00d02260";
+                        this.ctx.fillRect(handleX, handleY, handleSize, handleSize);
+
+                        this.ctx.strokeStyle = "#00d022";
+                        this.ctx.lineWidth = 1;
+                        for (let i = 0; i < 2; i++) {
+                            const offset = handleSize - 4 - (i * 4);
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(node.x + node.width - offset, node.y + node.height - 2);
+                            this.ctx.lineTo(node.x + node.width - 2, node.y + node.height - offset);
+                            this.ctx.stroke();
+                        }
+                    }
                     node.outputs.forEach((opt, index) => {
                         const port = node.getOutputPort(index);
                         this.drawPort(port, "#00d022");
