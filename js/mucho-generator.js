@@ -77,7 +77,7 @@ export function generateMucho(nodes, globalConfig = null) {
         const label = labelMap[node.id];
         let description = node.text || "";
         // Replace lines that only contain whitespace with $P
-        description = description.split(/\r?\n/).map(line => line.trim() === "" ? "$P" : line).join("\n");
+        description = description.split(/\r?\n/).map(line => line === "" ? "$P" : line).join("\n");
 
         // Calculate attributes
         // Page attributes (use node config if exists, else global)
@@ -113,7 +113,7 @@ export function generateMucho(nodes, globalConfig = null) {
                 if (resolvedTarget) {
                     // Use the label from the map for the target node
                     const targetLabel = labelMap[resolvedTarget] || ("N" + resolvedTarget);
-                    const choiceText = opt.label.replace(/\n/g, " ").trim();
+                    const choiceText = opt.label.replace(/\n/g, " ");
 
                     // Add flag if present
                     let flagPart = '';

@@ -22,18 +22,18 @@ function wrapText(text, maxWidth = 32) {
             wrappedLines.push('');
             return;
         }
-        let words = para.split(' ');
-        let currentLine = '';
 
-        words.forEach(word => {
-            if ((currentLine + word).length <= maxWidth) {
-                currentLine += (currentLine === '' ? '' : ' ') + word;
-            } else {
-                wrappedLines.push(currentLine);
-                currentLine = word;
-            }
-        });
-        if (currentLine) wrappedLines.push(currentLine);
+        let remaining = para;
+        while (remaining.length > maxWidth) {
+            let breakAt = remaining.lastIndexOf(' ', maxWidth);
+            if (breakAt === -1) breakAt = maxWidth;
+
+            wrappedLines.push(remaining.substring(0, breakAt));
+            remaining = remaining.substring(breakAt).replace(/^ +/, '');
+        }
+        if (remaining.length > 0) {
+            wrappedLines.push(remaining);
+        }
     });
 
     return wrappedLines;
@@ -59,7 +59,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
             if (line.startsWith('$A ')) {
                 currentBlock.options.push({ header: line, text: null });
             } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
-                currentBlock.options[currentBlock.options.length - 1].text = line.trim() || "Continuar";
+                currentBlock.options[currentBlock.options.length - 1].text = line || "Continuar";
             } else {
                 currentBlock.content.push(line);
             }
@@ -190,7 +190,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
 
         for (let i = 0; i < block.content.length; i++) {
             const line = block.content[i];
-            const trimmed = line.trim();
+            const trimmed = line;
 
             if (trimmed === "" || trimmed === "$P") {
                 if (currentPara.length > 0) {
@@ -229,7 +229,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
                 lineNr += 10;
             } else if (para.type === 'text') {
                 const fullText = para.lines.join('\n');
-                const wrappedLines = wrapText(fullText).filter(wl => wl.trim());
+                const wrappedLines = wrapText(fullText);
 
                 if (wrappedLines.length > 0) {
                     const combinedPrint = `"${wrappedLines.join(`" '"`)}"`;

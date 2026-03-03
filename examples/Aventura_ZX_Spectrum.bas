@@ -11,8 +11,8 @@
 110 REM Set default attributes
 120 LET tattr=7:LET dattr=4:LET iattr=32:RETURN
 130 REM-- - LaCarga ---
-140 GO SUB 9988: 
-150 BORDER 3 
+140 BORDER 3 
+150 GO SUB 9988: 
 160 PRINT "[[ PICTURE 1 ]] " '"[[ CLEAR ]]Es 1984. Estas sentado" '"frente al televisor. Los" '"chirridos de la cinta llenan la" '"habitacion: 'BIIIP... screech..." '"BIIP'."
 170 PRINT ""
 180 PRINT "De repente, el borde deja de" '"parpadear colores."
@@ -21,8 +21,8 @@
 210 LET n=n+1:LET p(n)=350:PRINT #1;"   Esperar con paciencia"
 220 GO TO 9993
 230 REM-- - Azimut ---
-240 GO SUB 9988: 
-250 BORDER 3 
+240 BORDER 3 
+250 GO SUB 9988: 
 260 PRINT "[[ CLEAR ]]Coges tu diminuto" '"destornillador amarillo." '"Giras el tornillo de azimut del" '"Datasette 0.01mm a la derecha."
 270 PRINT ""
 280 PRINT "El sonido cambia. Ha mejorado?"
@@ -33,8 +33,8 @@
 330 REM Ups ahora no suena
 340 LET fkey=0:GO TO 580
 350 REM-- - Paciencia ---
-360 GO SUB 9988: 
-370 BORDER 3 
+360 BORDER 3 
+370 GO SUB 9988: 
 380 PRINT "Esperas." '"Pasan 5 minutos." '"Pasan 10 minutos." '"Tu te se enfria."
 390 PRINT ""
 400 PRINT "Finalmente aparece el mensaje: " '"'R Tape loading error, 0:1'."
@@ -45,8 +45,8 @@
 450 REM Rebobinar y reintentar
 460 LET fkey=1:GO TO 580
 470 REM-- - Exito ---
-480 GO SUB 9988: 
-490 BORDER 3 
+480 BORDER 3 
+490 GO SUB 9988: 
 500 PRINT "Un milagro! La pantalla de " '"titulo aparece pixel a pixel."
 510 PRINT ""
 520 PRINT "'JET SET WILLY'"
@@ -56,8 +56,8 @@
 560 LET n=n+1:LET p(n)=130:PRINT #1;"   Jugar otro juego"
 570 GO TO 9993
 580 REM-- - Silencio ---
-590 GO SUB 9988: 
-600 BORDER 3 
+590 BORDER 3 
+600 GO SUB 9988: 
 610 PRINT "Giraste el tornillo demasiado. El" '"cabezal esta desalineado." '"Rompiste el datasette."
 620 PRINT ""
 630 IF fkey=1 THEN PRINT "Ahora tienes que escuchar a tus" '"padres hablar de politica en vez" '"de jugar."
@@ -65,8 +65,8 @@
 650 LET n=n+1:LET p(n)=130:PRINT #1;"   Irse a dormir"
 660 GO TO 9993
 670 REM-- - Rabia ---
-680 GO SUB 9988: 
-690 BORDER 3 
+680 BORDER 3 
+690 GO SUB 9988: 
 700 PRINT "Golpeas las teclas de goma con" '"frustracion." '"Una tecla sale volando y golpea" '"al gato." '"El gato te arana."
 710 PRINT ""
 720 PRINT "GAME OVER."
