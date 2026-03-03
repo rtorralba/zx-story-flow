@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZX Story Flow</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/display/rulers.min.js"></script>
 </head>
 
 <body>
@@ -26,20 +30,23 @@
                         <button id="new-btn" data-i18n="project.new">📄 Nuevo</button>
                         <button id="save-btn" data-i18n="project.save">💾 Save</button>
                         <button id="load-btn" data-i18n="project.load">📂 Load</button>
+                        <button id="import-mucho-btn" data-i18n="project.import_mucho" style="display:none;">📥 Import
+                            MuCho</button>
+                        <div class="submenu-item">
+                            <button class="submenu-item-btn" data-i18n="menu.export">📤 Export ▶</button>
+                            <div class="submenu submenu-nested">
+                                <button id="export-png-btn" data-i18n="export.png">🖼️ PNG Image</button>
+                                <button id="export-tap-btn" data-i18n="export.tap">📼 .TAP</button>
+                                <button id="export-cyd-btn" data-i18n="export.cyd">📝 CYD</button>
+                                <button id="export-mucho-btn" data-i18n="export.mucho">📜 MuCho</button>
+                                <button id="export-btn" data-i18n="export.basic">⌨️ BASIC</button>
+                            </div>
+                        </div>
+                        <button id="config-btn" data-i18n="menu.config">⚙️ Config</button>
                     </div>
                 </div>
 
-                <div class="menu">
-                    <button class="menu-button" data-i18n="menu.export">📤 Export</button>
-                    <div class="submenu submenu-right">
-                        <button id="export-png-btn" data-i18n="export.png">🖼️ PNG Image</button>
-                        <button id="export-tap-btn" data-i18n="export.tap">📼 .TAP</button>
-                        <button id="export-mucho-btn" data-i18n="export.mucho">📜 MuCho</button>
-                        <button id="export-btn" data-i18n="export.basic">⌨️ BASIC</button>
-                    </div>
-                </div>
 
-                <button id="config-btn" data-i18n="menu.config">⚙️ Config</button>
 
                 <div class="menu" style="margin-left: auto;">
                     <button class="menu-button" id="lang-btn">🌐 <span id="current-lang">ES</span></button>
@@ -53,6 +60,7 @@
                 <button id="fullscreen-btn" data-i18n="menu.fullscreen">⛶ Fullscreen</button>
 
                 <input type="file" id="load-input" style="display: none;" accept=".json">
+                <input type="file" id="import-mucho-input" style="display: none;" accept=".txt,.mucho">
             </nav>
         </header>
 
@@ -190,127 +198,187 @@
             <div class="modal-content">
                 <button class="modal-close-btn" id="modal-close-btn">&times;</button>
                 <h2 data-i18n="config.global_title">Configuración Global (por defecto)</h2>
-                <h3 data-i18n="properties.page">Página</h3>
-                <div class="config-options">
-                    <div class="config-row">
-                        <label for="global-page-ink" data-i18n="properties.ink">INK:</label>
-                        <select id="global-page-ink">
-                            <option value="black" data-i18n="colors.black">Negro</option>
-                            <option value="blue" data-i18n="colors.blue">Azul</option>
-                            <option value="red" data-i18n="colors.red">Rojo</option>
-                            <option value="magenta" data-i18n="colors.magenta">Magenta</option>
-                            <option value="green" data-i18n="colors.green">Verde</option>
-                            <option value="cyan" data-i18n="colors.cyan">Cyan</option>
-                            <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
-                            <option value="white" data-i18n="colors.white" selected>Blanco</option>
-                        </select>
-                        <label for="global-page-paper" style="margin-left: 5px;"
-                            data-i18n="properties.paper">PAPER:</label>
-                        <select id="global-page-paper">
-                            <option value="black" data-i18n="colors.black" selected>Negro</option>
-                            <option value="blue" data-i18n="colors.blue">Azul</option>
-                            <option value="red" data-i18n="colors.red">Rojo</option>
-                            <option value="magenta" data-i18n="colors.magenta">Magenta</option>
-                            <option value="green" data-i18n="colors.green">Verde</option>
-                            <option value="cyan" data-i18n="colors.cyan">Cyan</option>
-                            <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
-                            <option value="white" data-i18n="colors.white">Blanco</option>
-                        </select>
+                <div style="display:flex; flex-direction:row; gap:32px; align-items:flex-start; width:100%;">
+                    <div style="flex:0 0 calc(50% - 16px);">
+                        <h3 data-i18n="config.project_type">Project Type</h3>
+                        <div class="config-options">
+                            <div class="config-row">
+                                <label for="global-project-type" data-i18n="config.format_label">Format:</label>
+                                <select id="global-project-type">
+                                    <option value="MuCho">MuCho</option>
+                                    <option value="CYD">CYD</option>
+                                </select>
+                                <span class="tooltip-icon" data-i18n="config.format_help"
+                                    title="Choose how exports interpret node text">&#63;</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="config-row">
-                        <label for="global-page-bright" data-i18n="properties.bright">Bright</label>
-                        <input type="checkbox" id="global-page-bright">
-                        <label for="global-page-flash" style="margin-left: 5px;"
-                            data-i18n="properties.flash">Flash</label>
-                        <input type="checkbox" id="global-page-flash">
+                    <div style="flex:0 0 calc(50% - 16px);">
+                        <h3 data-i18n="config.edit_interface">Interfaz de Edición</h3>
+                        <div class="config-options">
+                            <div class="config-row">
+                                <label for="global-view-mode" data-i18n="config.default_view">Modo de edición:</label>
+                                <select id="global-view-mode">
+                                    <option value="simple" data-i18n="config.view_simple">Vista Sencilla</option>
+                                    <option value="advanced" data-i18n="config.view_advanced">Vista Avanzada</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <br><br>
-                <h3 data-i18n="properties.separator">Separador</h3>
-                <div class="config-options">
-                    <div class="config-row">
-                        <label for="global-separator-ink" data-i18n="properties.ink">INK:</label>
-                        <select id="global-separator-ink">
-                            <option value="black" data-i18n="colors.black">Negro</option>
-                            <option value="blue" data-i18n="colors.blue">Azul</option>
-                            <option value="red" data-i18n="colors.red">Rojo</option>
-                            <option value="magenta" data-i18n="colors.magenta">Magenta</option>
-                            <option value="green" data-i18n="colors.green">Verde</option>
-                            <option value="cyan" data-i18n="colors.cyan">Cyan</option>
-                            <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
-                            <option value="white" data-i18n="colors.white" selected>Blanco</option>
-                        </select>
-                        <label for="global-separator-paper" style="margin-left: 5px;"
-                            data-i18n="properties.paper">PAPER:</label>
-                        <select id="global-separator-paper">
-                            <option value="black" data-i18n="colors.black" selected>Negro</option>
-                            <option value="blue" data-i18n="colors.blue">Azul</option>
-                            <option value="red" data-i18n="colors.red">Rojo</option>
-                            <option value="magenta" data-i18n="colors.magenta">Magenta</option>
-                            <option value="green" data-i18n="colors.green">Verde</option>
-                            <option value="cyan" data-i18n="colors.cyan">Cyan</option>
-                            <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
-                            <option value="white" data-i18n="colors.white">Blanco</option>
-                        </select>
+                <div id="mucho-sections">
+                    <h3 data-i18n="properties.border">Borde</h3>
+                    <div class="config-options">
+                        <div class="config-row">
+                            <label for="global-border-color" data-i18n="properties.border">Borde:</label>
+                            <select id="global-border-color" style="margin-left: 5px;">
+                                <option value="black" data-i18n="colors.black" selected>Negro</option>
+                                <option value="blue" data-i18n="colors.blue">Azul</option>
+                                <option value="red" data-i18n="colors.red">Rojo</option>
+                                <option value="magenta" data-i18n="colors.magenta">Magenta</option>
+                                <option value="green" data-i18n="colors.green">Verde</option>
+                                <option value="cyan" data-i18n="colors.cyan">Cyan</option>
+                                <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
+                                <option value="white" data-i18n="colors.white">Blanco</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="config-row">
-                        <label for="global-separator-bright" data-i18n="properties.bright">Bright</label>
-                        <input type="checkbox" id="global-separator-bright">
-                        <label for="global-separator-flash" style="margin-left: 5px;"
-                            data-i18n="properties.flash">Flash</label>
-                        <input type="checkbox" id="global-separator-flash">
+                    <h3 data-i18n="properties.page">Página</h3>
+                    <div class="config-options">
+                        <div class="config-row">
+                            <label for="global-page-ink" data-i18n="properties.ink">INK:</label>
+                            <select id="global-page-ink">
+                                <option value="black" data-i18n="colors.black">Negro</option>
+                                <option value="blue" data-i18n="colors.blue">Azul</option>
+                                <option value="red" data-i18n="colors.red">Rojo</option>
+                                <option value="magenta" data-i18n="colors.magenta">Magenta</option>
+                                <option value="green" data-i18n="colors.green">Verde</option>
+                                <option value="cyan" data-i18n="colors.cyan">Cyan</option>
+                                <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
+                                <option value="white" data-i18n="colors.white" selected>Blanco</option>
+                            </select>
+                            <label for="global-page-paper" style="margin-left: 5px;"
+                                data-i18n="properties.paper">PAPER:</label>
+                            <select id="global-page-paper">
+                                <option value="black" data-i18n="colors.black" selected>Negro</option>
+                                <option value="blue" data-i18n="colors.blue">Azul</option>
+                                <option value="red" data-i18n="colors.red">Rojo</option>
+                                <option value="magenta" data-i18n="colors.magenta">Magenta</option>
+                                <option value="green" data-i18n="colors.green">Verde</option>
+                                <option value="cyan" data-i18n="colors.cyan">Cyan</option>
+                                <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
+                                <option value="white" data-i18n="colors.white">Blanco</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="global-page-bright" data-i18n="properties.bright">Bright</label>
+                            <input type="checkbox" id="global-page-bright">
+                            <label for="global-page-flash" style="margin-left: 5px;"
+                                data-i18n="properties.flash">Flash</label>
+                            <input type="checkbox" id="global-page-flash">
+                        </div>
                     </div>
-                </div>
-                <br><br>
-                <h3 data-i18n="properties.options">Opciones</h3>
-                <div class="config-options">
-                    <div class="config-row">
-                        <label for="global-interface-ink" data-i18n="properties.ink">INK:</label>
-                        <select id="global-interface-ink">
-                            <option value="black" data-i18n="colors.black">Negro</option>
-                            <option value="blue" data-i18n="colors.blue">Azul</option>
-                            <option value="red" data-i18n="colors.red">Rojo</option>
-                            <option value="magenta" data-i18n="colors.magenta">Magenta</option>
-                            <option value="green" data-i18n="colors.green">Verde</option>
-                            <option value="cyan" data-i18n="colors.cyan">Cyan</option>
-                            <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
-                            <option value="white" data-i18n="colors.white" selected>Blanco</option>
-                        </select>
-                        <label for="global-interface-paper" style="margin-left: 5px;"
-                            data-i18n="properties.paper">PAPER:</label>
-                        <select id="global-interface-paper">
-                            <option value="black" data-i18n="colors.black" selected>Negro</option>
-                            <option value="blue" data-i18n="colors.blue">Azul</option>
-                            <option value="red" data-i18n="colors.red">Rojo</option>
-                            <option value="magenta" data-i18n="colors.magenta">Magenta</option>
-                            <option value="green" data-i18n="colors.green">Verde</option>
-                            <option value="cyan" data-i18n="colors.cyan">Cyan</option>
-                            <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
-                            <option value="white" data-i18n="colors.white">Blanco</option>
-                        </select>
+                    <h3 data-i18n="properties.separator">Separador</h3>
+                    <div class="config-options">
+                        <div class="config-row">
+                            <label for="global-separator-ink" data-i18n="properties.ink">INK:</label>
+                            <select id="global-separator-ink">
+                                <option value="black" data-i18n="colors.black">Negro</option>
+                                <option value="blue" data-i18n="colors.blue">Azul</option>
+                                <option value="red" data-i18n="colors.red">Rojo</option>
+                                <option value="magenta" data-i18n="colors.magenta">Magenta</option>
+                                <option value="green" data-i18n="colors.green">Verde</option>
+                                <option value="cyan" data-i18n="colors.cyan">Cyan</option>
+                                <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
+                                <option value="white" data-i18n="colors.white" selected>Blanco</option>
+                            </select>
+                            <label for="global-separator-paper" style="margin-left: 5px;"
+                                data-i18n="properties.paper">PAPER:</label>
+                            <select id="global-separator-paper">
+                                <option value="black" data-i18n="colors.black" selected>Negro</option>
+                                <option value="blue" data-i18n="colors.blue">Azul</option>
+                                <option value="red" data-i18n="colors.red">Rojo</option>
+                                <option value="magenta" data-i18n="colors.magenta">Magenta</option>
+                                <option value="green" data-i18n="colors.green">Verde</option>
+                                <option value="cyan" data-i18n="colors.cyan">Cyan</option>
+                                <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
+                                <option value="white" data-i18n="colors.white">Blanco</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="global-separator-bright" data-i18n="properties.bright">Bright</label>
+                            <input type="checkbox" id="global-separator-bright">
+                            <label for="global-separator-flash" style="margin-left: 5px;"
+                                data-i18n="properties.flash">Flash</label>
+                            <input type="checkbox" id="global-separator-flash">
+                        </div>
                     </div>
-                    <div class="config-row">
-                        <label for="global-interface-bright" data-i18n="properties.bright">Bright</label>
-                        <input type="checkbox" id="global-interface-bright">
-                        <label for="global-interface-flash" style="margin-left: 5px;"
-                            data-i18n="properties.flash">Flash</label>
-                        <input type="checkbox" id="global-interface-flash">
+                    <h3 data-i18n="properties.options">Opciones</h3>
+                    <div class="config-options">
+                        <div class="config-row">
+                            <label for="global-interface-ink" data-i18n="properties.ink">INK:</label>
+                            <select id="global-interface-ink">
+                                <option value="black" data-i18n="colors.black">Negro</option>
+                                <option value="blue" data-i18n="colors.blue">Azul</option>
+                                <option value="red" data-i18n="colors.red">Rojo</option>
+                                <option value="magenta" data-i18n="colors.magenta">Magenta</option>
+                                <option value="green" data-i18n="colors.green">Verde</option>
+                                <option value="cyan" data-i18n="colors.cyan">Cyan</option>
+                                <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
+                                <option value="white" data-i18n="colors.white" selected>Blanco</option>
+                            </select>
+                            <label for="global-interface-paper" style="margin-left: 5px;"
+                                data-i18n="properties.paper">PAPER:</label>
+                            <select id="global-interface-paper">
+                                <option value="black" data-i18n="colors.black" selected>Negro</option>
+                                <option value="blue" data-i18n="colors.blue">Azul</option>
+                                <option value="red" data-i18n="colors.red">Rojo</option>
+                                <option value="magenta" data-i18n="colors.magenta">Magenta</option>
+                                <option value="green" data-i18n="colors.green">Verde</option>
+                                <option value="cyan" data-i18n="colors.cyan">Cyan</option>
+                                <option value="yellow" data-i18n="colors.yellow">Amarillo</option>
+                                <option value="white" data-i18n="colors.white">Blanco</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="global-interface-bright" data-i18n="properties.bright">Bright</label>
+                            <input type="checkbox" id="global-interface-bright">
+                            <label for="global-interface-flash" style="margin-left: 5px;"
+                                data-i18n="properties.flash">Flash</label>
+                            <input type="checkbox" id="global-interface-flash">
+                        </div>
                     </div>
-                </div>
-                <br><br>
-                <h3 data-i18n="config.edit_interface">Interfaz de Edición</h3>
-                <div class="config-options">
-                    <div class="config-row">
-                        <label for="global-view-mode" data-i18n="config.default_view">Modo de edición por
-                            defecto:</label>
-                        <select id="global-view-mode">
-                            <option value="simple" data-i18n="config.view_simple">Vista Sencilla</option>
-                            <option value="advanced" data-i18n="config.view_advanced">Vista Avanzada</option>
-                        </select>
+                    <br><br>
+                    <br><br>
+                    <h3 data-i18n="config.basic_graphics" style="margin-top:20px;">Gráficos (solo para BASIC)</h3>
+                    <div class="config-options" style="flex-wrap: nowrap; gap: 32px;">
+                        <div class="config-row" style="flex-direction: column; align-items: center; gap: 10px;">
+                            <label data-i18n="config.separator_graphic">Gráfico Separador</label>
+                            <div id="separator-matrix" class="pixel-matrix"></div>
+                        </div>
+                        <div class="config-row" style="flex-direction: column; align-items: center; gap: 10px;">
+                            <label data-i18n="config.selector_graphic">Gráfico Selector</label>
+                            <div id="selector-matrix" class="pixel-matrix"></div>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-buttons">
-                    <button id="close-global-config" data-i18n="config.close">Cerrar</button>
+                </div><!-- /mucho-sections -->
+
+                <!-- Sección Código general para CYD -->
+                <div id="cyd-general-code-section" style="display:none; margin-top:20px;">
+                    <h3 data-i18n="config.cyd_general_title">Código general CYD</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab-btn code-tab-active" data-target="cyd-tab-start"
+                            data-i18n="config.cyd_tab_start">Código inicio</button>
+                        <button class="code-tab-btn" data-target="cyd-tab-end" data-i18n="config.cyd_tab_end">Código
+                            fin</button>
+                    </div>
+                    <div id="cyd-tab-start" class="code-tab-panel">
+                        <textarea id="cyd-general-code" rows="10" style="width:100%; font-family:monospace;"></textarea>
+                    </div>
+                    <div id="cyd-tab-end" class="code-tab-panel" style="display:none;">
+                        <textarea id="cyd-general-code-end" rows="10"
+                            style="width:100%; font-family:monospace;"></textarea>
+                    </div>
                 </div>
             </div>
         </div>
@@ -323,16 +391,49 @@
                 <div id="node-edit-modal-content">
                     <!-- El contenido se generará dinámicamente -->
                 </div>
-                
+
             </div>
         </div>
     </div>
 
     <script type="module" src="js/app.js"></script>
+    <script type="module">
+        import { mountCYDEditor } from './js/cyd-codemirror.js';
+        // Montar siempre al cargar (funciona aunque la sección esté oculta)
+        window.addEventListener('DOMContentLoaded', () => {
+            mountCYDEditor('cyd-general-code');
+            mountCYDEditor('cyd-general-code-end');
+
+            // Tab switching
+            document.querySelectorAll('.code-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.target;
+                    document.querySelectorAll('.code-tab-btn').forEach(b => b.classList.remove('code-tab-active'));
+                    document.querySelectorAll('.code-tab-panel').forEach(p => p.style.display = 'none');
+                    btn.classList.add('code-tab-active');
+                    const panel = document.getElementById(target);
+                    if (panel) {
+                        panel.style.display = '';
+                        const ta = panel.querySelector('textarea');
+                        if (ta && ta._cmInstance) setTimeout(() => ta._cmInstance.refresh(), 0);
+                    }
+                });
+            });
+        });
+        // Exponer para llamadas desde app.js: monta si no está montado, y siempre refresca
+        window.showCYDEditor = function () {
+            mountCYDEditor('cyd-general-code');
+            mountCYDEditor('cyd-general-code-end');
+            const ta = document.getElementById('cyd-general-code');
+            if (ta && ta._cmInstance) setTimeout(() => ta._cmInstance.refresh(), 0);
+            const taEnd = document.getElementById('cyd-general-code-end');
+            if (taEnd && taEnd._cmInstance) setTimeout(() => taEnd._cmInstance.refresh(), 0);
+        };
+    </script>
 </body>
 
 </html>
- 
+
 <!-- Compact modal para edición de Grupos y Referencias (más estrecho, sin switch de vista) -->
 <div id="compact-edit-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content" id="compact-edit-modal-wrapper">
@@ -341,6 +442,6 @@
         <div id="compact-edit-modal-content">
             <!-- Contenido generado dinámicamente -->
         </div>
-        
+
     </div>
 </div>

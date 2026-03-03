@@ -16,6 +16,7 @@ export class NodeEditor {
 
         this.selectedNode = null;
         this.selectedGroup = null;
+        this.highlightedNodes = new Set();
         this.dragState = null; // { type: 'node'|'connection'|'group', ... }
         this.hoveredConnection = null; // Track which connection is being hovered
         this.onStateChange = null;
@@ -26,9 +27,10 @@ export class NodeEditor {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e)); // This listener will now call the combined handler
         this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
-        this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
+        // Removed duplicate contextmenu listener
 
         // Start render loop
         this.animate();
@@ -122,6 +124,23 @@ export class NodeEditor {
         }
         this.draw();
         if (this.onStateChange) this.onStateChange();
+    }
+
+    getDescendants(node, visited = new Set()) {
+        if (!node || visited.has(node.id)) return visited;
+        visited.add(node.id);
+
+        if (node.outputs) {
+            node.outputs.forEach(opt => {
+                if (opt.target) {
+                    const child = this.nodes.find(n => n.id === opt.target);
+                    if (child) {
+                        this.getDescendants(child, visited);
+                    }
+                }
+            });
+        }
+        return visited;
     }
 
     openGroupPropertyPanel(group) {
@@ -299,6 +318,14 @@ export class NodeEditor {
         const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
         const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
 
+        // Clear any existing highlights on left click
+        if (e.button === 0) { // Left mouse button
+            if (this.highlightedNodes.size > 0) {
+                this.highlightedNodes.clear();
+                this.draw();
+            }
+        }
+
         const port = this.getPortAt(x, y);
         if (port) {
             this.dragState = {
@@ -361,6 +388,23 @@ export class NodeEditor {
                     startY: y,
                     initialWidth: group.width,
                     initialHeight: group.height
+                };
+                return;
+            }
+        }
+
+        // Check if clicking on a node resize handle
+        for (let i = this.nodes.length - 1; i >= 0; i--) {
+            const node = this.nodes[i];
+            if (node instanceof ScreenNode && node.isResizeHandleHit(x, y)) {
+                this.selectNode(node);
+                this.dragState = {
+                    type: 'resize-node',
+                    node: node,
+                    startX: x,
+                    startY: y,
+                    initialWidth: node.width,
+                    initialHeight: node.height
                 };
                 return;
             }
@@ -465,11 +509,23 @@ export class NodeEditor {
                 }
             }
 
-            // Check if hovering over a resize handle
+            // Check if hovering over a group resize handle
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
                     const group = this.groups[i];
                     if (group.isResizeHandleHit(x, y)) {
+                        this.canvas.style.cursor = 'nwse-resize';
+                        cursorSet = true;
+                        break;
+                    }
+                }
+            }
+
+            // Check if hovering over a node resize handle
+            if (!cursorSet) {
+                for (let i = this.nodes.length - 1; i >= 0; i--) {
+                    const node = this.nodes[i];
+                    if (node instanceof ScreenNode && node.isResizeHandleHit(x, y)) {
                         this.canvas.style.cursor = 'nwse-resize';
                         cursorSet = true;
                         break;
@@ -509,6 +565,17 @@ export class NodeEditor {
                 // Update width and height with minimum constraints
                 group.width = Math.max(150, this.dragState.initialWidth + deltaX);
                 group.height = Math.max(100, this.dragState.initialHeight + deltaY);
+
+                this.draw();
+            } else if (this.dragState.type === 'resize-node') {
+                const node = this.dragState.node;
+                const deltaX = x - this.dragState.startX;
+                const deltaY = y - this.dragState.startY;
+
+                // Update width and height with minimum constraints
+                node.width = Math.max(150, this.dragState.initialWidth + deltaX);
+                const minHeight = node.baseHeight + (node.outputs.length * node.optionHeight);
+                node.height = Math.max(minHeight, this.dragState.initialHeight + deltaY);
 
                 this.draw();
             } else if (this.dragState.type === 'group') {
@@ -575,6 +642,33 @@ export class NodeEditor {
         if (this.onStateChange) this.onStateChange();
     }
 
+    handleContextMenu(e) {
+        e.preventDefault();
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
+        const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
+
+        // Check if right-clicking on a connection
+        const connection = this.getConnectionAt(x, y);
+        if (connection) {
+            // Remove the connection
+            connection.fromNode.outputs[connection.outputIndex].target = null;
+            this.draw();
+            return;
+        }
+
+        // If not a connection, check for node to highlight descendants
+        const node = this.getNodeAt(x, y);
+        this.highlightedNodes.clear(); // Clear previous highlights
+
+        if (node) {
+            const descendants = this.getDescendants(node);
+            this.highlightedNodes = descendants;
+        }
+
+        this.draw();
+    }
+
     handleDoubleClick(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
@@ -616,22 +710,6 @@ export class NodeEditor {
 
         this.draw();
         if (this.onStateChange) this.onStateChange();
-    }
-
-    handleContextMenu(e) {
-        e.preventDefault();
-        const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
-        const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
-
-        // Check if right-clicking on a connection
-        const connection = this.getConnectionAt(x, y);
-        if (connection) {
-            // Remove the connection
-            connection.fromNode.outputs[connection.outputIndex].target = null;
-            this.draw();
-            return;
-        }
     }
 
     draw() {
@@ -740,12 +818,13 @@ export class NodeEditor {
         // Draw Nodes
         this.nodes.forEach(node => {
             const isSelected = this.selectedNode === node;
+            const isHighlighted = this.highlightedNodes.has(node.id);
 
             // Draw differently for NodeReference
             if (node instanceof NodeReference) {
                 // Draw Reference Box (smaller and different style)
                 this.ctx.fillStyle = isSelected ? "#2a4a5a" : "#1a3a4a";
-                this.ctx.strokeStyle = isSelected ? "#4a9eff" : "#3a7acc";
+                this.ctx.strokeStyle = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#3a7acc");
                 this.ctx.lineWidth = 2;
                 this.ctx.setLineDash([5, 3]);
                 this.ctx.beginPath();
@@ -766,12 +845,24 @@ export class NodeEditor {
                 this.ctx.fillText(displayTitle, node.x + 35, node.y + 30);
             } else {
                 // Draw Normal Node Body
-                this.ctx.fillStyle = isSelected ? "#444" : "#333";
-                this.ctx.strokeStyle = isSelected ? "#00d022" : "#666";
-                this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
-                this.ctx.roundRect(node.x, node.y, node.width, node.height, 5);
+                this.ctx.roundRect(node.x, node.y, node.width, node.height, 8);
+
+                // Glow effect for highlighting
+                if (isHighlighted) {
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.shadowColor = "#4a9eff";
+                }
+
+                this.ctx.fillStyle = isSelected ? "#333" : "#222";
                 this.ctx.fill();
+
+                if (isHighlighted) {
+                    this.ctx.shadowBlur = 0; // Reset shadow for subsequent drawing
+                }
+
+                this.ctx.strokeStyle = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#444");
+                this.ctx.lineWidth = isSelected || isHighlighted ? 3 : 2;
                 this.ctx.stroke();
 
                 // Draw Node Title
@@ -779,15 +870,106 @@ export class NodeEditor {
                 this.ctx.font = "bold 14px Courier New";
                 this.ctx.fillText(node.title, node.x + 10, node.y + 25);
 
-                // Draw Node Specific Content
                 this.ctx.font = "12px Courier New";
                 this.ctx.fillStyle = "#ccc";
-                let content = node.text || "Empty screen text";
-                if (content.length > 20) content = content.substring(0, 17) + "...";
-                this.ctx.fillText(content, node.x + 10, node.y + 45);
+                let text = node.text || "";
+
+                // Canvas text wrapping
+                const margin = 10;
+                const maxWidth = node.width - (margin * 2);
+                const maxHeight = node.height - (node instanceof ScreenNode ? (node.outputs.length * node.optionHeight + 50) : 40);
+
+                const lines = text.split('\n');
+                let yPos = node.y + 45;
+                const lineHeight = 15;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const currentLineText = lines[i];
+                    // Split line into segments of [[tags]] and plain text
+                    const segments = currentLineText.split(/(\[\[.*?\]\])/g).filter(s => s !== '');
+                    let currentLine = [];
+                    let currentLineWidth = 0;
+
+                    const flushLine = (lineSegments) => {
+                        if (lineSegments.length === 0) return;
+                        let xOff = 0;
+                        lineSegments.forEach(seg => {
+                            this.ctx.font = seg.bold ? "bold 12px Courier New" : "12px Courier New";
+                            this.ctx.fillStyle = seg.bold ? "#4a9eff" : "#ccc";
+                            this.ctx.fillText(seg.text, node.x + margin + xOff, yPos);
+                            xOff += this.ctx.measureText(seg.text).width;
+                        });
+                        yPos += lineHeight;
+                    };
+
+                    for (const segText of segments) {
+                        const isBold = segText.startsWith('[[') && segText.endsWith(']]');
+                        this.ctx.font = isBold ? "bold 12px Courier New" : "12px Courier New";
+
+                        // Split segment into words but keep spaces
+                        const words = segText.split(/(\s+)/g).filter(w => w !== '');
+
+                        for (const word of words) {
+                            const wordWidth = this.ctx.measureText(word).width;
+
+                            if (currentLineWidth + wordWidth > maxWidth && currentLineWidth > 0) {
+                                // Draw existing line
+                                if (yPos < node.y + 45 + maxHeight) {
+                                    flushLine(currentLine);
+                                }
+                                currentLine = [];
+                                currentLineWidth = 0;
+                            }
+
+                            if (wordWidth > maxWidth) {
+                                // Word itself is too long, must break by character
+                                let tempWord = '';
+                                for (const char of word) {
+                                    const charWidth = this.ctx.measureText(tempWord + char).width;
+                                    if (charWidth > maxWidth) {
+                                        if (yPos < node.y + 45 + maxHeight) {
+                                            flushLine([{ text: tempWord, bold: isBold }]);
+                                        }
+                                        tempWord = char;
+                                    } else {
+                                        tempWord += char;
+                                    }
+                                }
+                                currentLine.push({ text: tempWord, bold: isBold });
+                                currentLineWidth = this.ctx.measureText(tempWord).width;
+                            } else {
+                                currentLine.push({ text: word, bold: isBold });
+                                currentLineWidth += wordWidth;
+                            }
+                        }
+                    }
+
+                    if (currentLine.length > 0 && yPos < node.y + 45 + maxHeight) {
+                        flushLine(currentLine);
+                    }
+                }
 
                 // Draw Ports and Options
                 if (node instanceof ScreenNode) {
+                    // Draw resize handle
+                    if (isSelected) {
+                        const handleSize = 15;
+                        const handleX = node.x + node.width - handleSize;
+                        const handleY = node.y + node.height - handleSize;
+
+                        this.ctx.fillStyle = "#00d02260";
+                        this.ctx.fillRect(handleX, handleY, handleSize, handleSize);
+
+                        this.ctx.strokeStyle = "#00d022";
+                        this.ctx.lineWidth = 1;
+                        for (let i = 0; i < 2; i++) {
+                            const offset = handleSize - 4 - (i * 4);
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(node.x + node.width - offset, node.y + node.height - 2);
+                            this.ctx.lineTo(node.x + node.width - 2, node.y + node.height - offset);
+                            this.ctx.stroke();
+                        }
+                    }
                     node.outputs.forEach((opt, index) => {
                         const port = node.getOutputPort(index);
                         this.drawPort(port, "#00d022");

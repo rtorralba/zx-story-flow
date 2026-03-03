@@ -22,35 +22,28 @@ function wrapText(text, maxWidth = 32) {
             wrappedLines.push('');
             return;
         }
-        // Detecta espacios iniciales
-        const leadingSpaces = para.match(/^\s*/)[0];
-        let content = para.slice(leadingSpaces.length);
-        let words = content.split(' ');
-        let currentLine = leadingSpaces;
 
-        words.forEach((word, idx) => {
-            // Si la palabra está vacía (por múltiples espacios), añade espacio
-            if (word === "") {
-                currentLine += " ";
-                return;
-            }
-            if ((currentLine + word).length <= maxWidth) {
-                currentLine += (currentLine === leadingSpaces ? '' : ' ') + word;
-            } else {
-                wrappedLines.push(currentLine);
-                currentLine = word;
-            }
-        });
-        if (currentLine) wrappedLines.push(currentLine);
+        let remaining = para;
+        while (remaining.length > maxWidth) {
+            let breakAt = remaining.lastIndexOf(' ', maxWidth);
+            if (breakAt === -1) breakAt = maxWidth;
+
+            wrappedLines.push(remaining.substring(0, breakAt));
+            remaining = remaining.substring(breakAt).replace(/^ +/, '');
+        }
+        if (remaining.length > 0) {
+            wrappedLines.push(remaining);
+        }
     });
 
     return wrappedLines;
 }
 
 /**
- * Transpiles MuCho code into ZX Basic.
+ * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
+ * cursor-based option selection with p() jump table and system subroutines.
  */
-function transpileMuchoToBasic(muchoCode) {
+function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     if (!muchoCode) return "10 REM Project is empty";
 
     const lines = muchoCode.split(/\r?\n/);
@@ -66,10 +59,8 @@ function transpileMuchoToBasic(muchoCode) {
             if (line.startsWith('$A ')) {
                 currentBlock.options.push({ header: line, text: null });
             } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
-                // First non-$A line after a $A is the option text
-                currentBlock.options[currentBlock.options.length - 1].text = line.trim() || "Continuar";
+                currentBlock.options[currentBlock.options.length - 1].text = line || "Continuar";
             } else {
-                // Everything else is content (including empty lines and $P)
                 currentBlock.content.push(line);
             }
         }
@@ -77,28 +68,14 @@ function transpileMuchoToBasic(muchoCode) {
 
     if (blocks.length === 0) return "10 REM No screens found in MuCho code";
 
-    // Phase 2: Identify all flags to initialize them
+    // Phase 2: Collect all flag names used anywhere
     const allFlags = new Set();
     muchoCode.match(/(?:set:|clear:|clr:|toggle:|has:|not:|!)([a-zA-Z0-9_]+)/g)?.forEach(match => {
         const name = match.split(':')[1] || match.substring(1);
-        allFlags.add(name);
+        if (name !== 'border') allFlags.add(name); // Exclude border from normal flags
     });
 
-    // Phase 3: Identify unique images for caching
-    const images = [];
-    muchoCode.match(/\$I\s+([^\s\n\r]+)/g)?.forEach(match => {
-        const name = match.substring(3).trim().replace(/\.scr$/i, '').toUpperCase();
-        if (!images.includes(name)) images.push(name);
-    });
-
-    const imageMap = {};
-    let currentAddr = 65536;
-    images.forEach(img => {
-        currentAddr -= 6912;
-        imageMap[img] = currentAddr;
-    });
-
-    // Phase 4: Map labels to line numbers (1000 per block) - Case Insensitive
+    // Phase 3: Map labels to line numbers (1000 per block, max ~9 screens before 9988)
     const labelLines = {};
     blocks.forEach((block, idx) => {
         const match = block.header.match(/^\$Q\s+([^\s]+)/);
@@ -108,163 +85,335 @@ function transpileMuchoToBasic(muchoCode) {
         }
     });
 
+    // Phase 4: Extract default attributes from the first block header
+    const firstHeader = blocks[0].header;
+    const defaultTattr = parseInt(firstHeader.match(/attr:(\d+)/)?.[1] || "15");
+    const defaultDattr = parseInt(firstHeader.match(/dattr:(\d+)/)?.[1] || "11");
+    const defaultIattr = parseInt(firstHeader.match(/iattr:(\d+)/)?.[1] || "24");
+
+    const firstMatch = blocks[0].header.match(/^\$Q\s+([^\s]+)/);
+    const startLabel = firstMatch ? firstMatch[1].toLowerCase() : "start";
+
     let basicCode = "";
 
-    // Header
-    const firstBlockMatch = blocks[0].header.match(/^\$Q\s+([^\s]+)/);
-    const startLabel = firstBlockMatch ? firstBlockMatch[1].toLowerCase() : "start";
+    // =========================================================
+    // GLOBAL INIT  (lines 10 – 120)
+    // =========================================================
+    basicCode += `10 REM = init global =\n`;
+    const globalBorder = colorToZX(globalConfig?.border || 'black');
+    basicCode += `20 POKE 23693,0:BORDER ${globalBorder}:CLS\n`;
+    basicCode += `30 REM p() table of line pointers.\n`;
+    basicCode += `40 DIM p(10)\n`;
+    basicCode += `50 REM Inicializa variables del juego.\n`;
 
-    // Extract initial attributes for global state
-    const attrMatch = blocks[0].header.match(/attr:(\d+)/);
-    const initialAttr = attrMatch ? parseInt(attrMatch[1]) : 7;
+    // Initialise all flags to 0 on a single line
+    if (allFlags.size > 0) {
+        basicCode += `60 LET ` + [...allFlags].map(f => `f${f}=0`).join(':LET ') + `:\n`;
+    } else {
+        basicCode += `60 REM no flags\n`;
+    }
 
-    const paper = (initialAttr >> 3) & 7;
-    const ink = initialAttr & 7;
-    const bright = (initialAttr >> 6) & 1;
-    const flash = (initialAttr >> 7) & 1;
+    basicCode += `70 REM 23675 for divider and selector.\n`;
 
-    basicCode += `10 INK ${ink}: PAPER ${paper}: BRIGHT ${bright}: FLASH ${flash}\n`;
-    basicCode += `20 CLS\n`;
+    // Get UDGs from globalConfig or use defaults
+    let udgA = ["00000000", "00010000", "00111000", "01111100", "11111110", "11111111", "11111111", "11111111"]; // Default arrow (A)
+    let udgB = ["00000000", "10001000", "11001100", "11101110", "11001100", "10001000", "00000000", "00000000"]; // Default cursor (B)
 
-    let currentLine = 30;
-    allFlags.forEach(flag => {
-        basicCode += `${currentLine} LET f${flag}=0\n`;
-        currentLine += 10;
-    });
-
-    basicCode += `${currentLine} GO TO ${labelLines[startLabel] || 1000}\n`;
-
-    // Phase 5: Generate code for each block
-    blocks.forEach(block => {
-        const match = block.header.match(/^\$Q\s+([^\s]+)/);
-        const blockLabel = match ? match[1] : "Unknown";
-        let lineNr = labelLines[blockLabel.toLowerCase()] || 9999;
-        const header = block.header;
-
-        // Parse attributes
-        const attr = parseInt(header.match(/attr:(\d+)/)?.[1] || "7");
-        const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || "7");
-        const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || "7");
-
-        basicCode += `${lineNr} REM --- ${blockLabel} ---\n`;
-        lineNr += 10;
-
-        // Apply page attributes
-        basicCode += `${lineNr} INK ${attr & 7}: PAPER ${(attr >> 3) & 7}: BRIGHT ${(attr >> 6) & 1}: FLASH ${(attr >> 7) & 1}: CLS\n`;
-        lineNr += 10;
-
-        // Process block actions (borders, etc)
-        const borderMatch = header.match(/border:(\d+)/);
-        if (borderMatch) {
-            basicCode += `${lineNr} BORDER ${borderMatch[1]}\n`;
-            lineNr += 10;
-        }
-
-        // Content
-        for (let i = 0; i < block.content.length; i++) {
-            const line = block.content[i];
-            // Detecta líneas vacías exactas o $P, respeta espacios iniciales
-            if (line === "" || line === "$P") {
-                basicCode += `${lineNr} PRINT ""\n`;
-                lineNr += 10;
-            } else if (line.startsWith('$I ')) {
-                // Skiping images for now to avoid tape loading issues
-                lineNr += 0;
-            } else if (line.startsWith('$O ')) {
-                const condStr = line.substring(3);
-                const condParts = condStr.split(' AND ');
-                const conditions = condParts.map(p => {
-                    const c = p.trim();
-                    if (c.startsWith('has:') || c.startsWith('set:')) return `f${c.split(':')[1]}=1`;
-                    if (c.startsWith('not:') || c.startsWith('clr:') || c.startsWith('!')) {
-                        const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
-                        return `f${f}=0`;
-                    }
-                    return c;
-                });
-
-                const nextLineText = block.content[i + 1] || "";
-                if (nextLineText && !nextLineText.startsWith('$')) {
-                    const wLines = wrapText(nextLineText);
-                    wLines.forEach(wl => {
-                        // Solo imprime si la línea no es vacía
-                        if (wl !== "") {
-                            basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT "${wl}"\n`;
-                            lineNr += 10;
-                        }
-                    });
-                    i++; // Skip next line
+    if (globalConfig && globalConfig.basicGraphics) {
+        if (globalConfig.basicGraphics.separator) {
+            udgA = [];
+            for (let i = 0; i < 8; i++) {
+                let row = "";
+                for (let j = 0; j < 8; j++) {
+                    row += globalConfig.basicGraphics.separator[i * 8 + j] ? "1" : "0";
                 }
-            } else if (!line.startsWith('$')) {
-                const wLines = wrapText(line);
-                wLines.forEach(wl => {
-                    basicCode += `${lineNr} PRINT "${wl}"\n`;
-                    lineNr += 10;
-                });
+                udgA.push(row);
             }
         }
+        if (globalConfig.basicGraphics.selector) {
+            udgB = [];
+            for (let i = 0; i < 8; i++) {
+                let row = "";
+                for (let j = 0; j < 8; j++) {
+                    row += globalConfig.basicGraphics.selector[i * 8 + j] ? "1" : "0";
+                }
+                udgB.push(row);
+            }
+        }
+    }
 
-        // Options / Menu
+    basicCode += `80 POKE USR("A")+0,BIN ${udgA[0]}:POKE USR("A")+1,BIN ${udgA[1]}:POKE USR("A")+2,BIN ${udgA[2]}:POKE USR("A")+3,BIN ${udgA[3]}:POKE USR("A")+4,BIN ${udgA[4]}:POKE USR("A")+5,BIN ${udgA[5]}:POKE USR("A")+6,BIN ${udgA[6]}:POKE USR("A")+7,BIN ${udgA[7]}:POKE USR("B")+0,BIN ${udgB[0]}:POKE USR("B")+1,BIN ${udgB[1]}:POKE USR("B")+2,BIN ${udgB[2]}:POKE USR("B")+3,BIN ${udgB[3]}:POKE USR("B")+4,BIN ${udgB[4]}:POKE USR("B")+5,BIN ${udgB[5]}:POKE USR("B")+6,BIN ${udgB[6]}:POKE USR("B")+7,BIN ${udgB[7]}:\n`;
+
+    basicCode += `90 REM Va a primera pantalla\n`;
+    basicCode += `100 GO SUB 110:GO TO ${labelLines[startLabel] || 1000}\n`;
+    basicCode += `110 REM Set default attributes\n`;
+    basicCode += `120 LET tattr=${defaultTattr}:LET dattr=${defaultDattr}:LET iattr=${defaultIattr}:RETURN\n`;
+
+    // =========================================================
+    // SCREEN BLOCKS
+    // =========================================================
+    blocks.forEach((block, idx) => {
+        const match = block.header.match(/^\$Q\s+([^\s]+)/);
+        const blockLabel = match ? match[1] : "Screen" + idx;
+        const baseLineNr = labelLines[blockLabel.toLowerCase()] || (1000 + idx * 1000);
+        const header = block.header;
+
+        // Parse attributes for this screen
+        const tattr = parseInt(header.match(/attr:(\d+)/)?.[1] || defaultTattr);
+        const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || defaultDattr);
+        const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || defaultIattr);
+        const hasCustomAttr = (tattr !== defaultTattr || dattr !== defaultDattr || iattr !== defaultIattr);
+        const borderMatch = header.match(/border:(\d+)/);
+
+        let lineNr = baseLineNr;
+
+        basicCode += `${lineNr} REM-- - ${blockLabel} ---\n`;
+        lineNr += 10;
+
+        if (borderMatch) {
+            basicCode += `${lineNr} BORDER ${borderMatch[1]} \n`;
+            lineNr += 10;
+        }
+
+        // Set custom attrs (if diverge from defaults) then call screen-init subroutine
+        if (hasCustomAttr) {
+            basicCode += `${lineNr} LET tattr = ${tattr}:LET dattr = ${dattr}:LET iattr = ${iattr}:GO SUB 9988: \n`;
+        } else {
+            basicCode += `${lineNr} GO SUB 9988: \n`;
+        }
+        lineNr += 10;
+
+        // --- Content lines ---
+        // First, group lines into paragraphs for proper block handling
+        const paragraphs = [];
+        let currentPara = [];
+        let pendingCommand = null;
+
+        for (let i = 0; i < block.content.length; i++) {
+            const line = block.content[i];
+            const trimmed = line;
+
+            if (trimmed === "" || trimmed === "$P") {
+                if (currentPara.length > 0) {
+                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+                    currentPara = [];
+                    pendingCommand = null;
+                }
+                paragraphs.push({ type: 'empty' });
+            } else if (trimmed.startsWith('$I ')) {
+                // Images skipped for BASIC
+            } else if (trimmed.startsWith('$O ')) {
+                if (currentPara.length > 0) {
+                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+                    currentPara = [];
+                }
+                pendingCommand = trimmed;
+            } else if (trimmed.startsWith('$')) {
+                // Other commands, flush paragraph if any
+                if (currentPara.length > 0) {
+                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+                    currentPara = [];
+                    pendingCommand = null;
+                }
+            } else {
+                currentPara.push(line);
+            }
+        }
+        if (currentPara.length > 0) {
+            paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+        }
+
+        // Now generate BASIC for each paragraph
+        paragraphs.forEach(para => {
+            if (para.type === 'empty') {
+                basicCode += `${lineNr} PRINT ""\n`;
+                lineNr += 10;
+            } else if (para.type === 'text') {
+                const fullText = para.lines.join('\n');
+                const wrappedLines = wrapText(fullText);
+
+                if (wrappedLines.length > 0) {
+                    const combinedPrint = `"${wrappedLines.join(`" '"`)}"`;
+
+                    if (para.command && para.command.startsWith('$O ')) {
+                        const condStr = para.command.substring(3);
+                        const conditions = condStr.split(' AND ').map(p => {
+                            const c = p.trim();
+                            if (c.startsWith('has:')) return `f${c.split(':')[1]}=1`;
+                            if (c.startsWith('not:') || c.startsWith('!')) {
+                                const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
+                                return `f${f}=0`;
+                            }
+                            return c;
+                        });
+                        basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT ${combinedPrint}\n`;
+                    } else {
+                        basicCode += `${lineNr} PRINT ${combinedPrint}\n`;
+                    }
+                    lineNr += 10;
+                }
+            }
+        });
+
+        // --- Parse options: separate conditions (has:/not:) from actions (set:/clear:/toggle:) ---
         const effectiveOptions = block.options.length > 0
             ? block.options
-            : [{ header: "$A " + startLabel, text: "Jugar de nuevo" }];
+            : [{ header: `$A ${startLabel}`, text: "Jugar de nuevo" }];
 
-        const totalLines = 1 + effectiveOptions.length;
-        const startPosLine = 21 - totalLines + 1;
+        // Action blocks will be placed at baseLineNr + 500 onward (safe gap after content)
+        const actionBlockBase = baseLineNr + 500;
 
-        // Separator
-        basicCode += `${lineNr} INK ${dattr & 7}: PAPER ${(dattr >> 3) & 7}: BRIGHT ${(dattr >> 6) & 1}: FLASH ${(dattr >> 7) & 1}\n`;
-        lineNr += 10;
-        basicCode += `${lineNr} PRINT AT ${startPosLine},0;"--------------------------------"\n`;
-        lineNr += 10;
+        const parsedOptions = effectiveOptions.map((opt, optIdx) => {
+            const parts = opt.header.split(/\s+/);
+            const targetLabelRaw = parts[1] || "";
+            const targetLine = labelLines[targetLabelRaw.toLowerCase()] || baseLineNr;
+            const tokens = parts.slice(2);
 
-        // Options
-        basicCode += `${lineNr} INK ${iattr & 7}: PAPER ${(iattr >> 3) & 7}: BRIGHT ${(iattr >> 6) & 1}: FLASH ${(iattr >> 7) & 1}\n`;
-        lineNr += 10;
+            const conditions = [];
+            const actions = [];
 
-        effectiveOptions.forEach((opt, idx) => {
-            const optText = opt.text || "Continuar";
-            const safeLabel = optText.replace(/"/g, "'").substring(0, 28);
-            basicCode += `${lineNr} PRINT AT ${startPosLine + 1 + idx},0;"${idx + 1}. ${safeLabel}"\n`;
+            tokens.forEach(tok => {
+                const [verb, name] = tok.split(':');
+                if (!name) return;
+
+                // Handle border action specifically
+                if (verb === 'border') {
+                    actions.push(`BORDER ${name}`);
+                    return;
+                }
+
+                if (verb === 'has') conditions.push(`f${name}=1`);
+                else if (verb === 'not') conditions.push(`f${name}=0`);
+                else if (verb === 'set') actions.push(`LET f${name}=1`);
+                else if (verb === 'clear' || verb === 'clr') actions.push(`LET f${name}=0`);
+                else if (verb === 'toggle') actions.push(`LET f${name}=1-f${name}`);
+            });
+
+            const needsActionBlock = actions.length > 0;
+            const actionLine = needsActionBlock ? actionBlockBase + (optIdx * 20) : null;
+            const jumpTarget = needsActionBlock ? actionLine : targetLine;
+
+            return {
+                targetLine, conditions, actions, needsActionBlock, actionLine,
+                jumpTarget, text: opt.text || "Continuar"
+            };
+        });
+
+        // --- Option display lines (fill p() table, PRINT #1 for the menu area) ---
+        parsedOptions.forEach(opt => {
+            const safeText = (opt.text || "Continuar").replace(/"/g, "'").substring(0, 28);
+            const condPart = opt.conditions.length > 0
+                ? `IF ${opt.conditions.join(' AND ')} THEN ` : '';
+            basicCode += `${lineNr} ${condPart}LET n=n+1:LET p(n)=${opt.jumpTarget}:PRINT #1;"   ${safeText}"\n`;
             lineNr += 10;
         });
 
-        // Use interface colors for INPUT prompt too
-        basicCode += `${lineNr} INK ${iattr & 7}: PAPER ${(iattr >> 3) & 7}: BRIGHT ${(iattr >> 6) & 1}: FLASH ${(iattr >> 7) & 1}: INPUT A$\n`;
+        // Hand control to the cursor-selection loop
+        basicCode += `${lineNr} GO TO 9993\n`;
         lineNr += 10;
 
-        effectiveOptions.forEach((opt, idx) => {
-            const matchA = opt.header.match(/^\$A\s+([^\s]+)/);
-            const target = matchA ? matchA[1].toLowerCase() : startLabel;
-            const targetLine = labelLines[target] || 1000;
-
-            const flagActions = opt.header.split(/\s+/).slice(2).map(f => {
-                const parts = f.split(':');
-                const action = parts[0];
-                const name = parts[1];
-                if (action === 'set') return `LET f${name}=1`;
-                if (action === 'clear' || action === 'clr') return `LET f${name}=0`;
-                if (action === 'toggle') return `LET f${name}=1-f${name}`;
-                return "";
-            }).filter(a => a !== "").join(': ');
-
-            basicCode += `${lineNr} IF A$="${idx + 1}" THEN ${flagActions ? flagActions + ': ' : ''}GO TO ${targetLine}\n`;
-            lineNr += 10;
+        // --- Action blocks: set flags then jump to target ---
+        // These live at actionBlockBase + optIdx*20 within this screen's number range
+        parsedOptions.forEach((opt, optIdx) => {
+            if (opt.needsActionBlock) {
+                const ab = opt.actionLine;
+                const safeComment = (opt.text || "option").replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 30);
+                basicCode += `${ab} REM ${safeComment}\n`;
+                basicCode += `${ab + 10} ${opt.actions.join(':')}:GO TO ${opt.targetLine}\n`;
+            }
         });
-
-        // Loop back to current node
-        basicCode += `${lineNr} GO TO ${labelLines[blockLabel.toLowerCase()] || 1000}\n`;
     });
+
+    // =========================================================
+    // SYSTEM SUBROUTINES  (9988 – 9999)
+    // Identical in structure to flow3.zx.bas
+    // =========================================================
+    basicCode += `9988 REM New screen. Clear and set attributes.\n`;
+    basicCode += `9989 POKE 23693,tattr:POKE 23624,dattr:CLS:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:\n`;
+    basicCode += `9990 LET n=0:REM contador opciones.\n`;
+    basicCode += `9991 LET i=1\n`;
+    basicCode += `9992 RETURN\n`;
+    basicCode += `9993 REM choose an option\n`;
+    basicCode += `9994 IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO 0:\n`;
+    basicCode += `9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";:\n`;
+    basicCode += `9996 IF k=10 THEN LET i=i+1-(n AND i=n)\n`;
+    basicCode += `9997 IF k=11 THEN LET i=i-1+(n AND i=1)\n`;
+    basicCode += `9998 IF k=13 THEN GO SUB 110:GO TO p(i)\n`;
+    basicCode += `9999 GO TO 9993\n`;
 
     return basicCode;
 }
 
-export function generateBasic(nodes, globalConfig = null) {
+/**
+ * Renumbers BASIC lines safely starting from 10, incrementing by 10.
+ * Preserves the system subroutines at 9988-9999.
+ */
+function renumberBasic(basicCode) {
+    const lines = basicCode.split('\n').filter(l => l.trim() !== '');
+    if (lines.length === 0) return basicCode;
+
+    const oldToNew = {};
+    let nextNum = 10;
+
+    // Pass 1: generate mapping
+    lines.forEach(line => {
+        const match = line.match(/^(\d+)/);
+        if (match) {
+            const oldNum = parseInt(match[1]);
+            if (oldNum < 9988) {
+                oldToNew[oldNum] = nextNum;
+                nextNum += 10;
+            } else {
+                // Keep system routines where they are
+                oldToNew[oldNum] = oldNum;
+            }
+        }
+    });
+
+    // Pass 2: apply mapping to line numbers and references:
+    // References can be like: GO TO 1000, GO SUB 110, p(n)=2000
+    const processedLines = lines.map(line => {
+        // Change the line number itself
+        let newLine = line.replace(/^(\d+)/, (match, p1) => {
+            const oldNum = parseInt(p1);
+            return oldToNew[oldNum] ? oldToNew[oldNum] : oldNum;
+        });
+
+        // Replace GO TO, GO SUB, RESTORE, RUN, etc. targets
+        // Note: carefully skipping PEEK, POKE, which might look like commands with numbers but aren't line pointers.
+        newLine = newLine.replace(/(GO\s+TO|GO\s+SUB|GOTO|GOSUB|RESTORE|RUN)\s+(\d+)/gi, (match, cmd, numStr) => {
+            const num = parseInt(numStr);
+            if (oldToNew[num]) {
+                return `${cmd} ${oldToNew[num]}`;
+            }
+            return match;
+        });
+
+        // Replace dynamic pointers assigned to the p() array (e.g. LET p(n)=2000)
+        newLine = newLine.replace(/(p\([\w\d]+\)=)(\d+)/gi, (match, assignment, numStr) => {
+            const num = parseInt(numStr);
+            if (oldToNew[num]) {
+                return `${assignment}${oldToNew[num]}`;
+            }
+            return match;
+        });
+
+        return newLine;
+    });
+
+    return processedLines.join('\n') + '\n';
+}
+
+
+export function generateBasicFromMucho(nodes, globalConfig = null) {
     if (!nodes || nodes.length === 0) return "10 REM No nodes";
 
     // 1. Convert everything to MuCho intermediate format
     const muchoText = generateMucho(nodes, globalConfig);
 
     // 2. Transpile MuCho to ZX Basic
-    return transpileMuchoToBasic(muchoText);
+    const rawBasic = transpileMuchoToBasic(muchoText, globalConfig);
+
+    // 3. Renumber lines compactly to free up space
+    return renumberBasic(rawBasic);
 }

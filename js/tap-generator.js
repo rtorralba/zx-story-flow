@@ -69,6 +69,7 @@ function encodeNumber(num) {
 function tokenizeLine(line) {
     const res = [];
     let i = 0;
+    let afterBin = false; // track whether we just emitted the BIN keyword
 
     // Sort keywords by length desc
     const keys = Object.keys(KEYWORDS).sort((a, b) => b.length - a.length);
@@ -76,9 +77,30 @@ function tokenizeLine(line) {
     while (i < line.length) {
         // String literal
         if (line[i] === '"') {
+            afterBin = false;
             res.push(line.charCodeAt(i));
             i++;
             while (i < line.length && line[i] !== '"') {
+                // {A}–{U} → ZX Spectrum UDG codes 144–164
+                if (line[i] === '{' && i + 2 < line.length && line[i + 2] === '}') {
+                    const udg = line[i + 1];
+                    const code = udg.charCodeAt(0);
+                    if (code >= 65 && code <= 85) { // A=65 … U=85
+                        res.push(144 + code - 65);
+                        i += 3;
+                        continue;
+                    }
+                }
+                // \A–\U → ZX Spectrum UDG codes 144–164 (txt2bas notation)
+                if (line[i] === '\\' && i + 1 < line.length) {
+                    const udg = line[i + 1];
+                    const code = udg.charCodeAt(0);
+                    if (code >= 65 && code <= 85) {
+                        res.push(144 + code - 65);
+                        i += 2;
+                        continue;
+                    }
+                }
                 res.push(line.charCodeAt(i));
                 i++;
             }
@@ -100,13 +122,15 @@ function tokenizeLine(line) {
             if (!/[A-Z]/i.test(prev)) {
                 // It is a number
                 const str = matchNum[1];
-                const val = parseInt(str);
+                // If the BIN keyword was just emitted, parse digits as binary
+                const val = afterBin ? parseInt(str, 2) : parseInt(str);
+                afterBin = false;
 
                 // ASCII
                 for (let k = 0; k < str.length; k++) res.push(str.charCodeAt(k));
 
                 // Hidden 0x0E Block for Integers
-                if (val <= 65535) {
+                if (val >= 0 && val <= 65535) {
                     const hidden = encodeNumber(val);
                     hidden.forEach(b => res.push(b));
                 }
@@ -124,7 +148,10 @@ function tokenizeLine(line) {
                 const endChar = line[i + k.length];
                 if (endChar && /[A-Z0-9$]/.test(endChar)) continue;
 
-                res.push(KEYWORDS[k]);
+                const token = KEYWORDS[k];
+                res.push(token);
+                // Set flag when BIN is emitted so next number is parsed as binary
+                afterBin = (token === 0xC4);
                 i += k.length;
                 found = true;
                 break;
@@ -133,7 +160,8 @@ function tokenizeLine(line) {
 
         if (found) continue;
 
-        // Char
+        // Non-digit, non-keyword char — reset BIN flag only if not whitespace
+        if (line[i] !== ' ') afterBin = false;
         res.push(line.charCodeAt(i));
         i++;
     }

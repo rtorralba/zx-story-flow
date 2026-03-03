@@ -11,11 +11,13 @@
     "project": {
         "new": "📄 Novo",
         "save": "💾 Salvar",
-        "load": "📂 Abrir"
+        "load": "📂 Abrir",
+        "import_mucho": "📥 Importar"
     },
     "export": {
         "png": "🖼️ Imagem PNG",
         "tap": "📼 .TAP",
+        "cyd": "📝 CYD",
         "mucho": "📜 MuCho",
         "basic": "⌨️ BASIC"
     },
@@ -33,9 +35,11 @@
         "group_color": "Cor do Grupo",
         "contains_nodes": "Contém {n} nó(s)",
         "delete_group": "Excluir Grupo",
+        "border": "Borda",
         "node_reference": "Referência de Nó",
         "target_node": "Nó de Destino:",
-        "none": "(Nenhum)"
+        "none": "(Nenhum)",
+        "color": "Cor"
     },
     "colors": {
         "black": "Preto",
@@ -49,11 +53,21 @@
     },
     "config": {
         "global_title": "Configuração Global (padrão)",
+        "project_type": "Tipo de Projeto",
+        "format_label": "Formato:",
+        "format_help": "Como as exportações interpretam o texto dos nós",
         "edit_interface": "Interface de Edição",
-        "default_view": "Modo de edição padrão:",
+        "default_view": "Modo de edição:",
         "view_simple": "Vista Simples",
         "view_advanced": "Vista Avançada",
-        "close": "Fechar"
+        "close": "Fechar",
+        "cyd_general_title": "Código geral",
+        "cyd_tab_start": "Código início",
+        "cyd_tab_end": "Código fim",
+        "basic_graphics": "Gráficos (apenas BASIC)",
+        "separator_graphic": "Gráfico Separador",
+        "selector_graphic": "Gráfico Seletor",
+        "border_section": "Borda"
     },
     "editor": {
         "edit_node": "Editar Nó",
@@ -68,6 +82,7 @@
         "option_placeholder": "Rótulo da opção",
         "actions_option_title": "Ações ao escolher esta opção",
         "delete_option": "Excluir opção",
+        "eligible": "Elegível",
         "add_option": "+ Adicionar opção",
         "color_config_title": "Configuração de Cores",
         "use_custom_node": "Usar configuração específica para este nó",
@@ -104,6 +119,10 @@
         "new_confirm": "Tem certeza que deseja iniciar um novo projeto? O progresso atual não salvo será perdido.",
         "storage_full": "Armazenamento cheio! Tente remover algumas imagens ou blocos de texto grandes.",
         "save_failed": "Falha ao salvar: ",
-        "load_failed": "Erro ao carregar o projeto: "
+        "load_failed": "Falha ao carregar o projeto: ",
+        "import_mucho_empty": "Nenhum bloco MuCho ($Q) encontrado no arquivo.",
+        "import_mucho_failed": "Falha ao importar MuCho: ",
+        "duplicate_labels_title": "Não é possível exportar. Existem telas com nomes que resultam em rótulos duplicados:\n",
+        "duplicate_labels_desc": "\n\nPor favor, certifique-se de que cada tela tenha um nome único."
     }
 }

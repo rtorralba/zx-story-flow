@@ -11,11 +11,13 @@
     "project": {
         "new": "📄 New",
         "save": "💾 Save",
-        "load": "📂 Load"
+        "load": "📂 Load",
+        "import_mucho": "📥 Import"
     },
     "export": {
         "png": "🖼️ PNG Image",
         "tap": "📼 .TAP",
+        "cyd": "📝 CYD",
         "mucho": "📜 MuCho",
         "basic": "⌨️ BASIC"
     },
@@ -33,9 +35,11 @@
         "group_color": "Group Color",
         "contains_nodes": "Contains {n} node(s)",
         "delete_group": "Delete Group",
+        "border": "Border",
         "node_reference": "Node Reference",
         "target_node": "Target Node:",
-        "none": "(None)"
+        "none": "(None)",
+        "color": "Color"
     },
     "colors": {
         "black": "Black",
@@ -49,11 +53,21 @@
     },
     "config": {
         "global_title": "Global Config (default)",
+        "project_type": "Project Type",
+        "format_label": "Format:",
+        "format_help": "Choose how exports interpret node text",
         "edit_interface": "Editing Interface",
         "default_view": "Default view mode:",
         "view_simple": "Simple View",
         "view_advanced": "Advanced View",
-        "close": "Close"
+        "close": "Close",
+        "cyd_general_title": "General Code",
+        "cyd_tab_start": "Start code",
+        "cyd_tab_end": "End code",
+        "basic_graphics": "Graphics (BASIC only)",
+        "separator_graphic": "Separator Graphic",
+        "selector_graphic": "Selector Graphic",
+        "border_section": "Border"
     },
     "editor": {
         "edit_node": "Edit Node",
@@ -68,6 +82,7 @@
         "option_placeholder": "Option Label",
         "actions_option_title": "Actions when choosing this option",
         "delete_option": "Delete option",
+        "eligible": "Eligible",
         "add_option": "+ Add option",
         "color_config_title": "Color Configuration",
         "use_custom_node": "Use specific configuration for this node",
@@ -104,6 +119,10 @@
         "new_confirm": "Are you sure you want to start a new project? Current unsaved progress will be lost.",
         "storage_full": "Storage full! Try removing some images or large text blocks.",
         "save_failed": "Save failed: ",
-        "load_failed": "Error loading project: "
+        "load_failed": "Failed to load project: ",
+        "import_mucho_empty": "No MuCho blocks ($Q) found in the file.",
+        "import_mucho_failed": "MuCho import failed: ",
+        "duplicate_labels_title": "Cannot export. There are screens with names that result in duplicate labels:\n",
+        "duplicate_labels_desc": "\n\nPlease ensure each screen has a unique name."
     }
 }

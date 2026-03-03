@@ -5,10 +5,13 @@
 
 import { NodeEditor } from './node-editor.js';
 import { ScreenNode, Group, NodeReference } from './nodes.js';
-import { generateBasic } from './basic-generator.js';
+import { generateBasicFromMucho } from './basic-generator.js';
+import { generateBasicFromCYD } from './cyd-basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
 import { generateTapFromBasic } from './tap-generator.js';
+import { generateCYD } from './cyd-generator.js';
 import { MuchoEditor } from './mucho-editor.js';
+import { CYDEditor } from './cyd-editor.js';
 import { i18n, t } from './translations.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -21,13 +24,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('node-canvas');
     const propertyContent = document.getElementById('properties-content');
     let projectName = 'Untitled';
+    let projectType = 'MuCho';
 
     // Configuración global (por defecto)
     let globalConfig = {
         page: { ink: 'white', paper: 'black', bright: false, flash: false },
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
         interface: { ink: 'white', paper: 'black', bright: false, flash: false },
-        viewMode: 'simple'
+        border: 'black',
+        viewMode: 'simple',
+        basicGraphics: {
+            separator: Array(64).fill(false), // 8x8 matrix for BASIC separator
+            selector: Array(64).fill(false)   // 8x8 matrix for BASIC selector
+        }
     };
 
     // Referencias a la configuración global
@@ -45,6 +54,90 @@ document.addEventListener('DOMContentLoaded', async () => {
     const globalInterfaceBright = document.getElementById('global-interface-bright');
     const globalInterfaceFlash = document.getElementById('global-interface-flash');
     const globalViewMode = document.getElementById('global-view-mode');
+    const globalProjectType = document.getElementById('global-project-type');
+    const globalBorderColor = document.getElementById('global-border-color');
+    const separatorMatrixEl = document.getElementById('separator-matrix');
+    const selectorMatrixEl = document.getElementById('selector-matrix');
+
+    // Helper: Convert color name to CSS color value
+    function zxColorToCSS(colorName, bright = false) {
+        const brightColors = { 'black': '#000000', 'blue': '#0000FF', 'red': '#FF0000', 'magenta': '#FF00FF', 'green': '#00FF00', 'cyan': '#00FFFF', 'yellow': '#FFFF00', 'white': '#FFFFFF' };
+        const normalColors = { 'black': '#000000', 'blue': '#0000CD', 'red': '#CD0000', 'magenta': '#CD00CD', 'green': '#00CD00', 'cyan': '#00CDCD', 'yellow': '#CDCD00', 'white': '#CDCDCD' };
+        return bright ? (brightColors[colorName] || '#FFFFFF') : (normalColors[colorName] || '#CDCDCD');
+    }
+
+    // Inicializar matrices UI
+    function initMatrixUI(containerEl, key, cfgSection, onChangeCallback) {
+        if (!containerEl) return;
+        containerEl.innerHTML = '';
+
+        // Apply styling to parent container directly to cascade colors via CSS vars
+        const cConfig = globalConfig[cfgSection];
+        const inkCSS = zxColorToCSS(cConfig.ink, cConfig.bright);
+        const paperCSS = zxColorToCSS(cConfig.paper, cConfig.bright);
+        containerEl.style.setProperty('--pixel-ink', inkCSS);
+        containerEl.style.setProperty('--pixel-paper', paperCSS);
+
+        for (let i = 0; i < 64; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'pixel-cell';
+            if (globalConfig.basicGraphics && globalConfig.basicGraphics[key] && globalConfig.basicGraphics[key][i]) cell.classList.add('active');
+
+            cell.addEventListener('mousedown', (e) => {
+                if (!globalConfig.basicGraphics) return;
+                const newState = !globalConfig.basicGraphics[key][i];
+                globalConfig.basicGraphics[key][i] = newState;
+                if (newState) cell.classList.add('active');
+                else cell.classList.remove('active');
+                if (onChangeCallback) onChangeCallback();
+            });
+            // Support dragging to draw (simple implementation)
+            cell.addEventListener('mouseenter', (e) => {
+                if (e.buttons === 1) { // Left mouse button pressed
+                    if (!globalConfig.basicGraphics) return;
+                    const newState = !cell.classList.contains('active');
+                    globalConfig.basicGraphics[key][i] = !globalConfig.basicGraphics[key][i];
+                    if (globalConfig.basicGraphics[key][i]) cell.classList.add('active');
+                    else cell.classList.remove('active');
+                    if (onChangeCallback) onChangeCallback();
+                }
+            });
+
+            containerEl.appendChild(cell);
+        }
+    }
+
+    function updateMatricesUI() {
+        if (!globalConfig.basicGraphics) {
+            globalConfig.basicGraphics = {
+                separator: Array(64).fill(false),
+                selector: Array(64).fill(false)
+            };
+        }
+
+        const onMatrixDrawn = () => {
+            saveGlobalConfig();
+            if (typeof autoSave === 'function') autoSave();
+        };
+
+        initMatrixUI(separatorMatrixEl, 'separator', 'separator', onMatrixDrawn);
+        initMatrixUI(selectorMatrixEl, 'selector', 'interface', onMatrixDrawn);
+    }
+
+    // Actualiza la visibilidad de los botones de exportación según tipo de proyecto
+    function updateExportButtons() {
+        const isCYD = projectType === 'CYD';
+        const cydBtn = document.getElementById('export-cyd-btn');
+        const muchoBtn = document.getElementById('export-mucho-btn');
+        const importMucho = document.getElementById('import-mucho-btn');
+        const basicBtn = document.getElementById('export-btn');
+        const tapBtn = document.getElementById('export-tap-btn');
+        if (cydBtn) cydBtn.style.display = isCYD ? '' : 'none';
+        if (muchoBtn) muchoBtn.style.display = !isCYD ? '' : 'none';
+        if (importMucho) importMucho.style.display = !isCYD ? '' : 'none';
+        if (basicBtn) basicBtn.style.display = !isCYD ? '' : 'none';
+        if (tapBtn) tapBtn.style.display = !isCYD ? '' : 'none';
+    }
 
     // Cargar configuración global en los controles
     function loadGlobalConfig() {
@@ -60,7 +153,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         globalInterfacePaper.value = globalConfig.interface.paper;
         globalInterfaceBright.checked = globalConfig.interface.bright;
         globalInterfaceFlash.checked = globalConfig.interface.flash;
+        if (globalBorderColor) globalBorderColor.value = globalConfig.border || 'black';
         if (globalViewMode) globalViewMode.value = globalConfig.viewMode || 'simple';
+        if (globalProjectType) globalProjectType.value = (globalConfig.projectType || projectType || 'MuCho');
+
+        updateMatricesUI();
     }
 
     // Guardar configuración global desde los controles
@@ -83,19 +180,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             bright: globalInterfaceBright.checked,
             flash: globalInterfaceFlash.checked
         };
+        if (globalBorderColor) globalConfig.border = globalBorderColor.value;
         if (globalViewMode) globalConfig.viewMode = globalViewMode.value;
+        // project type selector
+        if (globalProjectType) {
+            projectType = globalProjectType.value || projectType;
+            globalConfig.projectType = projectType;
+        }
+
+        // basicGraphics ya se actualiza en tiempo real en los arrays al hacer mousedown/drag, 
+        // pero asegurémonos de que el objeto existe si no estaba
+        if (!globalConfig.basicGraphics) {
+            globalConfig.basicGraphics = {
+                separator: Array(64).fill(false),
+                selector: Array(64).fill(false)
+            };
+        }
     }
 
     // Abrir modal de configuración global
     document.getElementById('config-btn').addEventListener('click', () => {
         loadGlobalConfig();
+        // Mostrar/ocultar secciones según tipo de proyecto
+        const cydGeneralSection = document.getElementById('cyd-general-code-section');
+        const muchoSections = document.getElementById('mucho-sections');
+        if ((globalProjectType.value || projectType) === 'CYD') {
+            if (muchoSections) muchoSections.style.display = 'none';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'block';
+            if (window.showCYDEditor) window.showCYDEditor();
+        } else {
+            if (muchoSections) muchoSections.style.display = '';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'none';
+        }
         globalConfigModal.style.display = 'flex';
-    });
-
-    // Cerrar modal de configuración global
-    document.getElementById('close-global-config').addEventListener('click', () => {
-        saveGlobalConfig();
-        globalConfigModal.style.display = 'none';
     });
 
     // Cerrar modal con botón X
@@ -107,7 +224,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listeners para configuración global
     const onGlobalConfigChange = () => {
         saveGlobalConfig();
+        // Actualizar visibilidad de secciones al cambiar tipo de proyecto
+        const cydGeneralSection = document.getElementById('cyd-general-code-section');
+        const muchoSections = document.getElementById('mucho-sections');
+        if ((globalProjectType.value || projectType) === 'CYD') {
+            if (muchoSections) muchoSections.style.display = 'none';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'block';
+            if (window.showCYDEditor) window.showCYDEditor();
+        } else {
+            if (muchoSections) muchoSections.style.display = '';
+            if (cydGeneralSection) cydGeneralSection.style.display = 'none';
+        }
         if (typeof autoSave === 'function') autoSave();
+        updateExportButtons();
+        updateMatricesUI();
     };
 
     globalPageInk.addEventListener('change', onGlobalConfigChange);
@@ -122,9 +252,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     globalInterfacePaper.addEventListener('change', onGlobalConfigChange);
     globalInterfaceBright.addEventListener('change', onGlobalConfigChange);
     globalInterfaceFlash.addEventListener('change', onGlobalConfigChange);
+    if (globalBorderColor) globalBorderColor.addEventListener('change', onGlobalConfigChange);
     if (globalViewMode) globalViewMode.addEventListener('change', onGlobalConfigChange);
-
-    // Language Selector Listeners
+    if (globalProjectType) globalProjectType.addEventListener('change', onGlobalConfigChange);
     document.querySelectorAll('.lang-option').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const lang = e.target.getAttribute('data-lang');
@@ -363,16 +493,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             sidebarColumn.style.display = isAdvanced ? 'block' : 'none';
         }
 
-        // Toggle Tags (Title Actions)
+        // Toggle Tags (Title Actions) - hide for CYD projects
         const tagsInput = nodeEditModalTitle.querySelector('.advanced-only');
         if (tagsInput) {
-            tagsInput.style.display = isAdvanced ? 'block' : 'none';
+            tagsInput.style.display = (projectType === 'CYD') ? 'none' : (isAdvanced ? 'block' : 'none');
         }
 
-        // Toggle Flags (Option Actions)
+        // Toggle Flags (Option Actions) - hide for CYD projects
         const flagsInputs = nodeEditModalContent.querySelectorAll('.advanced-only-flags');
         flagsInputs.forEach(el => {
-            el.style.display = isAdvanced ? 'block' : 'none';
+            el.style.display = (projectType === 'CYD') ? 'none' : (isAdvanced ? 'block' : 'none');
         });
     }
 
@@ -486,7 +616,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 nodeOrGroup.actions = e.target.value;
             });
             actionsInput.classList.add('advanced-only');
-            actionsInput.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+            // Hide title actions input for CYD projects; otherwise show in advanced view
+            actionsInput.style.display = (projectType === 'CYD') ? 'none' : (editorViewMode === 'advanced' ? 'block' : 'none');
             nodeEditModalTitle.appendChild(actionsInput);
 
             // Toggle must be added LAST
@@ -529,7 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (compactEditModal) {
         // Eliminado: no cerrar modal al hacer clic fuera
         // El cierre solo será posible con el botón X/cruz
-    // (no hay llave de cierre aquí)
+        // (no hay llave de cierre aquí)
     }
 
     // Initialize Editor
@@ -555,16 +686,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     function getProjectData() {
         return {
             name: projectName,
+            projectType: projectType,
             globalConfig: globalConfig,
             nodes: editor.nodes.map(n => {
                 const nodeData = {
                     id: n.id,
                     x: n.x,
                     y: n.y,
+                    width: n.width,
+                    height: n.height,
                     type: n.type,
                     title: n.title,
                     text: n.text,
-                    outputs: n.outputs,
+                    outputs: n.outputs ? n.outputs.map(o => ({
+                        label: o.label,
+                        target: o.target,
+                        flag: o.flag,
+                        eligible: o.eligible !== false
+                    })) : [],
                     actions: n.actions
                 };
 
@@ -585,6 +724,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     nodeData.pageConfig = n.pageConfig;
                     nodeData.separatorConfig = n.separatorConfig;
                     nodeData.interfaceConfig = n.interfaceConfig;
+                    nodeData.borderColor = n.borderColor;
                 }
                 return nodeData;
             }),
@@ -600,6 +740,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     nodeIds: g.nodeIds
                 };
             }),
+            cydGeneralCode: document.getElementById('cyd-general-code')?.value || '',
+            cydGeneralCodeEnd: document.getElementById('cyd-general-code-end')?.value || '',
             lastSaved: Date.now()
         };
     }
@@ -626,8 +768,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Restore global config
             if (data.globalConfig) {
                 globalConfig = data.globalConfig;
+                // if project type stored in globalConfig prefer it
+                if (globalConfig.projectType) projectType = globalConfig.projectType;
                 editorViewMode = globalConfig.viewMode || 'simple';
                 loadGlobalConfig();
+            }
+            // If file explicitly sets projectType at root, prefer it
+            if (data.projectType) {
+                projectType = data.projectType;
+                if (globalProjectType) globalProjectType.value = projectType;
+            }
+
+            // Restore CYD general code
+            const cydGeneralTextarea = document.getElementById('cyd-general-code');
+            if (cydGeneralTextarea && data.cydGeneralCode != null) {
+                if (cydGeneralTextarea._cmInstance) {
+                    cydGeneralTextarea._cmInstance.setValue(data.cydGeneralCode);
+                } else {
+                    cydGeneralTextarea.value = data.cydGeneralCode;
+                    cydGeneralTextarea.dispatchEvent(new Event('input'));
+                }
+            }
+            const cydGeneralTextareaEnd = document.getElementById('cyd-general-code-end');
+            if (cydGeneralTextareaEnd && data.cydGeneralCodeEnd != null) {
+                if (cydGeneralTextareaEnd._cmInstance) {
+                    cydGeneralTextareaEnd._cmInstance.setValue(data.cydGeneralCodeEnd);
+                } else {
+                    cydGeneralTextareaEnd.value = data.cydGeneralCodeEnd;
+                    cydGeneralTextareaEnd.dispatchEvent(new Event('input'));
+                }
             }
 
             // Restore Nodes
@@ -641,7 +810,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         newNode.text = n.text || "";
                         newNode.title = n.title || n.type;
                         newNode.actions = n.actions || "";
-                        if (n.outputs) newNode.outputs = n.outputs;
+                        newNode.width = n.width || newNode.width;
+                        newNode.height = n.height || newNode.height;
+                        if (n.outputs) {
+                            newNode.outputs = n.outputs.map(o => ({
+                                label: o.label,
+                                target: o.target,
+                                flag: o.flag,
+                                eligible: o.eligible !== false
+                            }));
+                        }
                         if (n.conditionalParagraphs) newNode.conditionalParagraphs = n.conditionalParagraphs;
                         if (n.paragraphImages) newNode.paragraphImages = n.paragraphImages;
                         if (n.useCustomConfig) {
@@ -649,6 +827,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (n.pageConfig) newNode.pageConfig = n.pageConfig;
                             if (n.separatorConfig) newNode.separatorConfig = n.separatorConfig;
                             if (n.interfaceConfig) newNode.interfaceConfig = n.interfaceConfig;
+                            if (n.borderColor) newNode.borderColor = n.borderColor;
                         }
                     }
                     editor.nodes.push(newNode);
@@ -668,6 +847,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             editor.onStateChange = originalOnStateChange;
             editor.draw();
+            updateExportButtons();
             console.log("Restoration successful");
             return true;
         } catch (e) {
@@ -712,6 +892,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Mark as initialized so FUTURE changes trigger auto-save
         isInitialized = true;
         editor.onStateChange = autoSave;
+        updateExportButtons();
     }
 
 
@@ -740,14 +921,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Helper: validate no duplicated labels
+    function hasDuplicateLabels() {
+        const screenNodes = editor.nodes.filter(n => n && (n.type === 'screen' || n.type === 'Screen' || n.constructor.name === 'ScreenNode'));
+        const slugify = (text) => (text || '').toString().replace(/[^a-zA-Z0-9_]/g, '') || null;
+        const labels = {};
+        const duplicates = [];
+
+        screenNodes.forEach(node => {
+            const lbl = slugify(node.title) || `Node${node.id}`;
+            const lblLower = lbl.toLowerCase();
+            if (labels[lblLower]) {
+                if (!duplicates.includes(lbl)) duplicates.push(lbl);
+            } else {
+                labels[lblLower] = true;
+            }
+        });
+
+        if (duplicates.length > 0) {
+            const title = window.translate ? window.translate('messages.duplicate_labels_title') : 'No se puede exportar. Hay pantallas con nombres que resultan en etiquetas duplicadas:\n';
+            const desc = window.translate ? window.translate('messages.duplicate_labels_desc') : '\n\nPor favor, asegúrate de que cada pantalla tenga un nombre único.';
+            alert(`${title}- ${duplicates.join('\n- ')}${desc}`);
+            return true;
+        }
+        return false;
+    }
+
     document.getElementById('export-png-btn').addEventListener('click', () => {
         const exportName = (projectName || 'workflow').replace(/\s+/g, '_');
         editor.exportToPNG(exportName);
     });
 
     document.getElementById('export-tap-btn').addEventListener('click', () => {
+        if (hasDuplicateLabels()) return;
         try {
-            const basicCode = generateBasic(editor.nodes, globalConfig);
+            const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
+            const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
+            const basicCode = projectType === 'CYD'
+                ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
+                : generateBasicFromMucho(editor.nodes, globalConfig);
 
             // Collect all images from nodes
             const screenImages = [];
@@ -790,7 +1002,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('export-btn').addEventListener('click', () => {
-        const basicCode = generateBasic(editor.nodes, globalConfig);
+        if (hasDuplicateLabels()) return;
+        const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
+        const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
+        const basicCode = projectType === 'CYD'
+            ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
+            : generateBasicFromMucho(editor.nodes, globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([basicCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -802,6 +1019,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('export-mucho-btn').addEventListener('click', () => {
+        if (hasDuplicateLabels()) return;
         const muchoCode = generateMucho(editor.nodes, globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([muchoCode], { type: 'text/plain' });
@@ -811,6 +1029,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         a.download = exportName + '.txt';
         a.click();
         URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('export-cyd-btn').addEventListener('click', () => {
+        try {
+            const cydCodeResult = generateCYD(editor.nodes, globalConfig);
+            let cydCode = cydCodeResult;
+            // Prepend CYD general code if present
+            const cydGeneralCode = (document.getElementById('cyd-general-code')?.value || '').trim();
+            const cydGeneralCodeEnd = (document.getElementById('cyd-general-code-end')?.value || '').trim();
+            if (cydGeneralCode) cydCode = cydGeneralCode + '\n\n' + cydCode;
+            cydCode = cydCode + '\n\n[[ END ]]';
+            if (cydGeneralCodeEnd) cydCode = cydCode + '\n\n' + cydGeneralCodeEnd;
+            const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
+            const blob = new Blob([cydCode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = exportName + '.cyd';
+            a.click();
+            URL.revokeObjectURL(url);
+            console.log('CYD export successful');
+        } catch (e) {
+            console.error('CYD export failed:', e);
+            alert('CYD export failed: ' + e.message);
+        }
     });
 
     // Save Project
@@ -860,6 +1103,116 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadInput.value = '';
     });
 
+    // Import from MuCho text file
+    function parseMuchoToNodes(text) {
+        const lines = text.split(/\r?\n/);
+        const blocks = [];
+        let currentBlock = null;
+        let lastOptionIdx = -1;
+
+        lines.forEach(line => {
+            if (line.startsWith('$Q ')) {
+                if (currentBlock) blocks.push(currentBlock);
+                const rest = line.substring(3).trim();
+                // label is the first token; rest may contain attr:N dattr:N iattr:N ...
+                const firstSpace = rest.search(/\s/);
+                const label = firstSpace > 0 ? rest.substring(0, firstSpace) : rest;
+                currentBlock = { label, descLines: [], options: [], inOptions: false };
+                lastOptionIdx = -1;
+            } else if (currentBlock) {
+                if (line.startsWith('$A ')) {
+                    currentBlock.inOptions = true;
+                    const afterA = line.substring(3).trim();
+                    const spaceIdx = afterA.search(/\s/);
+                    const targetLabel = spaceIdx > 0 ? afterA.substring(0, spaceIdx) : afterA;
+                    const flag = spaceIdx > 0 ? afterA.substring(spaceIdx + 1).trim() : '';
+                    currentBlock.options.push({ targetLabel, flag, text: '' });
+                    lastOptionIdx = currentBlock.options.length - 1;
+                } else if (currentBlock.inOptions && lastOptionIdx >= 0 &&
+                    currentBlock.options[lastOptionIdx].text === '') {
+                    currentBlock.options[lastOptionIdx].text = line.trim();
+                } else if (!currentBlock.inOptions) {
+                    currentBlock.descLines.push(line);
+                }
+            }
+        });
+        if (currentBlock) blocks.push(currentBlock);
+
+        if (blocks.length === 0) return [];
+
+        // Build label -> nodeId map first
+        const labelToId = {};
+        blocks.forEach((block, idx) => {
+            const nodeId = 'n' + (idx + 1);
+            labelToId[block.label.toLowerCase()] = nodeId;
+        });
+
+        // Create ScreenNode instances
+        const COLS = 5;
+        const COL_SPACING = 220;
+        const ROW_SPACING = 200;
+        const nodes = blocks.map((block, idx) => {
+            const nodeId = 'n' + (idx + 1);
+            const col = idx % COLS;
+            const row = Math.floor(idx / COLS);
+            const node = new ScreenNode(nodeId, 80 + col * COL_SPACING, 80 + row * ROW_SPACING);
+            node.title = block.label;
+            node.text = block.descLines.join('\n').replace(/^\n+|\n+$/g, '');
+
+            if (block.options.length > 0) {
+                node.outputs = block.options.map(opt => ({
+                    label: opt.text || opt.targetLabel,
+                    target: labelToId[opt.targetLabel.toLowerCase()] || null,
+                    flag: opt.flag || ''
+                }));
+            } else {
+                node.outputs = [{ label: 'Next', target: null }];
+            }
+            return node;
+        });
+
+        return nodes;
+    }
+
+    const importMuchoInput = document.getElementById('import-mucho-input');
+    document.getElementById('import-mucho-btn').addEventListener('click', () => {
+        importMuchoInput.click();
+    });
+
+    importMuchoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const nodes = parseMuchoToNodes(event.target.result);
+                if (nodes.length === 0) {
+                    alert(t('messages.import_mucho_empty') || 'No MuCho blocks ($Q) found in the file.');
+                    return;
+                }
+                // Replace current project content
+                const wasInitialized = isInitialized;
+                isInitialized = false;
+                editor.nodes = [];
+                editor.groups = [];
+                editor.selectNode(null);
+                editor.selectGroup(null);
+                nodes.forEach(n => editor.nodes.push(n));
+                updateProjectName(file.name.replace(/\.[^.]+$/, ''));
+                editor.draw();
+                isInitialized = wasInitialized;
+                updateExportButtons();
+                autoSave();
+            } catch (err) {
+                console.error(err);
+                alert((t('messages.import_mucho_failed') || 'Import failed: ') + err.message);
+            }
+        };
+        reader.readAsText(file);
+        importMuchoInput.value = '';
+    });
+
     // New Project
     document.getElementById('new-btn').addEventListener('click', () => {
         if (confirm(t('messages.new_confirm'))) {
@@ -873,6 +1226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             editor.draw();
 
             isInitialized = true;
+            updateExportButtons();
             autoSave();
         }
     });
@@ -1147,6 +1501,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         insertImageBtn.innerHTML = t('editor.insert_image');
         insertImageBtn.style.padding = '5px 10px';
         insertImageBtn.style.fontSize = '12px';
+        if (projectType === 'CYD') insertImageBtn.style.display = 'none';
 
         const hiddenFileInput = document.createElement('input');
         hiddenFileInput.type = 'file';
@@ -1185,6 +1540,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             rulerSelect.appendChild(el);
         });
 
+        let editorWidget = null;
+
         const updateRuler = (val) => {
             editorRulerWidth = val;
             if (val === 'hidden') {
@@ -1192,6 +1549,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 editorContainer.style.setProperty('--ruler-display', 'block');
                 editorContainer.style.setProperty('--ruler-width', val);
+            }
+
+            if (editorWidget && editorWidget.cm) {
+                if (val === 'hidden') {
+                    editorWidget.cm.setOption('rulers', []);
+                } else {
+                    const cols = parseInt(val);
+                    if (!isNaN(cols)) {
+                        editorWidget.cm.setOption('rulers', [{ column: cols, color: 'rgba(255, 255, 255, 0.3)', lineStyle: 'dashed' }]);
+                    }
+                }
             }
         };
 
@@ -1205,44 +1573,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateRuler(editorRulerWidth);
         mainColumn.appendChild(editorContainer);
 
-        const initialMuchoText = MuchoEditor.generateFromNode(node);
-        const muchoEditor = new MuchoEditor(editorContainer, initialMuchoText, (newText) => {
-            MuchoEditor.parseToNode(newText, node);
+        // Choose editor implementation based on project type (MuCho or CYD)
+        const EditorClass = (projectType === 'CYD') ? CYDEditor : MuchoEditor;
+        const initialText = EditorClass.generateFromNode(node);
+        editorWidget = new EditorClass(editorContainer, initialText, (newText) => {
+            EditorClass.parseToNode(newText, node);
             editor.draw();
             autoSave();
         });
 
+        // Apply ruler to the newly created CodeMirror instance
+        updateRuler(editorRulerWidth);
+
         hiddenFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                const ta = muchoEditor.textarea;
-                const start = ta.selectionStart;
-                const text = muchoEditor.value;
-
-                // Analizar el contexto alrededor del cursor para no meter saltos de linea de mas
-                const textBefore = text.substring(0, start);
-                const textAfter = text.substring(ta.selectionEnd);
-
-                let prepend = "";
-
-                if (textBefore.length > 0 && !textBefore.endsWith('\n')) {
-                    prepend = "\n";
+                const cm = editorWidget.cm;
+                if (cm) {
+                    // Usar API CodeMirror para insertar en la posición del cursor
+                    const cursor = cm.getCursor();
+                    const line = cm.getLine(cursor.line);
+                    const prepend = (line.length > 0) ? '\n' : '';
+                    cm.replaceRange(prepend + '$I ' + file.name + '\n', cursor);
+                    EditorClass.parseToNode(cm.getValue(), node);
+                } else {
+                    // Fallback textarea
+                    const ta = editorWidget.textarea;
+                    const start = ta.selectionStart;
+                    const text = editorWidget.value;
+                    const textBefore = text.substring(0, start);
+                    const textAfter = text.substring(ta.selectionEnd);
+                    const prepend = (textBefore.length > 0 && !textBefore.endsWith('\n')) ? '\n' : '';
+                    editorWidget.value = textBefore + prepend + '$I ' + file.name + '\n' + textAfter;
+                    ta.value = editorWidget.value;
+                    editorWidget.updateHighlights();
+                    EditorClass.parseToNode(editorWidget.value, node);
                 }
-
-                // Siempre incluir salto de linea final
-                const insertText = prepend + "$I " + file.name + "\n";
-
-                muchoEditor.value = textBefore + insertText + textAfter;
-                ta.value = muchoEditor.value;
-                muchoEditor.updateHighlights();
-                MuchoEditor.parseToNode(muchoEditor.value, node);
                 editor.draw();
 
-                // Read the image file and attach to paragraphImages array based on parsed index
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const imageData = event.target.result;
-                    // Find the image node we just parsed to attach the raw data
                     const imgObj = node.paragraphImages.find(img => img.imageName === file.name);
                     if (imgObj) {
                         imgObj.imageData = imageData;
@@ -1259,69 +1630,106 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const helpPanel = document.createElement('div');
         helpPanel.className = 'mucho-help-panel';
-        helpPanel.innerHTML = `
-            <h5>${t('help.title')}</h5>
+        if (projectType === 'CYD') {
+            helpPanel.innerHTML = `
+                <h5>CYD Syntax Help</h5>
+                <div class="mucho-help-section">
+                    <h6>Directives</h6>
+                    <ul>
+                        <li><code>[[ DECLARE 0 AS name ]]</code> Declare variables</li>
+                        <li><code>[[ PICTURE 1 ]]</code> / <code>[[ DISPLAY 1 ]]</code> Show image</li>
+                        <li><code>[[ LABEL name ]]</code> Define label</li>
+                        <li><code>[[ IF @name = 1 THEN ]] ... [[ ENDIF ]]</code> Conditionals</li>
+                        <li><code>[[ OPTION GOTO label ]]Choice text</code> Options &amp; <code>[[ CHOOSE ]]</code></li>
+                    </ul>
+                </div>
+                <div class="mucho-help-section">
+                    <h6>Layout</h6>
+                    <ul>
+                        <li><code>[[ MARGINS left,top,width,height ]]</code> Restrict text area</li>
+                        <li><code>[[ CLEAR ]]</code> Clear screen</li>
+                        <li><code>[[ WAITKEY : END ]]</code> Wait and end</li>
+                    </ul>
+                </div>
+                <p style="margin-top:10px; font-size:11px; color:#888;"><em>Click code snippets to insert.</em></p>
+            `;
+        } else {
+            helpPanel.innerHTML = `
+                <h5>${t('help.title')}</h5>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.flags_logic')}</h6>
-                <ul>
-                    <li><code>has:name</code> (${t('help.or')} <code>name</code>) ${t('help.flags_has')}</li>
-                    <li><code>not:name</code> (${t('help.or')} <code>!name</code>) ${t('help.flags_not')}</li>
-                    <li><code>rnd:128</code> ${t('help.flags_rnd')}</li>
-                    <li><code>AND</code> ${t('help.flags_and')} <code>has:A AND has:B</code>.</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.flags_logic')}</h6>
+                    <ul>
+                        <li><code>has:name</code> (${t('help.or')} <code>name</code>) ${t('help.flags_has')}</li>
+                        <li><code>not:name</code> (${t('help.or')} <code>!name</code>) ${t('help.flags_not')}</li>
+                        <li><code>rnd:128</code> ${t('help.flags_rnd')}</li>
+                        <li><code>AND</code> ${t('help.flags_and')} <code>has:A AND has:B</code>.</li>
+                    </ul>
+                </div>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.ops_title')}</h6>
-                <ul>
-                    <li><code>set:flag</code> ${t('help.ops_set')}</li>
-                    <li><code>clear:flag</code> (${t('help.or')} <code>clr:</code>) ${t('help.ops_clear')}</li>
-                    <li><code>toggle:flag</code> ${t('help.ops_toggle')}</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.ops_title')}</h6>
+                    <ul>
+                        <li><code>set:flag</code> ${t('help.ops_set')}</li>
+                        <li><code>clear:flag</code> (${t('help.or')} <code>clr:</code>) ${t('help.ops_clear')}</li>
+                        <li><code>toggle:flag</code> ${t('help.ops_toggle')}</li>
+                    </ul>
+                </div>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.nums_title')}</h6>
-                <ul>
-                    <li><code>v=10</code> ${t('help.nums_assign')}</li>
-                    <li><code>v+5</code> / <code>v-2</code> ${t('help.nums_add_sub')}</li>
-                    <li><code>v==10</code> / <code>v!=5</code> ${t('help.nums_compare')}</li>
-                    <li><code>v&gt;5</code> / <code>v&lt;=20</code> ${t('help.nums_compare')}</li>
-                    <li><code>&lt;&lt;v&gt;&gt;</code> ${t('help.nums_print')}</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.nums_title')}</h6>
+                    <ul>
+                        <li><code>v=10</code> ${t('help.nums_assign')}</li>
+                        <li><code>v+5</code> / <code>v-2</code> ${t('help.nums_add_sub')}</li>
+                        <li><code>v==10</code> / <code>v!=5</code> ${t('help.nums_compare')}</li>
+                        <li><code>v&gt;5</code> / <code>v&lt;=20</code> ${t('help.nums_compare')}</li>
+                        <li><code>&lt;&lt;v&gt;&gt;</code> ${t('help.nums_print')}</li>
+                    </ul>
+                </div>
 
-            <div class="mucho-help-section">
-                <h6>${t('help.style_title')}</h6>
-                <ul>
-                    <li><code>$I img.scr</code> ${t('help.style_img')}</li>
-                    <li><code>attr:71</code> ${t('help.style_attr')}</li>
-                    <li><code>dattr:N</code> / <code>iattr:N</code> ${t('help.style_div_int')}</li>
-                    <li><code>border:N</code> ${t('help.style_border')}</li>
-                    <li><code>cls:0</code> ${t('help.style_cls')}</li>
-                </ul>
-            </div>
+                <div class="mucho-help-section">
+                    <h6>${t('help.style_title')}</h6>
+                    <ul>
+                        <li><code>$I img.scr</code> ${t('help.style_img')}</li>
+                        <li><code>attr:71</code> ${t('help.style_attr')}</li>
+                        <li><code>dattr:N</code> / <code>iattr:N</code> ${t('help.style_div_int')}</li>
+                        <li><code>border:N</code> ${t('help.style_border')}</li>
+                        <li><code>cls:0</code> ${t('help.style_cls')}</li>
+                    </ul>
+                </div>
 
-            <p style="margin-top:10px; font-size:11px; color:#888;">
-                <em>${t('help.click_to_insert')}</em>
-            </p>
-        `;
+                <p style="margin-top:10px; font-size:11px; color:#888;">
+                    <em>${t('help.click_to_insert')}</em>
+                </p>
+            `;
+        }
 
         // Add click listeners to code tags to insert text
         helpPanel.querySelectorAll('code').forEach(codeEl => {
             codeEl.addEventListener('click', () => {
-                const insertText = codeEl.textContent + ' ';
-                const ta = muchoEditor.textarea;
+                let insertText = codeEl.textContent + ' ';
+                const ta = editorWidget.textarea;
                 const start = ta.selectionStart;
                 const end = ta.selectionEnd;
-                muchoEditor.value = muchoEditor.value.substring(0, start) + insertText + muchoEditor.value.substring(end);
-                ta.value = muchoEditor.value;
-                muchoEditor.updateHighlights();
-                MuchoEditor.parseToNode(muchoEditor.value, node);
+                editorWidget.value = editorWidget.value.substring(0, start) + insertText + editorWidget.value.substring(end);
+                ta.value = editorWidget.value;
+                editorWidget.updateHighlights();
+                EditorClass.parseToNode(editorWidget.value, node);
                 editor.draw();
                 ta.focus();
-                ta.setSelectionRange(start + insertText.length, start + insertText.length);
+
+                // If the inserted fragment contains a placeholder like 'name' or 'label', select it
+                const lower = insertText.toLowerCase();
+                const placeholderMatch = lower.match(/\b(name|label)\b/);
+                if (placeholderMatch) {
+                    const ph = placeholderMatch[0];
+                    const idx = lower.indexOf(ph);
+                    const selStart = start + idx;
+                    const selEnd = selStart + ph.length;
+                    ta.setSelectionRange(selStart, selEnd);
+                } else {
+                    ta.setSelectionRange(start + insertText.length, start + insertText.length);
+                }
             });
         });
 
@@ -1331,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         editorLayout.appendChild(sidebarColumn);
         targetContainer.appendChild(editorLayout);
 
-        // Options Section
+        // Options Section (always shown; flag inputs hidden for CYD projects)
         const optionsSection = document.createElement('div');
         optionsSection.style.marginTop = '15px';
         optionsSection.style.padding = '10px';
@@ -1389,7 +1797,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 flagInp.style.borderRadius = '3px';
                 flagInp.title = t('editor.actions_option_title');
                 flagInp.classList.add('advanced-only-flags');
-                flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+                if (projectType === 'CYD') {
+                    // In CYD projects options remain, but option flags are not applicable
+                    flagInp.style.display = 'none';
+                } else {
+                    flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+                }
                 flagInp.addEventListener('input', (e) => {
                     opt.flag = e.target.value.trim() || undefined;
                     editor.draw();
@@ -1417,6 +1830,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 inputsRow.appendChild(inp);
                 inputsRow.appendChild(flagInp);
+
+                // "Eligible" switch for CYD projects
+                if (projectType === 'CYD') {
+                    const eligibleContainer = document.createElement('div');
+                    eligibleContainer.style.display = 'flex';
+                    eligibleContainer.style.alignItems = 'center';
+                    eligibleContainer.style.gap = '5px';
+                    eligibleContainer.style.backgroundColor = '#2a2a2a';
+                    eligibleContainer.style.padding = '2px 8px';
+                    eligibleContainer.style.borderRadius = '3px';
+                    eligibleContainer.style.border = '1px solid #444';
+
+                    const eligibleLabel = document.createElement('span');
+                    eligibleLabel.textContent = t('editor.eligible');
+                    eligibleLabel.style.fontSize = '11px';
+                    eligibleLabel.style.color = '#ccc';
+
+                    const eligibleSwitch = document.createElement('input');
+                    eligibleSwitch.type = 'checkbox';
+                    eligibleSwitch.checked = (opt.eligible !== false); // Default true
+                    eligibleSwitch.style.cursor = 'pointer';
+                    eligibleSwitch.addEventListener('change', (e) => {
+                        opt.eligible = e.target.checked;
+                        editor.draw();
+                        autoSave();
+                    });
+
+                    eligibleContainer.appendChild(eligibleLabel);
+                    eligibleContainer.appendChild(eligibleSwitch);
+                    inputsRow.appendChild(eligibleContainer);
+                }
+
                 inputsRow.appendChild(del);
 
                 row.appendChild(inputsRow);
@@ -1448,6 +1893,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         colorConfigSection.style.padding = '10px';
         colorConfigSection.style.backgroundColor = '#2a2a2a';
         colorConfigSection.style.borderRadius = '4px';
+        if (projectType === 'CYD') colorConfigSection.style.display = 'none';
 
         const colorConfigTitle = document.createElement('h4');
         colorConfigTitle.textContent = '▼ 🎨 ' + t('editor.color_config_title');
@@ -1616,6 +2062,48 @@ document.addEventListener('DOMContentLoaded', async () => {
             return section;
         };
 
+        // Border Color Config (Special simplified version of createColorConfig)
+        const borderSection = document.createElement('div');
+        borderSection.style.marginTop = '15px';
+        borderSection.style.padding = '10px';
+        borderSection.style.backgroundColor = '#1a1a1a';
+        borderSection.style.borderRadius = '4px';
+
+        const borderTitle = document.createElement('h5');
+        borderTitle.textContent = t('config.border_section') || 'Border';
+        borderTitle.style.margin = '0 0 10px 0';
+        borderTitle.style.color = '#4a9eff';
+        borderSection.appendChild(borderTitle);
+
+        const borderRow = document.createElement('div');
+        borderRow.style.display = 'flex';
+        borderRow.style.gap = '10px';
+        borderRow.style.alignItems = 'center';
+
+        const borderLabel = document.createElement('label');
+        borderLabel.textContent = t('properties.color') || 'Color';
+        borderLabel.style.minWidth = '50px';
+
+        const borderSelect = document.createElement('select');
+        borderSelect.style.flex = '1';
+        ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
+            const opt = document.createElement('option');
+            opt.value = color;
+            opt.textContent = t(`colors.${color}`);
+            if ((node.borderColor || 'black') === color) opt.selected = true;
+            borderSelect.appendChild(opt);
+        });
+
+        borderSelect.addEventListener('change', () => {
+            node.borderColor = borderSelect.value;
+            autoSave();
+        });
+
+        borderRow.appendChild(borderLabel);
+        borderRow.appendChild(borderSelect);
+        borderSection.appendChild(borderRow);
+        customConfigContainer.appendChild(borderSection);
+
         customConfigContainer.appendChild(createColorConfig(t('properties.page'), 'pageConfig'));
         customConfigContainer.appendChild(createColorConfig(t('properties.separator'), 'separatorConfig'));
         customConfigContainer.appendChild(createColorConfig(t('properties.options'), 'interfaceConfig'));
@@ -1648,6 +2136,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     bright: globalConfig.interface.bright,
                     flash: globalConfig.interface.flash
                 };
+                node.borderColor = globalConfig.border || 'black';
+
                 // Recreate the config UI with new values
                 customConfigContainer.innerHTML = '';
                 customConfigContainer.appendChild(createColorConfig(t('properties.page'), 'pageConfig'));
@@ -1671,4 +2161,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     // FINAL STARTUP: Ensure everything is ready before loading
     loadFromLocalStorage();
+
+    // Auto-save cuando se edita el Código general CYD
+    const cydGeneralTextareaEl = document.getElementById('cyd-general-code');
+    if (cydGeneralTextareaEl) {
+        cydGeneralTextareaEl.addEventListener('input', () => {
+            if (typeof autoSave === 'function') autoSave();
+        });
+    }
+    const cydGeneralTextareaEndEl = document.getElementById('cyd-general-code-end');
+    if (cydGeneralTextareaEndEl) {
+        cydGeneralTextareaEndEl.addEventListener('input', () => {
+            if (typeof autoSave === 'function') autoSave();
+        });
+    }
 });

@@ -76,7 +76,7 @@ export function generateMucho(nodes, globalConfig = null) {
     screenNodes.forEach(node => {
         const label = labelMap[node.id];
         let description = node.text || "";
-        // Reemplaza solo líneas completamente vacías por $P, respeta espacios en las demás
+        // Replace lines that only contain whitespace with $P
         description = description.split(/\r?\n/).map(line => line === "" ? "$P" : line).join("\n");
 
         // Calculate attributes
@@ -98,9 +98,15 @@ export function generateMucho(nodes, globalConfig = null) {
             : globalConfig.interface;
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
 
+        // Border color
+        const borderColor = (node.useCustomConfig && node.borderColor)
+            ? node.borderColor
+            : (globalConfig.border || 'black');
+        const borderVal = colorToZX(borderColor);
+
         // Build $Q line, appending any node-level actions
         const actionsStr = node.actions && node.actions.trim() ? ' ' + node.actions.trim() : '';
-        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr}${actionsStr}\n`;
+        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr} border:${borderVal}${actionsStr}\n`;
         muchoCode += description + '\n';
 
         // Iterate all options
@@ -110,7 +116,7 @@ export function generateMucho(nodes, globalConfig = null) {
                 if (resolvedTarget) {
                     // Use the label from the map for the target node
                     const targetLabel = labelMap[resolvedTarget] || ("N" + resolvedTarget);
-                    const choiceText = opt.label.replace(/\n/g, " ").trim();
+                    const choiceText = opt.label.replace(/\n/g, " ");
 
                     // Add flag if present
                     let flagPart = '';

@@ -100,7 +100,51 @@ header h1 {
 }
 
 /* Show submenu on hover */
-.menu:hover .submenu {
+.menu:hover>.submenu {
+    display: block;
+}
+
+/* Nested submenu item inside a submenu */
+.submenu-item {
+    position: relative;
+}
+
+.submenu-item-btn {
+    display: block;
+    width: 100%;
+    background-color: var(--panel-bg);
+    color: var(--text-color);
+    border: none;
+    border-bottom: 1px solid var(--node-border);
+    padding: 8px 12px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.submenu-item-btn:hover {
+    background-color: #555;
+    color: var(--accent-color);
+}
+
+.submenu-item:last-child .submenu-item-btn {
+    border-bottom: none;
+}
+
+/* Nested submenu: shown to the right when hovering the item */
+.submenu-item .submenu-nested {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    z-index: 1001;
+    min-width: 150px;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--node-border);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.submenu-item:hover .submenu-nested {
     display: block;
 }
 
@@ -193,6 +237,43 @@ main {
 
 canvas {
     display: block;
+}
+
+/* Code tabs (used in CYD general code section) */
+.code-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--accent-color);
+    margin-bottom: 0;
+}
+
+.code-tab-btn {
+    background-color: var(--node-bg);
+    color: var(--text-color);
+    border: 1px solid var(--node-border);
+    border-bottom: none;
+    padding: 5px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.92em;
+    margin-right: 3px;
+    transition: background-color 0.15s;
+}
+
+.code-tab-btn:hover {
+    background-color: #555;
+}
+
+.code-tab-btn.code-tab-active {
+    background-color: var(--accent-color);
+    color: #000;
+    border-color: var(--accent-color);
+    font-weight: bold;
+}
+
+.code-tab-panel {
+    border: 1px solid var(--node-border);
+    border-top: none;
 }
 
 /* Modal / Text Editor Window */
@@ -732,6 +813,105 @@ input:checked+.slider:before {
     margin-top: 8px;
 }
 
+/* Layout específico para el modal de configuración global: aprovechar espacio en dos columnas */
+#global-config-modal .modal-content {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 24px 28px;
+}
+
+#global-config-modal .config-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 24px;
+    /* more vertical and horizontal spacing */
+    margin-top: 8px;
+    align-items: center;
+}
+
+#global-config-modal .config-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+#global-config-modal .config-row label {
+    color: var(--text-color);
+    font-size: 13px;
+}
+
+#global-config-modal .modal-content h3 {
+    margin-top: 12px;
+    margin-bottom: 6px;
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding-bottom: 6px;
+}
+
+#global-config-modal .config-options {
+    margin-bottom: 14px;
+}
+
+/* Tooltip de ayuda con icono ? */
+.tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    border-radius: 50%;
+    background: #555;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: help;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.tooltip-icon::after {
+    content: attr(title);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: normal;
+    white-space: nowrap;
+    max-width: 280px;
+    white-space: normal;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9999;
+}
+
+.tooltip-icon:hover::after {
+    opacity: 1;
+}
+
+#global-config-modal .config-row select,
+#global-config-modal .config-row input[type="text"] {
+    width: 100%;
+    padding: 6px 8px;
+    background-color: var(--node-bg);
+    color: var(--text-color);
+    border: 1px solid var(--node-border);
+    border-radius: 4px;
+}
+
+#global-config-modal .config-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
 .config-row {
     display: flex;
     flex-direction: row;
@@ -919,6 +1099,25 @@ input:checked+.slider:before {
 
 /* texto normal */
 
+/* CYD highlighting (simple) */
+.cyd-key {
+    color: #7ec699;
+    font-weight: 700;
+}
+
+.cyd-kw {
+    color: #ffd479;
+    font-weight: 700;
+}
+
+.cyd-inner {
+    color: #cfcfcf;
+}
+
+.cyd-editor-container {
+    /* reuse mucho editor layout */
+}
+
 .mucho-help-panel {
     background: #2a2a2a;
     padding: 15px;
@@ -951,4 +1150,27 @@ input:checked+.slider:before {
     border-radius: 3px;
     user-select: all;
     font-family: 'Courier New', monospace;
+}
+
+/* Pixel Matrix Styles */
+.pixel-matrix {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 1px;
+    background-color: #555;
+    width: fit-content;
+    border: 2px solid #333;
+    margin-top: 10px;
+}
+
+.pixel-cell {
+    width: 20px;
+    height: 20px;
+    background-color: var(--pixel-paper, #000);
+    cursor: crosshair;
+    user-select: none;
+}
+
+.pixel-cell.active {
+    background-color: var(--pixel-ink, #FFF);
 }
