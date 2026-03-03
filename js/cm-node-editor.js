@@ -1,6 +1,7 @@
 // ZX Story Flow - Shared CodeMirror node editor base
 // Provides the common toolbar + fullscreen + CodeMirror shell used by both
 // MuchoEditor and CYDEditor.
+import { transliterate } from './utils.js';
 
 const SHARED_CSS = `
 .zxsf-node-editor {
@@ -62,12 +63,12 @@ const SHARED_CSS = `
 
 let sharedStylesInjected = false;
 export function injectSharedStyles() {
-    if (sharedStylesInjected) return;
-    sharedStylesInjected = true;
-    const s = document.createElement('style');
-    s.id = 'zxsf-node-editor-styles';
-    s.textContent = SHARED_CSS;
-    document.head.appendChild(s);
+  if (sharedStylesInjected) return;
+  sharedStylesInjected = true;
+  const s = document.createElement('style');
+  s.id = 'zxsf-node-editor-styles';
+  s.textContent = SHARED_CSS;
+  document.head.appendChild(s);
 }
 
 /**
@@ -80,59 +81,65 @@ export function injectSharedStyles() {
  * @param {function}    onChange   - called with new value on every change
  */
 export function buildNodeEditor(container, mode, initialValue, onChange) {
-    container.innerHTML = '';
-    container.className = 'zxsf-node-editor';
+  container.innerHTML = '';
+  container.className = 'zxsf-node-editor';
 
-    // Toolbar
-    const toolbar = document.createElement('div');
-    toolbar.className = 'zxsf-node-editor-toolbar';
-    const fsBtn = document.createElement('button');
-    fsBtn.textContent = '\u26F6';
-    fsBtn.title = 'Pantalla completa';
-    toolbar.appendChild(fsBtn);
-    container.appendChild(toolbar);
+  // Toolbar
+  const toolbar = document.createElement('div');
+  toolbar.className = 'zxsf-node-editor-toolbar';
+  const fsBtn = document.createElement('button');
+  fsBtn.textContent = '\u26F6';
+  fsBtn.title = 'Pantalla completa';
+  toolbar.appendChild(fsBtn);
+  container.appendChild(toolbar);
 
-    // CodeMirror instance
-    const cm = window.CodeMirror(container, {
-        value: initialValue || '',
-        mode,
-        theme: 'dracula',
-        lineNumbers: true,
-        lineWrapping: true,
-        indentUnit: 2,
-        tabSize: 2,
-        indentWithTabs: false,
-        autofocus: false,
-        extraKeys: { Tab: cm => cm.execCommand('indentMore') },
-    });
+  // CodeMirror instance
+  const cm = window.CodeMirror(container, {
+    value: initialValue || '',
+    mode,
+    theme: 'dracula',
+    lineNumbers: true,
+    lineWrapping: true,
+    indentUnit: 2,
+    tabSize: 2,
+    indentWithTabs: false,
+    autofocus: false,
+    extraKeys: { Tab: cm => cm.execCommand('indentMore') },
+  });
 
-    cm.on('change', () => {
-        if (onChange) onChange(cm.getValue());
-    });
+  cm.on('beforeChange', (instance, change) => {
+    if (change.text) {
+      change.update(null, null, change.text.map(t => transliterate(t)));
+    }
+  });
 
-    // Fullscreen logic
-    let isFullscreen = false;
-    const escListener = (e) => {
-        if (e.key === 'Escape' && isFullscreen) {
-            isFullscreen = false;
-            container.classList.remove('zxsf-fullscreen');
-            fsBtn.textContent = '\u26F6';
-            fsBtn.title = 'Pantalla completa';
-            cm.refresh();
-        }
-    };
-    fsBtn.addEventListener('click', () => {
-        isFullscreen = !isFullscreen;
-        container.classList.toggle('zxsf-fullscreen', isFullscreen);
-        fsBtn.textContent = isFullscreen ? '\u2715' : '\u26F6';
-        fsBtn.title = isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa';
-        cm.refresh();
-        if (isFullscreen) cm.focus();
-    });
-    document.addEventListener('keydown', escListener);
+  cm.on('change', () => {
+    if (onChange) onChange(cm.getValue());
+  });
 
-    // Refresh after first paint (container may be hidden)
-    setTimeout(() => cm.refresh(), 0);
+  // Fullscreen logic
+  let isFullscreen = false;
+  const escListener = (e) => {
+    if (e.key === 'Escape' && isFullscreen) {
+      isFullscreen = false;
+      container.classList.remove('zxsf-fullscreen');
+      fsBtn.textContent = '\u26F6';
+      fsBtn.title = 'Pantalla completa';
+      cm.refresh();
+    }
+  };
+  fsBtn.addEventListener('click', () => {
+    isFullscreen = !isFullscreen;
+    container.classList.toggle('zxsf-fullscreen', isFullscreen);
+    fsBtn.textContent = isFullscreen ? '\u2715' : '\u26F6';
+    fsBtn.title = isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa';
+    cm.refresh();
+    if (isFullscreen) cm.focus();
+  });
+  document.addEventListener('keydown', escListener);
 
-    return cm;
+  // Refresh after first paint (container may be hidden)
+  setTimeout(() => cm.refresh(), 0);
+
+  return cm;
 }

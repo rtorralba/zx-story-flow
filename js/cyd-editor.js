@@ -3,6 +3,7 @@
 
 import { registerCYDMode, injectExtraStyles } from './cyd-codemirror.js';
 import { injectSharedStyles, buildNodeEditor } from './cm-node-editor.js';
+import { transliterate } from './utils.js';
 
 export class CYDEditor {
     constructor(container, initialContent, onChange) {
@@ -18,6 +19,11 @@ export class CYDEditor {
             this.textarea.style.cssText = 'width:100%;height:380px;font-family:monospace;font-size:13px;background:#282a36;color:#f8f8f2;border:1px solid #555;box-sizing:border-box;';
             container.appendChild(this.textarea);
             this.textarea.addEventListener('input', () => {
+                const start = this.textarea.selectionStart;
+                const end = this.textarea.selectionEnd;
+                this.textarea.value = transliterate(this.textarea.value);
+                this.textarea.setSelectionRange(start, end);
+
                 this._value = this.textarea.value;
                 if (onChange) onChange(this._value);
             });
@@ -46,7 +52,7 @@ export class CYDEditor {
         else if (this.textarea) this.textarea.value = v;
     }
 
-    updateHighlights() {}
+    updateHighlights() { }
 
     static generateFromNode(node) {
         return node.text || '';

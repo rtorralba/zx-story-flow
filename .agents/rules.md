@@ -3,7 +3,8 @@
 To ensure the integrity of the user's design and the specific constraints of the ZX Spectrum platform, all AI agents must follow these rules:
 
 ## Whitespace Preservation
-- **NEVER apply `.trim()`** to text strings that are intended for the screen (node descriptions, option labels).
+- **RESPECT ALL WHITESPACE**: Never apply `.trim()` in generators. Only convert strictly empty lines (`""`) to `$P` markers if required by the format.
+- **AUTOMATIC TRANSLITERATION**: All node editors (MuCho and CYD) must automatically transliterate special characters (accents, ñ, ¿, ¡) to their ASCII equivalents or remove them as the user types, using the `transliterate` function from `js/utils.js`.
 - **Preserve leading spaces**: Users use leading spaces to manually center text on the 32-column screen.
 - **Empty vs. Whitespace lines**: 
     - A truly empty line (length 0) should be converted to the `$P` paragraph marker when exporting to MuCho.

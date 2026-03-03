@@ -3,6 +3,7 @@
 // Licensed under the GNU Affero General Public License v3.0 or later
 
 import { injectSharedStyles, buildNodeEditor } from './cm-node-editor.js';
+import { transliterate } from './utils.js';
 
 // ── MuCho CodeMirror mode ────────────────────────────────────────────────────
 function registerMuchoMode() {
@@ -74,6 +75,11 @@ export class MuchoEditor {
             this.textarea.style.cssText = 'width:100%;height:380px;font-family:monospace;font-size:13px;background:#282a36;color:#f8f8f2;border:1px solid #555;box-sizing:border-box;';
             container.appendChild(this.textarea);
             this.textarea.addEventListener('input', () => {
+                const start = this.textarea.selectionStart;
+                const end = this.textarea.selectionEnd;
+                this.textarea.value = transliterate(this.textarea.value);
+                this.textarea.setSelectionRange(start, end);
+
                 this._value = this.textarea.value;
                 if (onChange) onChange(this._value);
             });
@@ -104,7 +110,7 @@ export class MuchoEditor {
     }
 
     // No-op — CodeMirror handles highlighting
-    updateHighlights() {}
+    updateHighlights() { }
 
     // Helper to generate MuCho representation from a node's data
     static generateFromNode(node) {
