@@ -38,7 +38,8 @@
         "border": "Border",
         "node_reference": "Node Reference",
         "target_node": "Target Node:",
-        "none": "(None)"
+        "none": "(None)",
+        "color": "Color"
     },
     "colors": {
         "black": "Black",
@@ -65,7 +66,8 @@
         "cyd_tab_end": "End code",
         "basic_graphics": "Graphics (BASIC only)",
         "separator_graphic": "Separator Graphic",
-        "selector_graphic": "Selector Graphic"
+        "selector_graphic": "Selector Graphic",
+        "border_section": "Border"
     },
     "editor": {
         "edit_node": "Edit Node",

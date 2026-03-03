@@ -38,7 +38,8 @@
         "border": "Borda",
         "node_reference": "Referência de Nó",
         "target_node": "Nó de Destino:",
-        "none": "(Nenhum)"
+        "none": "(Nenhum)",
+        "color": "Cor"
     },
     "colors": {
         "black": "Preto",
@@ -65,7 +66,8 @@
         "cyd_tab_end": "Código fim",
         "basic_graphics": "Gráficos (apenas BASIC)",
         "separator_graphic": "Gráfico Separador",
-        "selector_graphic": "Gráfico Seletor"
+        "selector_graphic": "Gráfico Seletor",
+        "border_section": "Borda"
     },
     "editor": {
         "edit_node": "Editar Nó",

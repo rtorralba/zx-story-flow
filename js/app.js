@@ -717,6 +717,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     nodeData.pageConfig = n.pageConfig;
                     nodeData.separatorConfig = n.separatorConfig;
                     nodeData.interfaceConfig = n.interfaceConfig;
+                    nodeData.borderColor = n.borderColor;
                 }
                 return nodeData;
             }),
@@ -810,6 +811,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (n.pageConfig) newNode.pageConfig = n.pageConfig;
                             if (n.separatorConfig) newNode.separatorConfig = n.separatorConfig;
                             if (n.interfaceConfig) newNode.interfaceConfig = n.interfaceConfig;
+                            if (n.borderColor) newNode.borderColor = n.borderColor;
                         }
                     }
                     editor.nodes.push(newNode);
@@ -2062,6 +2064,48 @@ document.addEventListener('DOMContentLoaded', async () => {
             return section;
         };
 
+        // Border Color Config (Special simplified version of createColorConfig)
+        const borderSection = document.createElement('div');
+        borderSection.style.marginTop = '15px';
+        borderSection.style.padding = '10px';
+        borderSection.style.backgroundColor = '#1a1a1a';
+        borderSection.style.borderRadius = '4px';
+
+        const borderTitle = document.createElement('h5');
+        borderTitle.textContent = t('config.border_section') || 'Border';
+        borderTitle.style.margin = '0 0 10px 0';
+        borderTitle.style.color = '#4a9eff';
+        borderSection.appendChild(borderTitle);
+
+        const borderRow = document.createElement('div');
+        borderRow.style.display = 'flex';
+        borderRow.style.gap = '10px';
+        borderRow.style.alignItems = 'center';
+
+        const borderLabel = document.createElement('label');
+        borderLabel.textContent = t('properties.color') || 'Color';
+        borderLabel.style.minWidth = '50px';
+
+        const borderSelect = document.createElement('select');
+        borderSelect.style.flex = '1';
+        ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
+            const opt = document.createElement('option');
+            opt.value = color;
+            opt.textContent = t(`colors.${color}`);
+            if ((node.borderColor || 'black') === color) opt.selected = true;
+            borderSelect.appendChild(opt);
+        });
+
+        borderSelect.addEventListener('change', () => {
+            node.borderColor = borderSelect.value;
+            autoSave();
+        });
+
+        borderRow.appendChild(borderLabel);
+        borderRow.appendChild(borderSelect);
+        borderSection.appendChild(borderRow);
+        customConfigContainer.appendChild(borderSection);
+
         customConfigContainer.appendChild(createColorConfig(t('properties.page'), 'pageConfig'));
         customConfigContainer.appendChild(createColorConfig(t('properties.separator'), 'separatorConfig'));
         customConfigContainer.appendChild(createColorConfig(t('properties.options'), 'interfaceConfig'));
@@ -2094,6 +2138,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     bright: globalConfig.interface.bright,
                     flash: globalConfig.interface.flash
                 };
+                node.borderColor = globalConfig.border || 'black';
+
                 // Recreate the config UI with new values
                 customConfigContainer.innerHTML = '';
                 customConfigContainer.appendChild(createColorConfig(t('properties.page'), 'pageConfig'));

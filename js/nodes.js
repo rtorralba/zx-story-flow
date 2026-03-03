@@ -31,6 +31,7 @@ export class ScreenNode extends Node {
 
         // Option/Port Management
         this.outputs = [{ label: "Next", target: null }]; // Default 1 option
+        this.borderColor = 'black'; // Default border color
         this.baseHeight = 80;
         this.optionHeight = 30;
     }

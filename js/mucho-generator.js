@@ -99,7 +99,10 @@ export function generateMucho(nodes, globalConfig = null) {
         const intAttr = calculateAttribute(intConfig.ink, intConfig.paper, intConfig.bright, intConfig.flash);
 
         // Border color
-        const borderVal = colorToZX(globalConfig.border || 'black');
+        const borderColor = (node.useCustomConfig && node.borderColor)
+            ? node.borderColor
+            : (globalConfig.border || 'black');
+        const borderVal = colorToZX(borderColor);
 
         // Build $Q line, appending any node-level actions
         const actionsStr = node.actions && node.actions.trim() ? ' ' + node.actions.trim() : '';

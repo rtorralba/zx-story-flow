@@ -100,7 +100,8 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     // GLOBAL INIT  (lines 10 – 120)
     // =========================================================
     basicCode += `10 REM = init global =\n`;
-    basicCode += `20 POKE 23693,0:BORDER 0:CLS\n`;
+    const globalBorder = colorToZX(globalConfig?.border || 'black');
+    basicCode += `20 POKE 23693,0:BORDER ${globalBorder}:CLS\n`;
     basicCode += `30 REM p() table of line pointers.\n`;
     basicCode += `40 DIM p(10)\n`;
     basicCode += `50 REM Inicializa variables del juego.\n`;
