@@ -135,11 +135,19 @@ export class NodeEditor {
                 if (opt.target) {
                     const child = this.nodes.find(n => n.id === opt.target);
                     if (child) {
-                        this.getDescendants(child, visited);
+                        // Add the child (ScreenNode or NodeReference) but do NOT
+                        // follow a NodeReference's targetNodeId — the reference itself
+                        // is selected, not the node it points to.
+                        if (child instanceof NodeReference) {
+                            visited.add(child.id);
+                        } else {
+                            this.getDescendants(child, visited);
+                        }
                     }
                 }
             });
         }
+
         return visited;
     }
 
@@ -832,11 +840,19 @@ export class NodeEditor {
                 this.ctx.strokeStyle = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#3a7acc");
                 this.ctx.lineWidth = 2;
                 this.ctx.setLineDash([5, 3]);
+
+                // Glow effect for highlighting
+                if (isHighlighted) {
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.shadowColor = "#4a9eff";
+                }
+
                 this.ctx.beginPath();
                 this.ctx.roundRect(node.x, node.y, node.width, node.height, 5);
                 this.ctx.fill();
                 this.ctx.stroke();
                 this.ctx.setLineDash([]);
+                this.ctx.shadowBlur = 0;
 
                 // Draw arrow icon
                 this.ctx.fillStyle = "#4a9eff";
