@@ -2140,6 +2140,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Recreate the config UI with new values
                 customConfigContainer.innerHTML = '';
+
+                // Re-create border section
+                const newBorderSection = document.createElement('div');
+                newBorderSection.style.marginTop = '15px';
+                newBorderSection.style.padding = '10px';
+                newBorderSection.style.backgroundColor = '#1a1a1a';
+                newBorderSection.style.borderRadius = '4px';
+                const newBorderTitle = document.createElement('h5');
+                newBorderTitle.textContent = t('config.border_section') || 'Border';
+                newBorderTitle.style.margin = '0 0 10px 0';
+                newBorderTitle.style.color = '#4a9eff';
+                newBorderSection.appendChild(newBorderTitle);
+                const newBorderRow = document.createElement('div');
+                newBorderRow.style.display = 'flex';
+                newBorderRow.style.gap = '10px';
+                newBorderRow.style.alignItems = 'center';
+                const newBorderLabel = document.createElement('label');
+                newBorderLabel.textContent = t('properties.color') || 'Color';
+                newBorderLabel.style.minWidth = '50px';
+                const newBorderSelect = document.createElement('select');
+                newBorderSelect.style.flex = '1';
+                ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'].forEach(color => {
+                    const opt = document.createElement('option');
+                    opt.value = color;
+                    opt.textContent = t(`colors.${color}`);
+                    if ((node.borderColor || 'black') === color) opt.selected = true;
+                    newBorderSelect.appendChild(opt);
+                });
+                newBorderSelect.addEventListener('change', () => { node.borderColor = newBorderSelect.value; autoSave(); });
+                newBorderRow.appendChild(newBorderLabel);
+                newBorderRow.appendChild(newBorderSelect);
+                newBorderSection.appendChild(newBorderRow);
+                customConfigContainer.appendChild(newBorderSection);
+
                 customConfigContainer.appendChild(createColorConfig(t('properties.page'), 'pageConfig'));
                 customConfigContainer.appendChild(createColorConfig(t('properties.separator'), 'separatorConfig'));
                 customConfigContainer.appendChild(createColorConfig(t('properties.options'), 'interfaceConfig'));
