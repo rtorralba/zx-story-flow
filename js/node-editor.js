@@ -792,28 +792,31 @@ export class NodeEditor {
                 this.ctx.moveTo(deleteIconX + deleteIconSize - xOffset, deleteIconY + xOffset);
                 this.ctx.lineTo(deleteIconX + xOffset, deleteIconY + deleteIconSize - xOffset);
                 this.ctx.stroke();
+            }
 
-                // Draw resize handle in bottom-right corner
-                const handleSize = 20;
-                const handleX = group.x + group.width - handleSize;
-                const handleY = group.y + group.height - handleSize;
+            const handleSize = 20;
+            const handleX = group.x + group.width - handleSize;
+            const handleY = group.y + group.height - handleSize;
 
-                // Draw handle background
-                this.ctx.fillStyle = group.color + '60';
+            const handleBgColor = group.color;
+            const handleLineColor = group.color;
+            const handleAlpha = isSelected ? "60" : "40";
+
+            // Draw handle background
+            this.ctx.fillStyle = handleBgColor + handleAlpha;
+            this.ctx.beginPath();
+            this.ctx.roundRect(handleX, handleY, handleSize, handleSize, [0, 0, 8, 0]);
+            this.ctx.fill();
+
+            // Draw grip lines
+            this.ctx.strokeStyle = handleLineColor;
+            this.ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const offset = handleSize - 4 - (i * 5);
                 this.ctx.beginPath();
-                this.ctx.roundRect(handleX, handleY, handleSize, handleSize, [0, 0, 8, 0]);
-                this.ctx.fill();
-
-                // Draw grip lines
-                this.ctx.strokeStyle = group.color;
-                this.ctx.lineWidth = 2;
-                for (let i = 0; i < 3; i++) {
-                    const offset = handleSize - 4 - (i * 5);
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(group.x + group.width - offset, group.y + group.height - 2);
-                    this.ctx.lineTo(group.x + group.width - 2, group.y + group.height - offset);
-                    this.ctx.stroke();
-                }
+                this.ctx.moveTo(group.x + group.width - offset, group.y + group.height - 2);
+                this.ctx.lineTo(group.x + group.width - 2, group.y + group.height - offset);
+                this.ctx.stroke();
             }
         });
 
