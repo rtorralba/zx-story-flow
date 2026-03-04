@@ -800,7 +800,9 @@ export class NodeEditor {
 
                 // Draw handle background
                 this.ctx.fillStyle = group.color + '60';
-                this.ctx.fillRect(handleX, handleY, handleSize, handleSize);
+                this.ctx.beginPath();
+                this.ctx.roundRect(handleX, handleY, handleSize, handleSize, [0, 0, 8, 0]);
+                this.ctx.fill();
 
                 // Draw grip lines
                 this.ctx.strokeStyle = group.color;
@@ -871,13 +873,13 @@ export class NodeEditor {
                 this.ctx.fillText(node.title, node.x + 10, node.y + 25);
 
                 this.ctx.font = "12px Courier New";
-                this.ctx.fillStyle = "#ccc";
+                this.ctx.fillStyle = "#555";
                 let text = node.text || "";
 
                 // Canvas text wrapping
                 const margin = 10;
                 const maxWidth = node.width - (margin * 2);
-                const maxHeight = node.height - (node instanceof ScreenNode ? (node.outputs.length * node.optionHeight + 50) : 40);
+                const maxHeight = node.height - (node instanceof ScreenNode ? (node.outputs.length * node.optionHeight + 60) : 40);
 
                 const lines = text.split('\n');
                 let yPos = node.y + 45;
@@ -895,7 +897,7 @@ export class NodeEditor {
                         let xOff = 0;
                         lineSegments.forEach(seg => {
                             this.ctx.font = seg.bold ? "bold 12px Courier New" : "12px Courier New";
-                            this.ctx.fillStyle = seg.bold ? "#4a9eff" : "#ccc";
+                            this.ctx.fillStyle = seg.bold ? "#4a9eff" : "#555";
                             this.ctx.fillText(seg.text, node.x + margin + xOff, yPos);
                             xOff += this.ctx.measureText(seg.text).width;
                         });
@@ -952,24 +954,29 @@ export class NodeEditor {
                 // Draw Ports and Options
                 if (node instanceof ScreenNode) {
                     // Draw resize handle
-                    if (isSelected) {
-                        const handleSize = 15;
-                        const handleX = node.x + node.width - handleSize;
-                        const handleY = node.y + node.height - handleSize;
+                    const handleSize = 20;
+                    const handleX = node.x + node.width - handleSize;
+                    const handleY = node.y + node.height - handleSize;
 
-                        this.ctx.fillStyle = "#00d02260";
-                        this.ctx.fillRect(handleX, handleY, handleSize, handleSize);
+                    const handleBgColor = isSelected ? "#00d022" : "#000";
+                    const handleLineColor = isSelected ? "#00d022" : "#888";
+                    const handleAlpha = isSelected ? "60" : "40";
 
-                        this.ctx.strokeStyle = "#00d022";
-                        this.ctx.lineWidth = 1;
-                        for (let i = 0; i < 2; i++) {
-                            const offset = handleSize - 4 - (i * 4);
-                            this.ctx.beginPath();
-                            this.ctx.moveTo(node.x + node.width - offset, node.y + node.height - 2);
-                            this.ctx.lineTo(node.x + node.width - 2, node.y + node.height - offset);
-                            this.ctx.stroke();
-                        }
+                    this.ctx.fillStyle = handleBgColor + handleAlpha;
+                    this.ctx.beginPath();
+                    this.ctx.roundRect(handleX, handleY, handleSize, handleSize, [0, 0, 8, 0]);
+                    this.ctx.fill();
+
+                    this.ctx.strokeStyle = handleLineColor;
+                    this.ctx.lineWidth = 1;
+                    for (let i = 0; i < 2; i++) {
+                        const offset = handleSize - 4 - (i * 4);
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(node.x + node.width - offset, node.y + node.height - 2);
+                        this.ctx.lineTo(node.x + node.width - 2, node.y + node.height - offset);
+                        this.ctx.stroke();
                     }
+
                     node.outputs.forEach((opt, index) => {
                         const port = node.getOutputPort(index);
                         this.drawPort(port, "#00d022");

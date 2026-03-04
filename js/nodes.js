@@ -32,17 +32,18 @@ export class ScreenNode extends Node {
         // Option/Port Management
         this.outputs = [{ label: "Next", target: null, eligible: true }]; // Default 1 option
         this.borderColor = 'black'; // Default border color
-        this.baseHeight = 80;
+        this.baseHeight = 100;
         this.optionHeight = 30;
+        this.footerHeight = 20; // Extra space at bottom to avoid resize handle overlap
 
         // Initial auto-size
-        this.height = this.baseHeight + (this.outputs.length * this.optionHeight);
+        this.height = this.baseHeight + (this.outputs.length * this.optionHeight) + this.footerHeight;
     }
 
     getOutputPort(index) {
-        // Position options at the bottom of the node
+        // Position options starting above the footer
         const totalOptionsHeight = this.outputs.length * this.optionHeight;
-        const optionsStartY = this.height - totalOptionsHeight;
+        const optionsStartY = this.height - totalOptionsHeight - this.footerHeight;
         const y = this.y + optionsStartY + (index * this.optionHeight) + (this.optionHeight / 2);
         return { x: this.x + this.width, y: y };
     }
