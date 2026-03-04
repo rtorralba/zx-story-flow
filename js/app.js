@@ -805,6 +805,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     let newNode;
                     if (n.type === 'Reference' || n.type === 'reference') {
                         newNode = new NodeReference(n.id, n.x, n.y, n.targetNodeId);
+                        if (n.width) newNode.width = n.width;
+                        if (n.height) newNode.height = n.height;
                     } else {
                         newNode = new ScreenNode(n.id, n.x, n.y);
                         newNode.text = n.text || "";

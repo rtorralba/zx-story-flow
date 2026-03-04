@@ -416,6 +416,18 @@ export class NodeEditor {
                 };
                 return;
             }
+            if (node instanceof NodeReference && node.isResizeHandleHit(x, y)) {
+                this.selectNode(node);
+                this.dragState = {
+                    type: 'resize-ref',
+                    node: node,
+                    startX: x,
+                    startY: y,
+                    initialWidth: node.width,
+                    initialHeight: node.height
+                };
+                return;
+            }
         }
 
         // Check if clicking on a node first (nodes are on top of groups)
@@ -533,7 +545,7 @@ export class NodeEditor {
             if (!cursorSet) {
                 for (let i = this.nodes.length - 1; i >= 0; i--) {
                     const node = this.nodes[i];
-                    if (node instanceof ScreenNode && node.isResizeHandleHit(x, y)) {
+                    if ((node instanceof ScreenNode || node instanceof NodeReference) && node.isResizeHandleHit(x, y)) {
                         this.canvas.style.cursor = 'nwse-resize';
                         cursorSet = true;
                         break;
@@ -584,6 +596,15 @@ export class NodeEditor {
                 node.width = Math.max(150, this.dragState.initialWidth + deltaX);
                 const minHeight = node.baseHeight + (node.outputs.length * node.optionHeight);
                 node.height = Math.max(minHeight, this.dragState.initialHeight + deltaY);
+
+                this.draw();
+            } else if (this.dragState.type === 'resize-ref') {
+                const node = this.dragState.node;
+                const deltaX = x - this.dragState.startX;
+                const deltaY = y - this.dragState.startY;
+
+                node.width = Math.max(80, this.dragState.initialWidth + deltaX);
+                node.height = Math.max(30, this.dragState.initialHeight + deltaY);
 
                 this.draw();
             } else if (this.dragState.type === 'group') {
@@ -864,6 +885,24 @@ export class NodeEditor {
                 this.ctx.font = "bold 11px Courier New";
                 const displayTitle = node.getDisplayTitle(this.nodes);
                 this.ctx.fillText(displayTitle, node.x + 35, node.y + 30);
+
+                // Draw resize handle
+                const refHandleSize = 14;
+                const refHandleX = node.x + node.width - refHandleSize;
+                const refHandleY = node.y + node.height - refHandleSize;
+                this.ctx.fillStyle = isSelected ? "#00d02260" : "#3a7acc40";
+                this.ctx.beginPath();
+                this.ctx.roundRect(refHandleX, refHandleY, refHandleSize, refHandleSize, [0, 0, 5, 0]);
+                this.ctx.fill();
+                this.ctx.strokeStyle = isSelected ? "#00d022" : "#3a7acc";
+                this.ctx.lineWidth = 1;
+                for (let i = 0; i < 2; i++) {
+                    const off = refHandleSize - 3 - (i * 4);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(node.x + node.width - off, node.y + node.height - 2);
+                    this.ctx.lineTo(node.x + node.width - 2, node.y + node.height - off);
+                    this.ctx.stroke();
+                }
             } else {
                 // Draw Normal Node Body
                 this.ctx.beginPath();

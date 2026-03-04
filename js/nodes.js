@@ -88,6 +88,15 @@ export class NodeReference extends Node {
         const targetNode = nodes.find(n => n.id === this.targetNodeId);
         return targetNode ? `${targetNode.title}` : "(Not found)";
     }
+
+    // Check if the resize handle is being clicked (bottom-right corner)
+    isResizeHandleHit(x, y) {
+        const handleSize = 14;
+        return x >= this.x + this.width - handleSize &&
+            x <= this.x + this.width &&
+            y >= this.y + this.height - handleSize &&
+            y <= this.y + this.height;
+    }
 }
 
 export class Group {
