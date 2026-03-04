@@ -876,7 +876,7 @@ export class NodeEditor {
                 this.ctx.fillText(node.title, node.x + 10, node.y + 25);
 
                 this.ctx.font = "12px Courier New";
-                this.ctx.fillStyle = "#555";
+                this.ctx.fillStyle = "#aaa";
                 let text = node.text || "";
 
                 // Canvas text wrapping
@@ -900,7 +900,7 @@ export class NodeEditor {
                         let xOff = 0;
                         lineSegments.forEach(seg => {
                             this.ctx.font = seg.bold ? "bold 12px Courier New" : "12px Courier New";
-                            this.ctx.fillStyle = seg.bold ? "#4a9eff" : "#555";
+                            this.ctx.fillStyle = seg.bold ? "#4a9eff" : "#aaa";
                             this.ctx.fillText(seg.text, node.x + margin + xOff, yPos);
                             xOff += this.ctx.measureText(seg.text).width;
                         });
