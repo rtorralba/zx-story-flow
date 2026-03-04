@@ -12,67 +12,53 @@
     <h2>🚀 Características Principales</h2>
     <ul>
         <li><strong>Editor Visual de Nodos</strong>: Crea pantallas y conecta opciones arrastrando cables. Visualiza el
-            flujo de tu aventura de un vistazo.</li>
-        <li><strong>Sistema de Grupos</strong>: Organiza tus nodos en grupos coloreados con nombres personalizados. Redimensiona y mueve grupos completos.</li>
+            flujo de tu aventura de un vistazo.
+            <ul>
+                <li><strong>Redimensionado de Nodos</strong>: Ajusta el tamaño de cada pantalla y grupo manualmente.
+                </li>
+                <li><strong>Localizador de Descendientes</strong>: Haz clic derecho en cualquier nodo para resaltar
+                    instantáneamente todo su flujo de decisiones.</li>
+                <li><strong>IDs Únicos</strong>: Sistema anti-colisión para asignar nombres únicos automáticos a cada
+                    pantalla.</li>
+            </ul>
+        </li>
+        <li><strong>Importación desde MuCho</strong>: Convierte automáticamente tus aventuras escritas en formato texto
+            de MuCho en un mapa visual de nodos.</li>
+        <li><strong>Sistema de Grupos y Referencias</strong>: Organiza tus nodos en grupos coloreados y utiliza nodos de
+            referencia para conectar partes distantes sin cruzar cables.</li>
+        <li><strong>Modo Avanzado vs Simple</strong>: Alterna entre una interfaz limpia para centrarte en la historia o
+            una vista avanzada con controles técnicos detallados.</li>
         <li><strong>Configuración de Colores ZX Spectrum</strong>:
             <ul>
-                <li><strong>Configuración Global</strong>: Define colores por defecto para toda la aventura.</li>
-                <li><strong>Configuración por Página</strong>: Personaliza INK, PAPER, BRIGHT y FLASH para cada nodo individualmente.</li>
-                <li><strong>Tres zonas configurables</strong>: Página (texto principal), Separador y Opciones.</li>
+                <li><strong>Gestión Global</strong>: Define colores y bordes por defecto para toda la aventura.</li>
+                <li><strong>Control por Página</strong>: Personaliza INK, PAPER, BRIGHT y FLASH para cada zona: Página,
+                    Separador y Opciones.</li>
             </ul>
         </li>
-        <li><strong>Exportación a .TAP</strong>: Genera un archivo <code>.tap</code> ejecutable en cualquier emulador o
-            hardware real de ZX Spectrum con todos los atributos de color.</li>
-        <li><strong>Generador de BASIC inteligente</strong>:
+        <li><strong>Exportación Multi-formato</strong>:
             <ul>
-                <li><strong>Ajuste de línea automático</strong>: Mantiene el texto dentro de las 32 columnas del
-                    Spectrum sin cortar palabras.</li>
-                <li><strong>Sanitizado de caracteres</strong>: Limpia textos para evitar errores de sintaxis en el
-                    microordenador.</li>
-                <li><strong>Posicionamiento inteligente de opciones</strong>: Las opciones siempre aparecen al final de la pantalla, exactamente donde esperas.</li>
-                <li><strong>Gestión automática de atributos</strong>: Aplica correctamente INK, PAPER, BRIGHT y FLASH en cada sección.</li>
+                <li><strong>Cassette .TAP</strong>: Genera un archivo ejecutable directo para emuladores o hardware
+                    real.</li>
+                <li><strong>BASIC Inteligente (V2)</strong>: Motor mejorado con gestión de etiquetas (labels), saltos
+                    <code>GO TO</code> optimizados y compactación automática.
+                </li>
+                <li><strong>MuCho Engine</strong>: Exportación nativa con soporte completo de atributos y colores.</li>
+                <li><strong>CYD (Choose Your Destiny)</strong>: Integración con el motor narrativo web, incluyendo
+                    gestión de cabeceras/pies de código y elegibilidad de opciones.</li>
             </ul>
         </li>
-        <li><strong>Multi-formato</strong>: Además de BASIC, exporta para el motor <strong>MuCho</strong> (Multiple
-            Choice Adventure Engine) con atributos incluidos.</li>
-        <li><strong>Editor de Texto Mejorado</strong>: 
+        <li><strong>Herramientas Pro</strong>:
             <ul>
-                <li>Editor a pantalla completa con simulación de pantalla CRT del Spectrum.</li>
-                <li>Transliteración automática de caracteres especiales (á→a, ñ→n, etc.).</li>
-                <li>Límite de 32×24 caracteres como en el Spectrum real.</li>
+                <li>Editor a pantalla completa con simulación CRT.</li>
+                <li><strong>Regla de 32 caracteres</strong>: Guía visual para visualización exacta en el Spectrum.</li>
+                <li><strong>Panel de Ayuda Contextual</strong>: Referencia rápida de sintaxis MuCho/CYD integrada.</li>
             </ul>
         </li>
-        <li><strong>Gestión de Nodos</strong>: 
-            <ul>
-                <li>Icono de eliminar en cada nodo para una gestión rápida.</li>
-                <li>Panel de propiedades optimizado con controles compactos.</li>
-            </ul>
+        <li><strong>Personalización Gráfica</strong>: Diseña tus propios caracteres (UDGs) para el separador y el
+            selector mediante una matriz de píxeles integrada.</li>
+        <li><strong>Tres Idiomas</strong>: Interfaz y exportación totalmente traducidas al <strong>Español</strong>,
+            <strong>Inglés</strong> y <strong>Portugués</strong>.
         </li>
-        <li><strong>Exportación de Imágenes</strong>: Guarda tu diagrama de flujo completo como PNG.</li>
-        <li><strong>Modo Pantalla Completa</strong>: Ideal para trabajar sin distracciones o embeber la herramienta en
-            otros sitios.</li>
-    </ul>
-
-    <h2>📼 ¿Cómo funciona?</h2>
-    <ol>
-        <li><strong>Configura los colores</strong>: Abre Config (⚙️) y define los colores por defecto para tu aventura.</li>
-        <li><strong>Añade Screens</strong>: Crea los nodos que representan las escenas de tu historia.</li>
-        <li><strong>Escribe tu relato</strong>: Describe la situación y añade opciones (Ir al norte, Abrir cofre, etc.).
-        </li>
-        <li><strong>Personaliza colores (opcional)</strong>: Marca "Configuración específica" en cualquier nodo para darle colores únicos.</li>
-        <li><strong>Organiza con grupos</strong>: Agrupa nodos relacionados en cajas de colores para mantener el orden.</li>
-        <li><strong>Conecta</strong>: Arrastra desde el punto verde de una opción al nodo de destino.</li>
-        <li><strong>Exporta</strong>: Dale a Export → .TAP y ¡listo! Tienes un juego de Spectrum generado en segundos con todos tus colores.
-        </li>
-    </ol>
-
-    <h2>🎨 Sistema de Colores ZX Spectrum</h2>
-    <p>La herramienta soporta los 8 colores clásicos del Spectrum (Negro, Azul, Rojo, Magenta, Verde, Cyan, Amarillo, Blanco) 
-    con modos BRIGHT y FLASH. Cada pantalla puede tener diferentes configuraciones para:</p>
-    <ul>
-        <li><strong>Página</strong>: Color del texto principal de la historia</li>
-        <li><strong>Separador</strong>: Color de la línea que separa el texto de las opciones</li>
-        <li><strong>Opciones</strong>: Color del menú de opciones al final de la pantalla</li>
     </ul>
 
     <hr>
@@ -87,81 +73,136 @@
 
     <h2>🚀 Key Features</h2>
     <ul>
-        <li><strong>Visual Node Editor</strong>: Create screens and connect options by dragging lines. See your
-            adventure's flowchart at a glance.</li>
-        <li><strong>Group System</strong>: Organize your nodes into colored, resizable groups with custom names.</li>
+        <li><strong>Visual Node Editor</strong>: Create screens and connect options by dragging lines.
+            <ul>
+                <li><strong>Node Resizing</strong>: Manually adjust the size of any screen or group.</li>
+                <li><strong>Highlight Descendants</strong>: Right-click any node to instantly see all downstream logic
+                    flows.</li>
+                <li><strong>Unique IDs</strong>: Anti-collision system for automatic screen naming.</li>
+            </ul>
+        </li>
+        <li><strong>MuCho Import</strong>: Automatically convert your text-based MuCho adventures into a visual node
+            map.</li>
+        <li><strong>Group & Reference System</strong>: Organize nodes in colored groups and use references to jump
+            between distant areas.</li>
+        <li><strong>Advanced vs Simple Mode</strong>: Toggle between a clean writing interface and an advanced technical
+            view.</li>
         <li><strong>ZX Spectrum Color System</strong>:
             <ul>
-                <li><strong>Global Configuration</strong>: Set default colors for the entire adventure.</li>
-                <li><strong>Per-Page Configuration</strong>: Customize INK, PAPER, BRIGHT, and FLASH for each individual node.</li>
-                <li><strong>Three configurable zones</strong>: Page (main text), Separator, and Options.</li>
+                <li><strong>Global Config</strong>: Set default colors and borders for your entire project.</li>
+                <li><strong>Per-Page customization</strong>: Individual INK, PAPER, BRIGHT, and FLASH for Page text,
+                    Separators, and Options.</li>
             </ul>
         </li>
-        <li><strong>Export to .TAP</strong>: Generate a <code>.tap</code> file playable on any emulator or real ZX
-            Spectrum hardware with full color attributes.</li>
-        <li><strong>Smart BASIC Generator</strong>:
+        <li><strong>Multi-format Export</strong>:
             <ul>
-                <li><strong>Auto Word-Wrapping</strong>: Keeps text within the Spectrum's 32-column limit without
-                    breaking words.</li>
-                <li><strong>Text Cleaning</strong>: Automatically sanitizes quotes and characters for the Spectrum.</li>
-                <li><strong>Smart Option Positioning</strong>: Options always appear at the bottom of the screen, exactly where you expect them.</li>
-                <li><strong>Automatic Attribute Management</strong>: Correctly applies INK, PAPER, BRIGHT, and FLASH to each section.</li>
+                <li><strong>Cassette .TAP</strong>: Executable file for emulators or real hardware.</li>
+                <li><strong>Smart BASIC (V2)</strong>: Improved engine with label management, optimized
+                    <code>GO TO</code> jumps, and automatic code compaction.
+                </li>
+                <li><strong>MuCho Engine</strong>: Native support with full attribute and color compatibility.</li>
+                <li><strong>CYD (Choose Your Destiny)</strong>: Integration with the web narrative engine, including
+                    global code management and option eligibility.</li>
             </ul>
         </li>
-        <li><strong>Multi-format Support</strong>: Export to ZX BASIC or the <strong>MuCho</strong> engine with attributes included.</li>
-        <li><strong>Enhanced Text Editor</strong>: 
+        <li><strong>Professional Tools</strong>:
             <ul>
-                <li>Full-screen editor with CRT simulation of the Spectrum display.</li>
-                <li>Automatic special character transliteration (á→a, ñ→n, etc.).</li>
-                <li>32×24 character limit just like the real Spectrum.</li>
+                <li>Full-screen editor with CRT display simulation.</li>
+                <li><strong>32-character Ruler</strong>: Visual guide for perfect Spectrum alignment.</li>
+                <li><strong>Contextual Help Panel</strong>: Embedded syntax reference for MuCho and CYD.</li>
             </ul>
         </li>
-        <li><strong>Node Management</strong>: 
-            <ul>
-                <li>Delete icon on each node for quick removal.</li>
-                <li>Optimized properties panel with compact controls.</li>
-            </ul>
+        <li><strong>Graphics Customization</strong>: Integrated pixel matrix editor to design custom UDGs for selectors
+            and separators.</li>
+        <li><strong>Tri-lingual Support</strong>: Full UI and export support for <strong>English</strong>,
+            <strong>Spanish</strong>, and <strong>Portuguese</strong>.
         </li>
-        <li><strong>Image Export</strong>: Save your complete flowchart diagram as PNG.</li>
-        <li><strong>Fullscreen Mode</strong>: Perfect for distraction-free work or embedding in other sites.</li>
-    </ul>
-
-    <h2>🎨 ZX Spectrum Color System</h2>
-    <p>The tool supports all 8 classic Spectrum colors (Black, Blue, Red, Magenta, Green, Cyan, Yellow, White) 
-    with BRIGHT and FLASH modes. Each screen can have different settings for:</p>
-    <ul>
-        <li><strong>Page</strong>: Main story text color</li>
-        <li><strong>Separator</strong>: Color of the line separating text from options</li>
-        <li><strong>Options</strong>: Color of the menu options at the bottom of the screen</li>
     </ul>
 
     <hr>
 
-    <h2>🙏 Agradecimientos / Acknowledgments</h2>
-    
-    <p><strong>Este proyecto no habría sido posible sin el apoyo de la comunidad retro:</strong></p>
+    <h1>ZX Story Flow: Visual Choice Adventure Builder (Português)</h1>
+
+    <p><strong>Crie suas próprias aventuras de texto para o lendário ZX Spectrum visualmente, sem programar.</strong>
+    </p>
+
+    <p><strong>ZX Story Flow</strong> é uma ferramenta web para autores de ficção interativa e amantes do retro. Desenhe
+        sua história com nodos, conecte decisões visualmente e exporte seu jogo pronto para jogar.</p>
+
+    <h2>🚀 Principais Características</h2>
     <ul>
-        <li><strong>Remy Sharp</strong> (<a href="https://github.com/remy/txt2bas" target="_blank">txt2bas</a>) - Referencia técnica para tokenización BASIC y formato TAP</li>
-        <li><strong>David</strong> (<a href="https://github.com/Iadvd" target="_blank">Furillo Productions</a>) - Por animarme a mejorar el proyecto y la idea de exportar a MuCho</li>
-        <li><strong>Darkside29</strong> (<a href="https://darkside29.itch.io/" target="_blank">itch.io</a>) - Por sugerir la integración con MuCho y feedback constante</li>
-        <li><strong>MuCho Engine</strong> (<a href="https://solhsa.com/mucho/mucho.html" target="_blank">solhsa.com</a>) - Motor de aventuras que inspiró un formato de exportación</li>
-        <li><strong>CarlosITV</strong> (<a href="https://charlyitv.itch.io/" target="_blank">itch.io</a>) - Testing exhaustivo y reporte de bugs</li>
-        <li><strong>SingletonJohn</strong> (<a href="https://singletonjohn.itch.io/" target="_blank">itch.io</a>) - Testing y verificación de funcionalidades</li>
-        <li><strong>ZXMoe</strong> (<a href="https://zxmoe.itch.io/" target="_blank">itch.io</a>) - Valiosos consejos sobre BASIC del ZX Spectrum</li>
+        <li><strong>Editor Visual de Nodos</strong>: Crie telas e conecte opções arrastrando linhas.
+            <ul>
+                <li><strong>Redimensionamento de Nodos</strong>: Ajuste manualmente o tamanho de cada tela ou grupo.
+                </li>
+                <li><strong>Destacar Descendentes</strong>: Clique com o botão direito em um nodo para ver todos os
+                    caminhos derivados.</li>
+                <li><strong>IDs Únicos</strong>: Sistema automático de nomes sem colisões para cada tela.</li>
+            </ul>
+        </li>
+        <li><strong>Importação do MuCho</strong>: Converta automaticamente suas aventuras escritas em formato de texto
+            MuCho em um mapa visual de nodos.</li>
+        <li><strong>Sistema de Grupos e Referências</strong>: Organize nodos em grupos coloridos e use referências para
+            conectar áreas distantes.</li>
+        <li><strong>Modo Avançado vs Simples</strong>: Alterne entre uma interface de escrita limpa ou uma visão técnica
+            avançada.</li>
+        <li><strong>Sistema de Cores ZX Spectrum</strong>:
+            <ul>
+                <li><strong>Configuração Global</strong>: Defina as cores e bordas padrão para todo o projeto.</li>
+                <li><strong>Personalização por Página</strong>: Ajuste INK, PAPER, BRIGHT e FLASH para o texto,
+                    separador e opções.</li>
+            </ul>
+        </li>
+        <li><strong>Exportação Multi-formato</strong>:
+            <ul>
+                <li><strong>Cassete .TAP</strong>: Arquivo executável pronto para emuladores ou hardware real.</li>
+                <li><strong>BASIC Inteligente (V2)</strong>: Motor aprimorado com gestão de rótulos (labels), saltos
+                    <code>GO TO</code> otimizados e compactação automática.
+                </li>
+                <li><strong>MuCho Engine</strong>: Suporte nativo com compatibilidade total de cores.</li>
+                <li><strong>CYD (Choose Your Destiny)</strong>: Integração com o motor narrativo web, incluindo gestão
+                    de código global e elegibilidade de opções.</li>
+            </ul>
+        </li>
+        <li><strong>Ferramentas Profissionais</strong>: Régua de 32 caracteres, simulação de tela CRT e painel de ajuda
+            de sintaxe integrado.</li>
+        <li><strong>Suporte Trilingue</strong>: Interface e exportação para <strong>Português</strong>,
+            <strong>Espanhol</strong> e <strong>Inglês</strong>.
+        </li>
     </ul>
 
-    <p><strong>This project wouldn't be possible without the retro community support:</strong></p>
+    <hr>
+
+    <h2>🙏 Agradecimientos / Acknowledgments / Agradecimentos</h2>
+
+    <p><strong>Este proyecto no habría sido posible sin el apoyo de la comunidad retro:</strong></p>
     <ul>
-        <li><strong>Remy Sharp</strong> (<a href="https://github.com/remy/txt2bas" target="_blank">txt2bas</a>) - Technical reference for BASIC tokenization and TAP format</li>
-        <li><strong>David</strong> (<a href="https://github.com/Iadvd" target="_blank">Furillo Productions</a>) - For encouraging improvements and suggesting MuCho export</li>
-        <li><strong>Darkside29</strong> (<a href="https://darkside29.itch.io/" target="_blank">itch.io</a>) - For MuCho integration idea and constant feedback</li>
-        <li><strong>MuCho Engine</strong> (<a href="https://solhsa.com/mucho/mucho.html" target="_blank">solhsa.com</a>) - Adventure engine that inspired an export format</li>
-        <li><strong>CarlosITV</strong> (<a href="https://charlyitv.itch.io/" target="_blank">itch.io</a>) - Extensive testing and bug reports</li>
-        <li><strong>SingletonJohn</strong> (<a href="https://singletonjohn.itch.io/" target="_blank">itch.io</a>) - Testing and functionality verification</li>
-        <li><strong>ZXMoe</strong> (<a href="https://zxmoe.itch.io/" target="_blank">itch.io</a>) - Valuable advice on ZX Spectrum BASIC</li>
+        <li><strong>Remy Sharp</strong> (<a href="https://github.com/remy/txt2bas" target="_blank">txt2bas</a>) -
+            Referencia técnica para tokenización BASIC y formato TAP</li>
+        <li><strong>David</strong> (<a href="https://github.com/Iadvd" target="_blank">Furillo Productions</a>) - Por
+            animarme a mejorar el proyecto y la idea de exportar a MuCho</li>
+        <li><strong>Darkside29</strong> (<a href="https://darkside29.itch.io/" target="_blank">itch.io</a>) - Por
+            sugerir la integración con MuCho y feedback constante</li>
+        <li><strong>MuCho Engine</strong> (<a href="https://solhsa.com/mucho/mucho.html" target="_blank">solhsa.com</a>)
+            - Motor de aventuras que inspiró un formato de exportación</li>
+        <li><strong>CarlosITV</strong> (<a href="https://charlyitv.itch.io/" target="_blank">itch.io</a>) - Testing
+            exhaustivo y reporte de bugs</li>
+        <li><strong>SingletonJohn</strong> (<a href="https://singletonjohn.itch.io/" target="_blank">itch.io</a>) -
+            Testing y verificación de funcionalidades</li>
+        <li><strong>ZXMoe</strong> (<a href="https://zxmoe.itch.io/" target="_blank">itch.io</a>) - Valiosos consejos
+            sobre BASIC del ZX Spectrum</li>
+        <li><strong>Cronomantic</strong> (<a href="https://cronomantic.itch.io/" target="_blank">itch.io</a>) - Por el
+            desarrollo del motor CYD y soporte técnico</li>
+        <li><strong>CYD Engine</strong> (<a href="https://github.com/cronomantic/ChooseYourDestiny"
+                target="_blank">GitHub</a>) - Motor narrativo que expande las posibilidades de exportación</li>
+        <li><strong>Nextric</strong> (<a href="https://radicalcomputerscompany.itch.io/" target="_blank">Radical
+                Computers</a>) - Feedback y apoyo de la comunidad</li>
+        <li><strong>Ximokom</strong> (<a href="https://ximokom.itch.io/" target="_blank">itch.io</a>) - Testing y
+            reporte de bugs</li>
     </ul>
 
     <hr>
     <p><em>Desarrollado para la comunidad retro. ¡Vuelve a los 80 con un toque moderno!</em></p>
     <p><em>Developed for the retro community. Back to the 80s with a modern twist!</em></p>
+    <p><em>Desenvolvido para a comunidade retro. De volta aos anos 80 com um toque moderno!</em></p>
 </div>
