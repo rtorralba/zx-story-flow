@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         interface: { ink: 'white', paper: 'black', bright: false, flash: false },
         border: 'black',
         viewMode: 'simple',
+        rulerWidth: '32ch',
         basicGraphics: {
             separator: Array(64).fill(false), // 8x8 matrix for BASIC separator
             selector: Array(64).fill(false)   // 8x8 matrix for BASIC selector
@@ -283,7 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const compactEditModalTitle = document.getElementById('compact-edit-modal-title');
     let currentEditingNode = null;
     let editorViewMode = globalConfig.viewMode || 'simple'; // Use preference
-    let editorRulerWidth = '32ch'; // '32ch', '28ch', '24ch', '20ch', or 'hidden'
+    // editorRulerWidth is now part of globalConfig.rulerWidth
 
     function closeCompactEditModal() {
         if (!compactEditModal) return;
@@ -1548,47 +1549,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         editorToolbar.appendChild(insertImageBtn);
         editorToolbar.appendChild(hiddenFileInput);
 
-        // Selector de Regla de Guía
-        const rulerSelect = document.createElement('select');
-        rulerSelect.style.marginLeft = 'auto';
-        rulerSelect.style.fontSize = '12px';
-        rulerSelect.style.padding = '2px 5px';
-        rulerSelect.style.backgroundColor = '#1a1a1a';
-        rulerSelect.style.color = '#eee';
-        rulerSelect.style.border = '1px solid #555';
-        rulerSelect.title = t('editor.ruler_title');
+        // Selector de Regla de Guía (ahora Input con Datalist para números libres)
+        const rulerContainer = document.createElement('div');
+        rulerContainer.style.marginLeft = 'auto';
+        rulerContainer.style.display = 'flex';
+        rulerContainer.style.alignItems = 'center';
+        rulerContainer.style.gap = '5px';
 
-        const rulerOptions = [
-            { label: t('editor.ruler_off'), value: 'hidden' },
-            { label: '32 cols', value: '32ch' },
-            { label: '42 cols', value: '42ch' },
-            { label: '64 cols', value: '64ch' }
-        ];
+        const rulerInput = document.createElement('input');
+        rulerInput.type = 'text';
+        rulerInput.style.width = '80px';
+        rulerInput.style.fontSize = '12px';
+        rulerInput.style.padding = '2px 5px';
+        rulerInput.style.backgroundColor = '#1a1a1a';
+        rulerInput.style.color = '#eee';
+        rulerInput.style.border = '1px solid #555';
+        rulerInput.placeholder = t('editor.ruler_placeholder') || 'Cols';
+        rulerInput.title = t('editor.ruler_title');
+        rulerInput.setAttribute('list', 'ruler-presets');
 
-        rulerOptions.forEach(opt => {
-            const el = document.createElement('option');
-            el.value = opt.value;
-            el.textContent = opt.label;
-            if (opt.value === editorRulerWidth) el.selected = true;
-            rulerSelect.appendChild(el);
-        });
+        // Crear datalist si no existe (muestra la etiqueta traducida para 'hidden')
+        const translatedHidden = t('editor.ruler_hidden');
+        let rulerDatalist = document.getElementById('ruler-presets');
+        if (!rulerDatalist) {
+            rulerDatalist = document.createElement('datalist');
+            rulerDatalist.id = 'ruler-presets';
+            const presets = [translatedHidden, '32', '42', '64'];
+            presets.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                rulerDatalist.appendChild(opt);
+            });
+            document.body.appendChild(rulerDatalist);
+        }
+
+        const currentRulerVal = globalConfig.rulerWidth || '32ch';
+        rulerInput.value = (currentRulerVal === 'hidden') ? translatedHidden : currentRulerVal.replace('ch', '');
 
         let editorWidget = null;
 
         const updateRuler = (val) => {
-            editorRulerWidth = val;
-            if (val === 'hidden') {
+            const translatedHiddenLocal = t('editor.ruler_hidden');
+            let finalVal = (typeof val === 'string') ? val.trim() : val;
+
+            // If the user selected the translated label, map it back to the internal 'hidden' value
+            if (finalVal === translatedHiddenLocal) finalVal = 'hidden';
+
+            // Normalize numeric values (e.g., '32' -> '32ch'). If value already contains 'ch', keep it.
+            if (finalVal !== 'hidden') {
+                if (!isNaN(finalVal) && finalVal !== '') {
+                    finalVal = finalVal + 'ch';
+                }
+                // leave values like '32ch' unchanged
+            }
+
+            globalConfig.rulerWidth = finalVal;
+
+            if (finalVal === 'hidden') {
                 editorContainer.style.setProperty('--ruler-display', 'none');
             } else {
                 editorContainer.style.setProperty('--ruler-display', 'block');
-                editorContainer.style.setProperty('--ruler-width', val);
+                editorContainer.style.setProperty('--ruler-width', finalVal);
             }
 
             if (editorWidget && editorWidget.cm) {
-                if (val === 'hidden') {
+                if (finalVal === 'hidden') {
                     editorWidget.cm.setOption('rulers', []);
                 } else {
-                    const cols = parseInt(val);
+                    const cols = parseInt(finalVal);
                     if (!isNaN(cols)) {
                         editorWidget.cm.setOption('rulers', [{ column: cols, color: 'rgba(255, 255, 255, 0.3)', lineStyle: 'dashed' }]);
                     }
@@ -1596,14 +1624,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        rulerSelect.addEventListener('change', (e) => updateRuler(e.target.value));
-        editorToolbar.appendChild(rulerSelect);
+        rulerInput.addEventListener('input', (e) => {
+            updateRuler(e.target.value);
+            autoSave();
+        });
+
+        rulerContainer.appendChild(rulerInput);
+        editorToolbar.appendChild(rulerContainer);
 
         mainColumn.appendChild(editorToolbar);
 
         const editorContainer = document.createElement('div');
         // Aplicar estado inicial de la regla
-        updateRuler(editorRulerWidth);
+        updateRuler(globalConfig.rulerWidth || '32ch');
         mainColumn.appendChild(editorContainer);
 
         // Choose editor implementation based on project type (MuCho or CYD)
@@ -1615,8 +1648,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             autoSave();
         });
 
-        // Apply ruler to the newly created CodeMirror instance
-        updateRuler(editorRulerWidth);
+        // Apply ruler to the newly created CodeMirror instance (use stored global config)
+        updateRuler(globalConfig.rulerWidth || '32ch');
 
         hiddenFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];

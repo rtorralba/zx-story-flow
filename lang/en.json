@@ -89,6 +89,8 @@
         "insert_image": "🖼️ Insert Image",
         "ruler_title": "Guide ruler (column width)",
         "ruler_off": "📏 Ruler: Off",
+        "ruler_hidden": "Hidden",
+        "ruler_placeholder": "Cols (ex: 32)",
         "cyd_commands_placeholder": "CYD Commands (header)",
         "cyd_before_placeholder": "Prefix",
         "cyd_after_placeholder": "Suffix",

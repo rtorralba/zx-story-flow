@@ -89,6 +89,8 @@
         "insert_image": "🖼️ Insertar Imagen",
         "ruler_title": "Regla de guía (ancho de columna)",
         "ruler_off": "📏 Regla: Off",
+        "ruler_hidden": "Oculto",
+        "ruler_placeholder": "Cols (ej: 32)",
         "cyd_commands_placeholder": "Comandos CYD (cabecera)",
         "cyd_before_placeholder": "Prefijo",
         "cyd_after_placeholder": "Sufijo",

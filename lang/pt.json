@@ -89,6 +89,8 @@
         "insert_image": "🖼️ Inserir Imagem",
         "ruler_title": "Régua de guia (largura da coluna)",
         "ruler_off": "📏 Régua: Desligada",
+        "ruler_hidden": "Oculto",
+        "ruler_placeholder": "Cols (ex: 32)",
         "cyd_commands_placeholder": "Comandos CYD (cabeçalho)",
         "cyd_before_placeholder": "Prefijo",
         "cyd_after_placeholder": "Sufijo",
