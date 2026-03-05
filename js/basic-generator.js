@@ -224,7 +224,9 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         }
 
         // Now generate BASIC for each paragraph
-        paragraphs.forEach(para => {
+        const lastTextParaIdx = paragraphs.map((p, i) => p.type === 'text' ? i : -1).reduce((max, i) => Math.max(max, i), -1);
+
+        paragraphs.forEach((para, pIdx) => {
             if (para.type === 'empty') {
                 basicCode += `${lineNr} PRINT ""\n`;
                 lineNr += 10;
@@ -233,6 +235,8 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
                 const wrappedLines = wrapText(fullText);
 
                 if (wrappedLines.length > 0) {
+                    const isLastPrint = (pIdx === lastTextParaIdx);
+                    const semicolon = isLastPrint ? ";" : "";
                     const combinedPrint = `"${wrappedLines.join(`" '"`)}"`;
 
                     if (para.command && para.command.startsWith('$O ')) {
@@ -246,9 +250,9 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
                             }
                             return c;
                         });
-                        basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT ${combinedPrint}\n`;
+                        basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT ${combinedPrint}${semicolon}\n`;
                     } else {
-                        basicCode += `${lineNr} PRINT ${combinedPrint}\n`;
+                        basicCode += `${lineNr} PRINT ${combinedPrint}${semicolon}\n`;
                     }
                     lineNr += 10;
                 }

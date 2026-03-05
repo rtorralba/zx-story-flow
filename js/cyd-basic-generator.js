@@ -3,8 +3,8 @@
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function colorToZX(name) {
-    const m = { black:0, blue:1, red:2, magenta:3, green:4, cyan:5, yellow:6, white:7 };
-    return m[(name||'').toLowerCase()] !== undefined ? m[(name||'').toLowerCase()] : 7;
+    const m = { black: 0, blue: 1, red: 2, magenta: 3, green: 4, cyan: 5, yellow: 6, white: 7 };
+    return m[(name || '').toLowerCase()] !== undefined ? m[(name || '').toLowerCase()] : 7;
 }
 
 function wrapText(text, maxWidth = 32) {
@@ -54,37 +54,37 @@ function tokenize(src) {
 function parseCmd(s) {
     s = s.trim();
     let m;
-    if ((m = s.match(/^DECLARE\s+(\d+)\s+AS\s+(\w+)$/i)))            return { cmd:'DECLARE', idx:+m[1], name:m[2] };
-    if ((m = s.match(/^INK\s+(\d+)$/i)))                              return { cmd:'INK', val:+m[1] };
-    if ((m = s.match(/^PAPER\s+(\d+)$/i)))                            return { cmd:'PAPER', val:+m[1] };
-    if ((m = s.match(/^BRIGHT\s+(\d+)$/i)))                           return { cmd:'BRIGHT', val:+m[1] };
-    if ((m = s.match(/^FLASH\s+(\d+)$/i)))                            return { cmd:'FLASH', val:+m[1] };
-    if ((m = s.match(/^LABEL\s+(\w+)$/i)))                            return { cmd:'LABEL', name:m[1] };
-    if ((m = s.match(/^#(\w+)$/)))                                    return { cmd:'LABEL', name:m[1] };
-    if (s.match(/^CLEAR$/i))                                          return { cmd:'CLEAR' };
-    if (s.match(/^CLS$/i))                                            return { cmd:'CLEAR' };
-    if ((m = s.match(/^OPTION\s+GOTO\s+(\w+)$/i)))                    return { cmd:'OPTION_GOTO', label:m[1] };
-    if ((m = s.match(/^OPTION\s+GOSUB\s+(\w+)$/i)))                   return { cmd:'OPTION_GOSUB', label:m[1] };
-    if (s.match(/^CHOOSE$/i))                                         return { cmd:'CHOOSE' };
-    if (s.match(/^WAITKEY$/i))                                        return { cmd:'WAITKEY' };
-    if (s.match(/^END$/i))                                            return { cmd:'END' };
-    if ((m = s.match(/^GOTO\s+(\w+)$/i)))                             return { cmd:'GOTO', label:m[1] };
-    if ((m = s.match(/^GOSUB\s+(\w+)$/i)))                            return { cmd:'GOSUB', label:m[1] };
-    if (s.match(/^RETURN$/i))                                         return { cmd:'RETURN' };
-    if ((m = s.match(/^IF\s+(.+?)\s+THEN$/i)))                        return { cmd:'IF', expr:m[1] };
-    if (s.match(/^ENDIF$/i))                                          return { cmd:'ENDIF' };
-    if ((m = s.match(/^ELSEIF\s+(.+?)\s+THEN$/i)))                    return { cmd:'ELSEIF', expr:m[1] };
-    if (s.match(/^ELSE$/i))                                           return { cmd:'ELSE' };
-    if ((m = s.match(/^SET\s+(\w+)\s+TO\s+(.+)$/i)))                  return { cmd:'SET', name:m[1], val:m[2] };
-    if ((m = s.match(/^MARGINS\s+(.+)$/i)))                           return { cmd:'MARGINS', args:m[1] };
-    if ((m = s.match(/^AT\s+(.+)$/i)))                                return { cmd:'AT', args:m[1] };
-    if ((m = s.match(/^PRINT\s+(.*)$/i)))                             return { cmd:'PRINT_CMD', text:m[1] };
-    if ((m = s.match(/^PICTURE\s+(\d+)$/i)))                          return { cmd:'PICTURE', id:+m[1] };
-    if ((m = s.match(/^DISPLAY\s+(\d+)$/i)))                          return { cmd:'DISPLAY', id:+m[1] };
-    if ((m = s.match(/^BORDER\s+(\d+)$/i)))                           return { cmd:'BORDER', val:+m[1] };
-    if ((m = s.match(/^BLIT\s+(.+)$/i)))                              return { cmd:'BLIT', args:m[1] };
-    if ((m = s.match(/^SCROLL\s+(.*)$/i)))                            return { cmd:'SCROLL' };
-    return { cmd:'UNKNOWN', raw:s };
+    if ((m = s.match(/^DECLARE\s+(\d+)\s+AS\s+(\w+)$/i))) return { cmd: 'DECLARE', idx: +m[1], name: m[2] };
+    if ((m = s.match(/^INK\s+(\d+)$/i))) return { cmd: 'INK', val: +m[1] };
+    if ((m = s.match(/^PAPER\s+(\d+)$/i))) return { cmd: 'PAPER', val: +m[1] };
+    if ((m = s.match(/^BRIGHT\s+(\d+)$/i))) return { cmd: 'BRIGHT', val: +m[1] };
+    if ((m = s.match(/^FLASH\s+(\d+)$/i))) return { cmd: 'FLASH', val: +m[1] };
+    if ((m = s.match(/^LABEL\s+(\w+)$/i))) return { cmd: 'LABEL', name: m[1] };
+    if ((m = s.match(/^#(\w+)$/))) return { cmd: 'LABEL', name: m[1] };
+    if (s.match(/^CLEAR$/i)) return { cmd: 'CLEAR' };
+    if (s.match(/^CLS$/i)) return { cmd: 'CLEAR' };
+    if ((m = s.match(/^OPTION\s+GOTO\s+(\w+)$/i))) return { cmd: 'OPTION_GOTO', label: m[1] };
+    if ((m = s.match(/^OPTION\s+GOSUB\s+(\w+)$/i))) return { cmd: 'OPTION_GOSUB', label: m[1] };
+    if (s.match(/^CHOOSE$/i)) return { cmd: 'CHOOSE' };
+    if (s.match(/^WAITKEY$/i)) return { cmd: 'WAITKEY' };
+    if (s.match(/^END$/i)) return { cmd: 'END' };
+    if ((m = s.match(/^GOTO\s+(\w+)$/i))) return { cmd: 'GOTO', label: m[1] };
+    if ((m = s.match(/^GOSUB\s+(\w+)$/i))) return { cmd: 'GOSUB', label: m[1] };
+    if (s.match(/^RETURN$/i)) return { cmd: 'RETURN' };
+    if ((m = s.match(/^IF\s+(.+?)\s+THEN$/i))) return { cmd: 'IF', expr: m[1] };
+    if (s.match(/^ENDIF$/i)) return { cmd: 'ENDIF' };
+    if ((m = s.match(/^ELSEIF\s+(.+?)\s+THEN$/i))) return { cmd: 'ELSEIF', expr: m[1] };
+    if (s.match(/^ELSE$/i)) return { cmd: 'ELSE' };
+    if ((m = s.match(/^SET\s+(\w+)\s+TO\s+(.+)$/i))) return { cmd: 'SET', name: m[1], val: m[2] };
+    if ((m = s.match(/^MARGINS\s+(.+)$/i))) return { cmd: 'MARGINS', args: m[1] };
+    if ((m = s.match(/^AT\s+(.+)$/i))) return { cmd: 'AT', args: m[1] };
+    if ((m = s.match(/^PRINT\s+(.*)$/i))) return { cmd: 'PRINT_CMD', text: m[1] };
+    if ((m = s.match(/^PICTURE\s+(\d+)$/i))) return { cmd: 'PICTURE', id: +m[1] };
+    if ((m = s.match(/^DISPLAY\s+(\d+)$/i))) return { cmd: 'DISPLAY', id: +m[1] };
+    if ((m = s.match(/^BORDER\s+(\d+)$/i))) return { cmd: 'BORDER', val: +m[1] };
+    if ((m = s.match(/^BLIT\s+(.+)$/i))) return { cmd: 'BLIT', args: m[1] };
+    if ((m = s.match(/^SCROLL\s+(.*)$/i))) return { cmd: 'SCROLL' };
+    return { cmd: 'UNKNOWN', raw: s };
 }
 
 // Parse a compound block (commands separated by ' : ') into array of commands
@@ -105,7 +105,7 @@ function transpileCYDToBasic(cydSrc) {
         const tok = tokens[i];
         if (tok.type === 'text') {
             const text = tok.raw.replace(/^\n+/, '').replace(/\n+$/, '');
-            if (text.trim()) stream.push({ kind:'TEXT', text });
+            if (text.trim()) stream.push({ kind: 'TEXT', text });
             i++;
         } else {
             // block
@@ -113,17 +113,17 @@ function transpileCYDToBasic(cydSrc) {
             // Check if first cmd is OPTION_GOTO — grab option text from next text token
             if (cmds.length === 1 && (cmds[0].cmd === 'OPTION_GOTO' || cmds[0].cmd === 'OPTION_GOSUB')) {
                 let optText = '';
-                if (i + 1 < tokens.length && tokens[i+1].type === 'text') {
-                    optText = tokens[i+1].raw.split('\n')[0].trim();
+                if (i + 1 < tokens.length && tokens[i + 1].type === 'text') {
+                    optText = tokens[i + 1].raw.split('\n')[0].trim();
                     // Consume only the first line from the text token; put the rest back
-                    const rest = tokens[i+1].raw.split('\n').slice(1).join('\n');
-                    if (rest.trim()) tokens[i+1] = { type:'text', raw:rest };
+                    const rest = tokens[i + 1].raw.split('\n').slice(1).join('\n');
+                    if (rest.trim()) tokens[i + 1] = { type: 'text', raw: rest };
                     else i++;
                 }
-                stream.push({ kind:'OPTION', label:cmds[0].label, text:optText, sub: cmds[0].cmd === 'OPTION_GOSUB' });
+                stream.push({ kind: 'OPTION', label: cmds[0].label, text: optText, sub: cmds[0].cmd === 'OPTION_GOSUB' });
                 i++;
             } else {
-                cmds.forEach(c => stream.push({ kind:'CMD', cmd:c }));
+                cmds.forEach(c => stream.push({ kind: 'CMD', cmd: c }));
                 i++;
             }
         }
@@ -185,19 +185,36 @@ function transpileCYDToBasic(cydSrc) {
     const gotoStartIdx = lines.length;
     emit('GO TO 1000'); // placeholder, will patch after first label
 
+    // Identify the last stream item that will emit a text PRINT
+    const lastPrintIdx = stream.map((s, idx) => {
+        if (s.kind === 'TEXT' && s.text.trim()) return idx;
+        if (s.kind === 'CMD' && s.cmd.cmd === 'PRINT_CMD') return idx;
+        return -1;
+    }).reduce((max, i) => Math.max(max, i), -1);
+
     // ── Process stream ────────────────────────────────────────────────────────
     stream.forEach((s, si) => {
         if (s.kind === 'TEXT') {
             const text = s.text;
             // If entirely blank lines, emit PRINT ""
             const textLines = text.split('\n');
-            textLines.forEach(tl => {
+            // Filter out trailing empty lines from textLines to correctly identify the last one
+            const lastNonEmptyLineIdx = textLines.map((l, i) => l.trim() ? i : -1).reduce((max, i) => Math.max(max, i), -1);
+
+            textLines.forEach((tl, tlIdx) => {
                 if (!tl.trim()) {
                     emit('PRINT ""');
                 } else {
-                    wrapText(tl).forEach(wl => {
-                        if (wl === '') emit('PRINT ""');
-                        else emit(`PRINT "${wl}"`);
+                    const wrappedLines = wrapText(tl);
+                    wrappedLines.forEach((wl, wlIdx) => {
+                        if (wl === '') {
+                            emit('PRINT ""');
+                        } else {
+                            const isLastLineOfThisText = (tlIdx === lastNonEmptyLineIdx && wlIdx === wrappedLines.length - 1);
+                            const isAbsoluteLastPrint = (si === lastPrintIdx && isLastLineOfThisText);
+                            const semicolon = isAbsoluteLastPrint ? ";" : "";
+                            emit(`PRINT "${wl}"${semicolon}`);
+                        }
                     });
                 }
             });
@@ -216,10 +233,10 @@ function transpileCYDToBasic(cydSrc) {
                 // already handled in pass 1
                 break;
 
-            case 'INK':    pendingInk = c.val; attrPending = true; break;
-            case 'PAPER':  pendingPaper = c.val; attrPending = true; break;
+            case 'INK': pendingInk = c.val; attrPending = true; break;
+            case 'PAPER': pendingPaper = c.val; attrPending = true; break;
             case 'BRIGHT': pendingBright = c.val; attrPending = true; break;
-            case 'FLASH':  pendingFlash = c.val; attrPending = true; break;
+            case 'FLASH': pendingFlash = c.val; attrPending = true; break;
 
             case 'LABEL': {
                 // Align lineNr to the label's assigned block
@@ -325,8 +342,8 @@ function transpileCYDToBasic(cydSrc) {
 
                 // Print option text
                 opts.forEach((opt, idx) => {
-                    const safeText = (opt.text || `Opción ${idx+1}`).replace(/"/g,"'").substring(0, 28);
-                    emit(`PRINT AT ${startRow + 1 + idx},0;"${idx+1}. ${safeText}"`);
+                    const safeText = (opt.text || `Opción ${idx + 1}`).replace(/"/g, "'").substring(0, 28);
+                    emit(`PRINT AT ${startRow + 1 + idx},0;"${idx + 1}. ${safeText}"`);
                 });
 
                 // Input loop label
@@ -334,7 +351,7 @@ function transpileCYDToBasic(cydSrc) {
                 emit(`INPUT A$`);
                 opts.forEach((opt, idx) => {
                     const dest = getLabelLine(opt.label);
-                    emit(`IF A$="${idx+1}" THEN GO TO ${dest}`);
+                    emit(`IF A$="${idx + 1}" THEN GO TO ${dest}`);
                 });
                 emit(`GO TO ${inputLoopLine}`);
                 break;
@@ -357,9 +374,11 @@ function transpileCYDToBasic(cydSrc) {
                 emit(`REM ${c.cmd} ${c.args || ''}`);
                 break;
 
-            case 'PRINT_CMD':
-                emit(`PRINT "${(c.text||'').replace(/"/g,"'")}"`);
+            case 'PRINT_CMD': {
+                const semicolon = (si === lastPrintIdx) ? ";" : "";
+                emit(`PRINT "${(c.text || '').replace(/"/g, "'")}"${semicolon}`);
                 break;
+            }
 
             case 'UNKNOWN':
                 emit(`REM ${c.raw}`);
