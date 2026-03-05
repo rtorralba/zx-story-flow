@@ -1,45 +1,33 @@
-[[#IMPRIMIR_MARCO_COMPLETO
-    PICTURE 0
-  BLIT 0, 0, 2, 2 AT 0, 0
-  BLIT 4, 0, 2, 2 AT 30, 0
-  BLIT 12, 0, 2, 2 AT 0, 22
-  BLIT 14, 0, 2, 2 AT 30, 22
-  SET col TO 2
-  WHILE (@col <= 29)
-    BLIT 2, 0, 1, 2 AT @col,0
-    BLIT 3, 0, 1, 2 AT @col,22
-    SET col TO @col+1
-  WEND
-    SET row TO 2
-  WHILE (@row <= 21)
-    BLIT 6, 0, 2, 1 AT 0,@row
-    BLIT 6, 1, 2, 1 AT 30,@row
-    SET row TO @row+1
-  WEND
-  MARGINS 2, 2, 28, 20
-    CLEAR
-    RETURN
-]]
+[[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 ]]
 
 [[ DECLARE 0 AS key ]]
-[[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 : LABEL La_Carga : CLEAR ]]
-[[ PICTURE 1 ]] 
-[[ CLEAR ]]Es 1984. Estas sentado frente al televisor. Los chirridos de la cinta llenan la habitacion: 'BIIIP... screech... BIIP'.
-De repente, el borde deja de parpadear colores.
+/* Images used: 1=dark.scr */
+[[ LABEL La_Carga ]][[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 ]]
+[[ PICTURE 1 ]]
+[[ DISPLAY 1 ]]
+[[ MARGINS 0, 3, 32, 21 ]]
+[[ CLEAR ]]
+
+Es 1984. Estas sentado frente al
+televisor. Los chirridos de la 
+cinta llenan la habitacion: 
+'BIIIP... screech... BIIP'.
+De repente, el borde deja de 
+parpadear colores.
 [[ OPTION GOTO Azimut ]]Tocar el volumen
 [[ OPTION GOTO Paciencia ]]Esperar con paciencia
 [[ CHOOSE ]]
 
-[[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 : LABEL Azimut : CLEAR ]]
+[[ LABEL Azimut ]][[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 ]]
 [[ CLEAR ]]Coges tu diminuto destornillador amarillo.
 Giras el tornillo de azimut del Datasette 0.01mm a la derecha.
 El sonido cambia. Ha mejorado?
 [[ OPTION GOTO Exito ]]Si! Suena perfecto!
 [[ OPTION GOTO Azimut_opt1 ]]Ups, ahora no suena
 [[ CHOOSE ]]
-[[ #Azimut_opt1 : SET key TO 0 : GOTO Silencio ]]
+[[ #Azimut_opt1 : SET key TO 0 : GOTO Silencio_sfssrgfsrgfsr ]]
 
-[[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 : LABEL Paciencia : CLEAR ]]
+[[ LABEL Paciencia ]][[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 ]][[ SET Imagen TO 8 : SET Modo TO 2 : GOSUB Pantalla ]]
                      Esperas.
 Pasan 5 minutos.
 Pasan 10 minutos.
@@ -48,30 +36,32 @@ Finalmente aparece el mensaje:
 'R Tape loading error, 0:1'.
 [[ WAITKEY : END ]]
 
-[[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 : LABEL Exito : CLEAR ]]
+[[ LABEL Exito ]][[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 ]]
 Un milagro! La pantalla de 
 titulo aparece pixel a pixel.
 'JET SET WILLY'
 Input Type: KEMPSTON.
 Juegas hasta que la fuente
 derrite la alfombra.
-[[ OPTION GOTO La_Carga ]]Jugar otro juego
+[[ OPTION GOTO Silencio_sfssrgfsrgfsr ]]Jugar otro juego
 [[ CHOOSE ]]
 
-[[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 : LABEL Silencio : CLEAR ]]
+[[ LABEL Silencio_sfssrgfsrgfsr ]][[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 ]]
 Giraste el tornillo demasiado. El cabezal esta desalineado.
 Rompiste el datasette.
 $O has:key
 Ahora tienes que escuchar a tus padres hablar de politica en vez de jugar.
-[[ OPTION GOTO La_Carga ]]Irse a dormir
+[[ OPTION GOTO Silencio_sfssrgfsrgfsr ]]Irse a dormir
 [[ CHOOSE ]]
 
-[[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 : LABEL Rabia : CLEAR ]]
-Golpeas las teclas de goma con frustracion.
-Una tecla sale volando y golpea al gato.
+[[ LABEL Rabia ]][[ INK 7 : PAPER 0 : BRIGHT 0 : FLASH 0 ]][[ INK 2 ]]
+[[CLEAR]] Golpeas las teclas de 
+goma con frustracion.
+Una tecla sale volando y golpea 
+al gato.
 El gato te arana.
 GAME OVER.
-[[ OPTION GOTO La_Carga ]]Intentar de nuevo
+[[ BORDER 1 ]][[ OPTION GOTO Silencio_sfssrgfsrgfsr ]]Intentar de nuevo[[ PAPER 0 ]]
 [[ CHOOSE ]]
 
 

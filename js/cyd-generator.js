@@ -122,19 +122,36 @@ export function generateCYD(nodes, globalConfig = null) {
     screenNodes.forEach(node => {
         const label = labelMap[node.id];
 
-        // page attributes
-        const pageCfg = (node.useCustomConfig && node.pageConfig) ? node.pageConfig : globalConfig.page;
-        const ink = colorToZX(pageCfg?.ink || 'white');
-        const paper = colorToZX(pageCfg?.paper || 'black');
-        const bright = pageCfg?.bright ? 1 : 0;
-        const flash = pageCfg?.flash ? 1 : 0;
+        // page attributes: separate global and specific configs
+        const globalPage = globalConfig.page || { ink: 'white', paper: 'black', bright: false, flash: false };
+        const gInk = colorToZX(globalPage.ink);
+        const gPaper = colorToZX(globalPage.paper);
+        const gBright = globalPage.bright ? 1 : 0;
+        const gFlash = globalPage.flash ? 1 : 0;
 
-        // Header command block: include LABEL so a GOTO will execute the CLEAR
-        const headerParts = [`INK ${ink}`, `PAPER ${paper}`, `BRIGHT ${bright}`, `FLASH ${flash}`];
-        if (node.actions && node.actions.trim()) headerParts.push(node.actions.trim());
-        headerParts.push(`LABEL ${label}`);
-        headerParts.push('CLEAR');
-        out.push(`[[ ${headerParts.join(' : ')} ]]`);
+        let headerLine = `[[ LABEL ${label} ]]`;
+        headerLine += `[[ INK ${gInk} : PAPER ${gPaper} : BRIGHT ${gBright} : FLASH ${gFlash} ]]`;
+
+        if (node.useCustomConfig && node.pageConfig) {
+            const sPage = node.pageConfig;
+            const sParts = [];
+            if (sPage.ink !== undefined) sParts.push(`INK ${colorToZX(sPage.ink)}`);
+            if (sPage.paper !== undefined) sParts.push(`PAPER ${colorToZX(sPage.paper)}`);
+            if (sPage.bright !== undefined) sParts.push(`BRIGHT ${sPage.bright ? 1 : 0}`);
+            if (sPage.flash !== undefined) sParts.push(`FLASH ${sPage.flash ? 1 : 0}`);
+            if (sParts.length > 0) {
+                headerLine += `[[ ${sParts.join(' : ')} ]]`;
+            }
+        }
+
+        // Actions and special CYD commands
+        if (node.actions && node.actions.trim()) {
+            headerLine += `[[ ${node.actions.trim()} ]]`;
+        }
+        if (node.cydCommands && node.cydCommands.trim()) {
+            headerLine += node.cydCommands.trim();
+        }
+        out.push(headerLine);
 
         // Text content handled per-paragraph to support conditionalParagraphs
         const rawText = (node.text || '').replace(/\r\n/g, '\n');
@@ -224,9 +241,12 @@ export function generateCYD(nodes, globalConfig = null) {
 
         if (eligibleOptions.length > 0) {
             eligibleOptions.forEach((opt, idx) => {
-                const choiceText = (opt.label || (`Option ${idx + 1}`)).replace(/\r?\n/g, ' ').trim();
-                const portIndex = node.outputs.indexOf(opt); // Original index for label generation uniqueness if needed, but we use idx here
+                const portIndex = node.outputs.indexOf(opt);
+                const prefix = (opt.prefix || '').trim();
+                const suffix = (opt.suffix || '').trim();
+                const labelText = (opt.label || (`Option ${idx + 1}`)).replace(/\r?\n/g, ' ').trim();
 
+                let optionTag = "";
                 if (opt.target) {
                     const resolved = resolveNodeId(opt.target);
                     const targetLabel = (resolved && labelMap[resolved]) ? labelMap[resolved] : (slugify(opt.target) || `Node${opt.target}`);
@@ -236,13 +256,15 @@ export function generateCYD(nodes, globalConfig = null) {
                         const cmds = parseFlagToCmds(opt.flag);
                         const inline = [...cmds, `GOTO ${targetLabel}`].join(' : ');
                         intermediateLabels.push(`[[ #${optLabel} : ${inline} ]]`);
-                        out.push(`[[ OPTION GOTO ${optLabel} ]]${choiceText}`);
+                        optionTag = `[[ OPTION GOTO ${optLabel} ]]`;
                     } else {
-                        out.push(`[[ OPTION GOTO ${targetLabel} ]]${choiceText}`);
+                        optionTag = `[[ OPTION GOTO ${targetLabel} ]]`;
                     }
                 } else {
-                    out.push(`[[ OPTION GOTO ${label} ]]${choiceText}`);
+                    optionTag = `[[ OPTION GOTO ${label} ]]`;
                 }
+
+                out.push(`${prefix}${optionTag}${labelText}${suffix}`);
             });
 
             out.push('[[ CHOOSE ]]');

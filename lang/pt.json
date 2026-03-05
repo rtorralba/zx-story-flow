@@ -88,7 +88,11 @@
         "use_custom_node": "Usar configuração específica para este nó",
         "insert_image": "🖼️ Inserir Imagem",
         "ruler_title": "Régua de guia (largura da coluna)",
-        "ruler_off": "📏 Régua: Desligada"
+        "ruler_off": "📏 Régua: Desligada",
+        "cyd_commands_placeholder": "Comandos CYD (cabeçalho)",
+        "cyd_before_placeholder": "Prefijo",
+        "cyd_after_placeholder": "Sufijo",
+        "cyd_commands_title": "Comandos CYD para este nó"
     },
     "help": {
         "title": "AJUDA SINTAXE MUCHO",

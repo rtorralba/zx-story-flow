@@ -620,6 +620,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             actionsInput.style.display = (projectType === 'CYD') ? 'none' : (editorViewMode === 'advanced' ? 'block' : 'none');
             nodeEditModalTitle.appendChild(actionsInput);
 
+            // Add CYD Commands input next to the title for CYD projects
+            if (projectType === 'CYD') {
+                const cydCommandsInput = document.createElement('input');
+                cydCommandsInput.type = 'text';
+                cydCommandsInput.value = nodeOrGroup.cydCommands || '';
+                cydCommandsInput.setAttribute('data-i18n', 'editor.cyd_commands_placeholder');
+                cydCommandsInput.placeholder = t('editor.cyd_commands_placeholder');
+                cydCommandsInput.setAttribute('data-i18n-title', 'editor.cyd_commands_title');
+                cydCommandsInput.title = t('editor.cyd_commands_title');
+                cydCommandsInput.style.marginLeft = '12px';
+                cydCommandsInput.style.fontSize = '14px';
+                cydCommandsInput.style.fontFamily = 'Courier New, monospace';
+                cydCommandsInput.style.padding = '4px 8px';
+                cydCommandsInput.style.flex = '1';
+                cydCommandsInput.style.maxWidth = '612px';
+                cydCommandsInput.style.backgroundColor = '#1a1a1a';
+                cydCommandsInput.style.border = '1px solid #555';
+                cydCommandsInput.style.color = '#f1fa8c';
+                cydCommandsInput.style.borderRadius = '3px';
+                cydCommandsInput.addEventListener('input', (e) => {
+                    nodeOrGroup.cydCommands = e.target.value;
+                });
+                nodeEditModalTitle.appendChild(cydCommandsInput);
+            }
+
             // Toggle must be added LAST
             setupViewToggle();
         }
@@ -702,9 +727,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         label: o.label,
                         target: o.target,
                         flag: o.flag,
-                        eligible: o.eligible !== false
+                        eligible: o.eligible !== false,
+                        prefix: o.prefix,
+                        suffix: o.suffix
                     })) : [],
-                    actions: n.actions
+                    actions: n.actions,
+                    cydCommands: n.cydCommands
                 };
 
                 if (n instanceof NodeReference) {
@@ -819,9 +847,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 label: o.label,
                                 target: o.target,
                                 flag: o.flag,
-                                eligible: o.eligible !== false
+                                eligible: o.eligible !== false,
+                                prefix: o.prefix || "",
+                                suffix: o.suffix || ""
                             }));
                         }
+                        newNode.cydCommands = n.cydCommands || "";
                         if (n.conditionalParagraphs) newNode.conditionalParagraphs = n.conditionalParagraphs;
                         if (n.paragraphImages) newNode.paragraphImages = n.paragraphImages;
                         if (n.useCustomConfig) {
@@ -1785,31 +1816,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                     autoSave();
                 });
 
-                // Single freeform actions textbox (replaces old select + flag input)
-                const flagInp = document.createElement('input');
-                flagInp.type = 'text';
-                flagInp.value = opt.flag || '';
-                flagInp.placeholder = 'ej: set:key clear:lock toggle:door';
-                flagInp.style.flex = "2";
-                flagInp.style.fontFamily = 'Courier New, monospace';
-                flagInp.style.fontSize = '12px';
-                flagInp.style.color = '#f1fa8c';
-                flagInp.style.backgroundColor = '#000';
-                flagInp.style.border = '1px solid #555';
-                flagInp.style.borderRadius = '3px';
-                flagInp.title = t('editor.actions_option_title');
-                flagInp.classList.add('advanced-only-flags');
-                if (projectType === 'CYD') {
-                    // In CYD projects options remain, but option flags are not applicable
-                    flagInp.style.display = 'none';
-                } else {
+                // Single freeform actions textbox (for MuCho projects)
+                let flagInp = null;
+                if (projectType !== 'CYD') {
+                    flagInp = document.createElement('input');
+                    flagInp.type = 'text';
+                    flagInp.value = opt.flag || '';
+                    flagInp.placeholder = 'ej: set:key clear:lock toggle:door';
+                    flagInp.style.flex = "2";
+                    flagInp.style.fontFamily = 'Courier New, monospace';
+                    flagInp.style.fontSize = '12px';
+                    flagInp.style.color = '#f1fa8c';
+                    flagInp.style.backgroundColor = '#000';
+                    flagInp.style.border = '1px solid #555';
+                    flagInp.style.borderRadius = '3px';
+                    flagInp.title = t('editor.actions_option_title');
+                    flagInp.classList.add('advanced-only-flags');
                     flagInp.style.display = editorViewMode === 'advanced' ? 'block' : 'none';
+                    flagInp.addEventListener('input', (e) => {
+                        opt.flag = e.target.value.trim() || undefined;
+                        editor.draw();
+                        autoSave();
+                    });
                 }
-                flagInp.addEventListener('input', (e) => {
-                    opt.flag = e.target.value.trim() || undefined;
-                    editor.draw();
-                    autoSave();
-                });
 
                 // Delete button
                 const del = document.createElement('button');
@@ -1830,8 +1859,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                     autoSave();
                 });
 
-                inputsRow.appendChild(inp);
-                inputsRow.appendChild(flagInp);
+                // CYD Prefix and Suffix
+                if (projectType === 'CYD') {
+                    const preInp = document.createElement('input');
+                    preInp.value = opt.prefix || '';
+                    preInp.placeholder = t('editor.cyd_before_placeholder');
+                    preInp.style.flex = "1";
+                    preInp.style.fontSize = "12px";
+                    preInp.style.fontFamily = "Courier New, monospace";
+                    preInp.style.backgroundColor = '#1a1a1a';
+                    preInp.style.border = '1px solid #555';
+                    preInp.style.color = '#f1fa8c';
+                    preInp.style.borderRadius = '3px';
+                    preInp.addEventListener('input', (e) => {
+                        opt.prefix = e.target.value;
+                        autoSave();
+                    });
+
+                    const sufInp = document.createElement('input');
+                    sufInp.value = opt.suffix || '';
+                    sufInp.placeholder = t('editor.cyd_after_placeholder');
+                    sufInp.style.flex = "1";
+                    sufInp.style.fontSize = "12px";
+                    sufInp.style.fontFamily = "Courier New, monospace";
+                    sufInp.style.backgroundColor = '#1a1a1a';
+                    sufInp.style.border = '1px solid #555';
+                    sufInp.style.color = '#f1fa8c';
+                    sufInp.style.borderRadius = '3px';
+                    sufInp.addEventListener('input', (e) => {
+                        opt.suffix = e.target.value;
+                        autoSave();
+                    });
+
+                    inputsRow.appendChild(preInp);
+                    inputsRow.appendChild(inp);
+                    inputsRow.appendChild(sufInp);
+                } else {
+                    inputsRow.appendChild(inp);
+                    if (flagInp) inputsRow.appendChild(flagInp);
+                }
 
                 // "Eligible" switch for CYD projects
                 if (projectType === 'CYD') {

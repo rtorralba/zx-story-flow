@@ -88,7 +88,11 @@
         "use_custom_node": "Usar configuración específica para este nodo",
         "insert_image": "🖼️ Insertar Imagen",
         "ruler_title": "Regla de guía (ancho de columna)",
-        "ruler_off": "📏 Regla: Off"
+        "ruler_off": "📏 Regla: Off",
+        "cyd_commands_placeholder": "Comandos CYD (cabecera)",
+        "cyd_before_placeholder": "Prefijo",
+        "cyd_after_placeholder": "Sufijo",
+        "cyd_commands_title": "Comandos CYD para este nodo"
     },
     "help": {
         "title": "AYUDA SINTAXIS MUCHO",

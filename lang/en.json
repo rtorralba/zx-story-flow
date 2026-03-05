@@ -88,7 +88,11 @@
         "use_custom_node": "Use specific configuration for this node",
         "insert_image": "🖼️ Insert Image",
         "ruler_title": "Guide ruler (column width)",
-        "ruler_off": "📏 Ruler: Off"
+        "ruler_off": "📏 Ruler: Off",
+        "cyd_commands_placeholder": "CYD Commands (header)",
+        "cyd_before_placeholder": "Prefix",
+        "cyd_after_placeholder": "Suffix",
+        "cyd_commands_title": "CYD Commands for this node"
     },
     "help": {
         "title": "MUCHO SYNTAX HELP",
