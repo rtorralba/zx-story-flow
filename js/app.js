@@ -1705,11 +1705,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const imageData = event.target.result;
-                    const imgObj = node.paragraphImages.find(img => img.imageName === file.name);
-                    if (imgObj) {
-                        imgObj.imageData = imageData;
-                        autoSave();
+                    // Try exact match, then case-insensitive match; if no entry exists, create one.
+                    let imgObj = node.paragraphImages.find(img => img.imageName === file.name);
+                    if (!imgObj) {
+                        imgObj = node.paragraphImages.find(img => img.imageName && img.imageName.toLowerCase() === file.name.toLowerCase());
                     }
+                    if (!imgObj) {
+                        const newImg = { paragraphIndex: 0, imageName: file.name, imageData };
+                        node.paragraphImages.push(newImg);
+                    } else {
+                        imgObj.imageData = imageData;
+                    }
+                    if (typeof autoSave === 'function') autoSave();
                 };
                 reader.readAsDataURL(file);
             }
