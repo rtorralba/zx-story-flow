@@ -43,7 +43,7 @@ function wrapText(text, maxWidth = 32) {
  * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
  * cursor-based option selection with p() jump table and system subroutines.
  */
-function transpileMuchoToBasic(muchoCode, globalConfig = null) {
+function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) {
     if (!muchoCode) return "10 REM Project is empty";
 
     const lines = muchoCode.split(/\r?\n/);
@@ -95,6 +95,22 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     const startLabel = firstMatch ? firstMatch[1].toLowerCase() : "start";
 
     let basicCode = "";
+
+    // =========================================================
+    // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
+    // Loads each .scr from the TAP into RAM at 58455, then saves
+    // it as a named block so LOAD! can recall it instantly later.
+    // =========================================================
+    if (imageNames.length > 0) {
+        basicCode += `1 REM = one-time init =\n`;
+        let initLine = `2 CLEAR 58455`;
+        imageNames.forEach(name => {
+            const nm = (name || '').toUpperCase();
+            initLine += `:LOAD "${nm}" CODE 58455:SAVE! "${nm}" CODE 58455,6912`;
+        });
+        initLine += `\n`;
+        basicCode += initLine;
+    }
 
     // =========================================================
     // GLOBAL INIT  (lines 10 – 120)
@@ -167,6 +183,16 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
 
         let lineNr = baseLineNr;
 
+        // Pre-scan block content for $I image directives
+        const blockImages = [];
+        block.content.forEach(line => {
+            if (line.startsWith('$I ')) {
+                const imgName = line.substring(3).trim().replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+                if (imgName) blockImages.push(imgName);
+            }
+        });
+        const hasBlockImages = blockImages.length > 0;
+
         basicCode += `${lineNr} REM-- - ${blockLabel} ---\n`;
         lineNr += 10;
 
@@ -175,13 +201,25 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
             lineNr += 10;
         }
 
-        // Set custom attrs (if diverge from defaults) then call screen-init subroutine
+        // For screens with images: use 9990 (CLS only), then LOAD!/PRINT, then GO SUB 9985 (option bar).
+        // For screens without images: use 9988 (CLS + option bar in one call).
         if (hasCustomAttr) {
-            basicCode += `${lineNr} LET tattr = ${tattr}:LET dattr = ${dattr}:LET iattr = ${iattr}:GO SUB 9988: \n`;
+            basicCode += `${lineNr} LET tattr=${tattr}:LET dattr=${dattr}:LET iattr=${iattr}:GO SUB ${hasBlockImages ? 9990 : 9988}:\n`;
         } else {
-            basicCode += `${lineNr} GO SUB 9988: \n`;
+            basicCode += `${lineNr} GO SUB ${hasBlockImages ? 9990 : 9988}:\n`;
         }
         lineNr += 10;
+
+        if (hasBlockImages) {
+            blockImages.forEach(imgName => {
+                const nm = (imgName || '').toUpperCase();
+                basicCode += `${lineNr} LOAD! "${nm}" CODE 16384:PRINT AT 8,0:\n`;
+                lineNr += 10;
+            });
+            // Redo option bar after image overwrote screen attrs
+            basicCode += `${lineNr} GO SUB 9985:\n`;
+            lineNr += 10;
+        }
 
         // --- Content lines ---
         // First, group lines into paragraphs for proper block handling
@@ -332,11 +370,12 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     // SYSTEM SUBROUTINES  (9988 – 9999)
     // Identical in structure to flow3.zx.bas
     // =========================================================
-    basicCode += `9988 REM New screen. Clear and set attributes.\n`;
-    basicCode += `9989 POKE 23693,tattr:POKE 23624,dattr:CLS:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:\n`;
-    basicCode += `9990 LET n=0:REM contador opciones.\n`;
-    basicCode += `9991 LET i=1\n`;
-    basicCode += `9992 RETURN\n`;
+    basicCode += `9985 REM Option bar subroutine (also called after image load).\n`;
+    basicCode += `9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:LET i=1:RETURN\n`;
+    basicCode += `9988 REM New screen. CLS + option bar (no image).\n`;
+    basicCode += `9989 POKE 23693,tattr:POKE 23624,dattr:CLS:GO SUB 9985:RETURN\n`;
+    basicCode += `9990 REM New screen. CLS only (image will follow).\n`;
+    basicCode += `9991 POKE 23693,tattr:POKE 23624,dattr:CLS:RETURN\n`;
     basicCode += `9993 REM choose an option\n`;
     basicCode += `9994 IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO 0:\n`;
     basicCode += `9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";:\n`;
@@ -364,7 +403,7 @@ function renumberBasic(basicCode) {
         const match = line.match(/^(\d+)/);
         if (match) {
             const oldNum = parseInt(match[1]);
-            if (oldNum < 9988) {
+            if (oldNum < 9985) {
                 oldToNew[oldNum] = nextNum;
                 nextNum += 10;
             } else {
@@ -415,9 +454,28 @@ export function generateBasicFromMucho(nodes, globalConfig = null) {
     // 1. Convert everything to MuCho intermediate format
     const muchoText = generateMucho(nodes, globalConfig);
 
-    // 2. Transpile MuCho to ZX Basic
-    const rawBasic = transpileMuchoToBasic(muchoText, globalConfig);
+    // 2. Collect unique image base-names (no extension) from:
+    //    a) node.paragraphImages — files uploaded via the editor
+    //    b) $I directives in the generated MuCho text
+    const imageNameSet = new Set();
+    nodes.forEach(n => {
+        if (n.paragraphImages && n.paragraphImages.length > 0) {
+            n.paragraphImages.forEach(pi => {
+                if (pi.imageName && pi.imageData) {
+                    imageNameSet.add(pi.imageName.replace(/\.scr$/i, '').replace(/\.[^.]+$/, ''));
+                }
+            });
+        }
+    });
+    (muchoText.match(/\$I\s+([^\s\n]+)/g) || []).forEach(m => {
+        const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+        if (nm) imageNameSet.add(nm);
+    });
+    const imageNames = [...imageNameSet];
 
-    // 3. Renumber lines compactly to free up space
+    // 3. Transpile MuCho to ZX Basic (image names drive the one-time init preamble)
+    const rawBasic = transpileMuchoToBasic(muchoText, globalConfig, imageNames);
+
+    // 4. Renumber lines compactly to free up space
     return renumberBasic(rawBasic);
 }

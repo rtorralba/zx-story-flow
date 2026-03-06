@@ -986,7 +986,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         editor.exportToPNG(exportName);
     });
 
-    document.getElementById('export-tap-btn').addEventListener('click', () => {
+    document.getElementById('export-tap-btn').addEventListener('click', async () => {
         if (hasDuplicateLabels()) return;
         try {
             const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
@@ -1012,6 +1012,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                 }
             });
+
+            // Try to include SCR files from known locations if not present in nodes
+            const tryAddScr = async (url, name) => {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) return false;
+                    const blob = await res.arrayBuffer();
+                    if (blob.byteLength !== 6912) return false;
+                    if (!screenImages.find(img => img.name === name)) {
+                        const b = new Uint8Array(blob);
+                        let binary = '';
+                        for (let i = 0; i < b.length; i++) binary += String.fromCharCode(b[i]);
+                        const base64 = btoa(binary);
+                        screenImages.push({ name, data: 'data:application/octet-stream;base64,' + base64 });
+                        return true;
+                    }
+                } catch (e) {
+                    return false;
+                }
+                return false;
+            };
+
+            // Attempt common locations (root and examples/)
+            await tryAddScr('dark.scr', 'DARK.SCR');
+            await tryAddScr('examples/dark.scr', 'DARK.SCR');
 
             // Usar el nombre del proyecto, reemplazando espacios por _
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
