@@ -1034,9 +1034,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return false;
             };
 
-            // Attempt common locations (root and examples/)
-            await tryAddScr('dark.scr', 'DARK.SCR');
-            await tryAddScr('examples/dark.scr', 'DARK.SCR');
+            // Attempt common locations (root and examples/) -- handled per referenced image below
 
             // Usar el nombre del proyecto, reemplazando espacios por _
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
