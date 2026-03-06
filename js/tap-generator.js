@@ -1,6 +1,15 @@
 // ZX Story Flow - TAP File Generator
-// Corrected and cleaned version
+// Copyright (C) 2026 Raül Torralba Adsuara
+// Licensed under the GNU Affero General Public License v3.0 or later
+// See LICENSE file for details
+//
+// Converts ZX Spectrum BASIC code (string) to TAP file format (ArrayBuffer).
+// Implementation based on ZX Spectrum technical documentation.
+// 
+// Special thanks to Remy Sharp's txt2bas (https://github.com/remy/txt2bas)
+// which helped identify and fix some edge cases in the tokenization process.
 
+// ZX Spectrum BASIC tokens
 const KEYWORDS = {
     'RND': 0xA5, 'INKEY$': 0xA6, 'PI': 0xA7, 'FN': 0xA8, 'POINT': 0xA9,
     'SCREEN$': 0xAA, 'ATTR': 0xAB, 'AT': 0xAC, 'TAB': 0xAD, 'VAL$': 0xAE,
