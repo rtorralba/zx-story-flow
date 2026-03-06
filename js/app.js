@@ -1674,57 +1674,68 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Apply ruler to the newly created CodeMirror instance (use stored global config)
         updateRuler(globalConfig.rulerWidth || '32ch');
 
-        hiddenFileInput.addEventListener('change', (e) => {
+        hiddenFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            if (file) {
-                const cm = editorWidget.cm;
-                if (cm) {
-                    // Usar API CodeMirror para insertar en la posición del cursor
-                    const cursor = cm.getCursor();
-                    const line = cm.getLine(cursor.line);
-                    const prepend = (line.length > 0) ? '\n' : '';
-                    cm.replaceRange(prepend + '$I ' + file.name + '\n', cursor);
-                    EditorClass.parseToNode(cm.getValue(), node);
-                } else {
-                    // Fallback textarea
-                    const ta = editorWidget.textarea;
-                    const start = ta.selectionStart;
-                    const text = editorWidget.value;
-                    const textBefore = text.substring(0, start);
-                    const textAfter = text.substring(ta.selectionEnd);
-                    const prepend = (textBefore.length > 0 && !textBefore.endsWith('\n')) ? '\n' : '';
-                    editorWidget.value = textBefore + prepend + '$I ' + file.name + '\n' + textAfter;
-                    ta.value = editorWidget.value;
-                    editorWidget.updateHighlights();
-                    EditorClass.parseToNode(editorWidget.value, node);
-                }
-                editor.draw();
+            if (!file) return;
 
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const imageData = event.target.result;
-                    // Try exact match, then case-insensitive match; if no entry exists, create one.
-                    let imgObj = node.paragraphImages.find(img => img.imageName === file.name);
-                    if (!imgObj) {
-                        imgObj = node.paragraphImages.find(img => img.imageName && img.imageName.toLowerCase() === file.name.toLowerCase());
-                    }
-                    if (!imgObj) {
-                        const newImg = { paragraphIndex: 0, imageName: file.name, imageData };
-                        node.paragraphImages.push(newImg);
-                    } else {
-                        imgObj.imageData = imageData;
-                    }
-                    // Ensure project is persisted immediately so online users keep the embedded image
-                    try {
-                        if (typeof autoSave === 'function') autoSave();
-                        // Also write directly to localStorage to survive cases where autoSave is temporarily disabled
-                        const data = getProjectData();
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                    } catch (e) {
-                        console.warn('Failed to persist embedded image to localStorage:', e);
-                    }
-                };
-                reader.readAsDataURL(file);
+            const cm = editorWidget.cm;
+            if (cm) {
+                // Usar API CodeMirror para insertar en la posición del cursor
+                const cursor = cm.getCursor();
+                const line = cm.getLine(cursor.line);
+                const prepend = (line.length > 0) ? '\n' : '';
+                cm.replaceRange(prepend + '$I ' + file.name + '\n', cursor);
+                EditorClass.parseToNode(cm.getValue(), node);
+            } else {
+                // Fallback textarea
+                const ta = editorWidget.textarea;
+                const start = ta.selectionStart;
+                const text = editorWidget.value;
+                const textBefore = text.substring(0, start);
+                const textAfter = text.substring(ta.selectionEnd);
+                const prepend = (textBefore.length > 0 && !textBefore.endsWith('\n')) ? '\n' : '';
+                editorWidget.value = textBefore + prepend + '$I ' + file.name + '\n' + textAfter;
+                ta.value = editorWidget.value;
+                editorWidget.updateHighlights();
+                EditorClass.parseToNode(editorWidget.value, node);
+            }
+
+            editor.draw();
+
+            // Read file and await completion to ensure imageData is stored before user proceeds
+            try {
+                const imageData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => resolve(ev.target.result);
+                    reader.onerror = (err) => reject(err);
+                    reader.readAsDataURL(file);
+                });
+
+                // Try exact match, then case-insensitive match; if no entry exists, create one.
+                let imgObj = node.paragraphImages.find(img => img.imageName === file.name);
+                if (!imgObj) {
+                    imgObj = node.paragraphImages.find(img => img.imageName && img.imageName.toLowerCase() === file.name.toLowerCase());
+                }
+                if (!imgObj) {
+                    const newImg = { paragraphIndex: 0, imageName: file.name, imageData };
+                    node.paragraphImages.push(newImg);
+                } else {
+                    imgObj.imageData = imageData;
+                }
+
+                // Persist immediately
+                try {
+                    if (typeof autoSave === 'function') autoSave();
+                    const data = getProjectData();
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                } catch (e) {
+                    console.warn('Failed to persist embedded image to localStorage:', e);
+                }
+            } catch (err) {
+                console.error('Failed to read selected image file:', err);
+            } finally {
+                // Reset input so same file can be selected again
+                try { hiddenFileInput.value = ''; } catch (e) { /* ignore */ }
             }
         });
 
