@@ -158,6 +158,21 @@ export class MuchoEditor {
         });
 
         node.conditionalParagraphs = newConds;
+
+        // Preserve any existing imageData for images with the same name (case-insensitive)
+        try {
+            const existing = node.paragraphImages || [];
+            newImgs.forEach(ni => {
+                const match = existing.find(e => e.imageName && ni.imageName && e.imageName.toLowerCase() === ni.imageName.toLowerCase());
+                if (match && match.imageData) {
+                    ni.imageData = match.imageData;
+                }
+            });
+        } catch (e) {
+            // Non-fatal
+            console.warn('Failed to preserve paragraphImages imageData:', e);
+        }
+
         node.paragraphImages = newImgs;
     }
 }
