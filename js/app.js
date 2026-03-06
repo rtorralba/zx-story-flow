@@ -1714,7 +1714,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else {
                         imgObj.imageData = imageData;
                     }
-                    if (typeof autoSave === 'function') autoSave();
+                    // Ensure project is persisted immediately so online users keep the embedded image
+                    try {
+                        if (typeof autoSave === 'function') autoSave();
+                        // Also write directly to localStorage to survive cases where autoSave is temporarily disabled
+                        const data = getProjectData();
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                    } catch (e) {
+                        console.warn('Failed to persist embedded image to localStorage:', e);
+                    }
                 };
                 reader.readAsDataURL(file);
             }
