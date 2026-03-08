@@ -24,12 +24,12 @@ function wrapText(text, maxWidth = 32) {
         }
 
         let remaining = para;
-        while (remaining.length > maxWidth) {
+            while (remaining.length > maxWidth) {
             let breakAt = remaining.lastIndexOf(' ', maxWidth);
             if (breakAt === -1) breakAt = maxWidth;
 
             wrappedLines.push(remaining.substring(0, breakAt));
-            remaining = remaining.substring(breakAt).replace(/^ +/, '');
+            remaining = remaining.substring(breakAt);
         }
         if (remaining.length > 0) {
             wrappedLines.push(remaining);
@@ -210,16 +210,8 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
         }
         lineNr += 10;
 
-        if (hasBlockImages) {
-            blockImages.forEach(imgName => {
-                const nm = (imgName || '').toUpperCase();
-                basicCode += `${lineNr} LOAD! "${nm}" CODE 16384:PRINT AT 8,0:\n`;
-                lineNr += 10;
-            });
-            // Redo option bar after image overwrote screen attrs
-            basicCode += `${lineNr} GO SUB 9985:\n`;
-            lineNr += 10;
-        }
+        // NOTE: image loads will be emitted inline where $I appears in the content
+        // (we still use hasBlockImages to decide which subroutine to call above).
 
         // --- Content lines ---
         // First, group lines into paragraphs for proper block handling
@@ -239,7 +231,14 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
                 }
                 paragraphs.push({ type: 'empty' });
             } else if (trimmed.startsWith('$I ')) {
-                // Images skipped for BASIC
+                // Emit an image placeholder at this position (will generate LOAD! inline)
+                const imgName = trimmed.substring(3).replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+                if (currentPara.length > 0) {
+                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+                    currentPara = [];
+                    pendingCommand = null;
+                }
+                paragraphs.push({ type: 'image', name: imgName });
             } else if (trimmed.startsWith('$O ')) {
                 if (currentPara.length > 0) {
                     paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
@@ -267,6 +266,10 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
         paragraphs.forEach((para, pIdx) => {
             if (para.type === 'empty') {
                 basicCode += `${lineNr} PRINT ""\n`;
+                lineNr += 10;
+            } else if (para.type === 'image') {
+                const nm = (para.name || '').toUpperCase();
+                basicCode += `${lineNr} LOAD! "${nm}" CODE 16384\n`;
                 lineNr += 10;
             } else if (para.type === 'text') {
                 const fullText = para.lines.join('\n');
@@ -297,7 +300,14 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
             }
         });
 
-        // --- Parse options: separate conditions (has:/not:) from actions (set:/clear:/toggle:) ---
+                // If this screen uses images we called CLS only (9990).
+                // After all inline LOAD!s the option bar needs to be redrawn.
+                if (hasBlockImages) {
+                    basicCode += `${lineNr} GO SUB 9985\n`;
+                    lineNr += 10;
+                }
+
+                // --- Parse options: separate conditions (has:/not:) from actions (set:/clear:/toggle:) ---
         const effectiveOptions = block.options.length > 0
             ? block.options
             : [{ header: `$A ${startLabel}`, text: "Jugar de nuevo" }];
