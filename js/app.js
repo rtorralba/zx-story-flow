@@ -60,6 +60,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     const separatorMatrixEl = document.getElementById('separator-matrix');
     const selectorMatrixEl = document.getElementById('selector-matrix');
 
+    // --- Loading screen config UI (MuCho only) ---
+    (function setupLoadingScreenUI() {
+        const muchoSections = document.getElementById('mucho-sections');
+        if (!muchoSections) return;
+
+        if (document.getElementById('global-loading-screen-row')) return; // already created
+
+        const row = document.createElement('div');
+        row.id = 'global-loading-screen-row';
+        row.className = 'config-row';
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        row.style.marginTop = '12px';
+
+        const label = document.createElement('label');
+        label.textContent = 'Pantalla de carga (SCR):';
+        label.style.minWidth = '180px';
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.scr';
+        fileInput.id = 'global-loading-screen-input';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.id = 'global-loading-screen-name';
+        nameSpan.textContent = '(ninguna)';
+        nameSpan.style.color = '#ddd';
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.id = 'global-loading-screen-clear';
+        clearBtn.textContent = 'Borrar';
+
+        row.appendChild(label);
+        row.appendChild(fileInput);
+        row.appendChild(nameSpan);
+        row.appendChild(clearBtn);
+
+        // Insert before the "Gráficos (solo para BASIC)" header if present, otherwise append
+        const graphicsHeader = muchoSections.querySelector('h3[data-i18n="config.basic_graphics"]') || muchoSections.querySelector('h3');
+        if (graphicsHeader && graphicsHeader.parentElement === muchoSections) {
+            muchoSections.insertBefore(row, graphicsHeader);
+        } else {
+            muchoSections.appendChild(row);
+        }
+
+        // Handlers
+        fileInput.addEventListener('change', async (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try {
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = (ev) => resolve(ev.target.result);
+                    r.onerror = (err) => reject(err);
+                    r.readAsDataURL(f);
+                });
+                if (!globalConfig) globalConfig = {};
+                globalConfig.loadingScreen = { imageName: f.name, imageData: dataUrl };
+                nameSpan.textContent = f.name;
+                if (typeof autoSave === 'function') autoSave();
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist loading screen', e); }
+            } catch (err) {
+                console.error('Failed to read loading screen SCR:', err);
+            } finally {
+                try { fileInput.value = ''; } catch (e) { }
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (globalConfig && globalConfig.loadingScreen) delete globalConfig.loadingScreen;
+            nameSpan.textContent = '(ninguna)';
+            if (typeof autoSave === 'function') autoSave();
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist loading screen removal', e); }
+        });
+    })();
     // Helper: Convert color name to CSS color value
     function zxColorToCSS(colorName, bright = false) {
         const brightColors = { 'black': '#000000', 'blue': '#0000FF', 'red': '#FF0000', 'magenta': '#FF00FF', 'green': '#00FF00', 'cyan': '#00FFFF', 'yellow': '#FFFF00', 'white': '#FFFFFF' };
@@ -159,6 +236,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (globalProjectType) globalProjectType.value = (globalConfig.projectType || projectType || 'MuCho');
 
         updateMatricesUI();
+
+        // Populate loading screen name if present
+        try {
+            const nameSpan = document.getElementById('global-loading-screen-name');
+            if (nameSpan) {
+                if (globalConfig && globalConfig.loadingScreen && globalConfig.loadingScreen.imageName) {
+                    nameSpan.textContent = globalConfig.loadingScreen.imageName;
+                } else {
+                    nameSpan.textContent = '(ninguna)';
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
     }
 
     // Guardar configuración global desde los controles
@@ -1013,6 +1104,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
+            // Include global loading screen if configured — ensure it is FIRST in the list
+            try {
+                if (globalConfig && globalConfig.loadingScreen) {
+                    const lsName = globalConfig.loadingScreen.imageName;
+                    const lsData = globalConfig.loadingScreen.imageData;
+                    if (lsName) {
+                        // Remove any existing occurrence (case-insensitive)
+                        const idxExisting = screenImages.findIndex(img => img.name && img.name.toLowerCase() === lsName.toLowerCase());
+                        if (idxExisting >= 0) screenImages.splice(idxExisting, 1);
+
+                        if (lsData) {
+                            // Put loading image first
+                            screenImages.unshift({ name: lsName, data: lsData });
+                        } else {
+                            // Try to find imageData from node.paragraphImages (case-insensitive)
+                            let found = null;
+                            editor.nodes.forEach(node => {
+                                if (node.paragraphImages && node.paragraphImages.length) {
+                                    node.paragraphImages.forEach(pi => {
+                                        if (pi.imageName && pi.imageData && pi.imageName.toLowerCase() === lsName.toLowerCase()) {
+                                            found = pi.imageData;
+                                        }
+                                    });
+                                }
+                            });
+                            if (found) screenImages.unshift({ name: lsName, data: found });
+                            else console.warn('Loading screen referenced in config has no embedded data and was not found in nodes:', lsName);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Error including global loading screen into export images', e);
+            }
+
             // Try to include SCR files from known locations if not present in nodes
             const tryAddScr = async (url, name) => {
                 try {
@@ -1035,6 +1160,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             // Attempt common locations (root and examples/) -- handled per referenced image below
+
+            // Debug: show which images we will include and a BASIC preview
+            try {
+                console.log('TAP export: including images:', screenImages.map(si => si.name));
+                screenImages.forEach(si => {
+                    try {
+                        const base64 = (si.data || '').split(',')[1] || '';
+                        const bin = typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+                        console.log(`Image ${si.name}: bytes=${bin.length}`);
+                    } catch (e) { console.warn('Could not decode image for debug:', si.name, e); }
+                });
+                console.log('BASIC preview:\n' + basicCode.split('\n').slice(0, 20).join('\n'));
+            } catch (e) { console.warn('Debug logging failed', e); }
 
             // Usar el nombre del proyecto, reemplazando espacios por _
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');

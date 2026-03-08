@@ -96,20 +96,45 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
 
     let basicCode = "";
 
+    let loadingBase = null;
+    try {
+        if (globalConfig && globalConfig.loadingScreen && globalConfig.loadingScreen.imageName) {
+            loadingBase = globalConfig.loadingScreen.imageName.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+        }
+    } catch (e) { /* ignore */ }
+
+    if (loadingBase) {
+        const loadingUpper = (loadingBase || '').toUpperCase();
+        basicCode += `1 REM Loading splash\n`;
+        basicCode += `2 LOAD "${loadingUpper}" SCREEN$:PRINT AT 8,0:\n`;
+        // Save the displayed splash into a named block so we can restore it
+        // after the one-time image init (which may CLEAR or overwrite memory).
+        basicCode += `3 SAVE! "${loadingUpper}" CODE 16384,6912\n`;
+    }
+
     // =========================================================
     // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
     // Loads each .scr from the TAP into RAM at 58455, then saves
     // it as a named block so LOAD! can recall it instantly later.
     // =========================================================
     if (imageNames.length > 0) {
-        basicCode += `1 REM = one-time init =\n`;
-        let initLine = `2 CLEAR 58455`;
+        basicCode += `3 REM = one-time init =\n`;
+        let initLine = `4 CLEAR 58455`;
+        // let initLine = ``;
         imageNames.forEach(name => {
             const nm = (name || '').toUpperCase();
             initLine += `:LOAD "${nm}" CODE 58455:SAVE! "${nm}" CODE 58455,6912`;
         });
         initLine += `\n`;
         basicCode += initLine;
+
+        // If we showed a loading splash, restore it after the image init
+        // (we saved it above with SAVE!). This keeps the splash visible
+        // while we SAVE! other images to named blocks.
+        if (loadingBase) {
+            const loadingUpper2 = (loadingBase || '').toUpperCase();
+            basicCode += `5 LOAD! "${loadingUpper2}" CODE 16384:PRINT AT 8,0:\n`;
+        }
     }
 
     // =========================================================
