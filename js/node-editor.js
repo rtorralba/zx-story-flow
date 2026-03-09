@@ -890,11 +890,20 @@ export class NodeEditor {
                 const refHandleSize = 14;
                 const refHandleX = node.x + node.width - refHandleSize;
                 const refHandleY = node.y + node.height - refHandleSize;
-                this.ctx.fillStyle = isSelected ? "#00d02260" : "#3a7acc40";
+
+                // Use same body and stroke colors as the reference node
+                const refBodyColor = isSelected ? "#2a4a5a" : "#1a3a4a";
+                const refStrokeColor = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#3a7acc");
+
+                const refHandleBg = isSelected ? "#00d022" : refBodyColor;
+                const refHandleLine = isSelected ? "#00d022" : refStrokeColor;
+
+                this.ctx.fillStyle = refHandleBg;
                 this.ctx.beginPath();
                 this.ctx.roundRect(refHandleX, refHandleY, refHandleSize, refHandleSize, [0, 0, 5, 0]);
                 this.ctx.fill();
-                this.ctx.strokeStyle = isSelected ? "#00d022" : "#3a7acc";
+                const refGripColor = isSelected ? "#000" : refHandleLine;
+                this.ctx.strokeStyle = refGripColor;
                 this.ctx.lineWidth = 1;
                 for (let i = 0; i < 2; i++) {
                     const off = refHandleSize - 3 - (i * 4);
@@ -1016,16 +1025,19 @@ export class NodeEditor {
                     const handleX = node.x + node.width - handleSize;
                     const handleY = node.y + node.height - handleSize;
 
-                    const handleBgColor = isSelected ? "#00d022" : "#000";
-                    const handleLineColor = isSelected ? "#00d022" : "#888";
-                    const handleAlpha = isSelected ? "60" : "40";
+                    const nodeFillColor = isSelected ? "#333" : "#222";
+                    const nodeStrokeColor = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#444");
+                    const handleBgColor = isSelected ? "#00d022" : nodeFillColor;
+                    const handleLineColor = isSelected ? "#00d022" : nodeStrokeColor;
 
-                    this.ctx.fillStyle = handleBgColor + handleAlpha;
+                    // Use same color as node body for the handle background when not selected
+                    this.ctx.fillStyle = handleBgColor;
                     this.ctx.beginPath();
                     this.ctx.roundRect(handleX, handleY, handleSize, handleSize, [0, 0, 8, 0]);
                     this.ctx.fill();
 
-                    this.ctx.strokeStyle = handleLineColor;
+                    const gripLineColor = isSelected ? "#000" : handleLineColor;
+                    this.ctx.strokeStyle = gripLineColor;
                     this.ctx.lineWidth = 1;
                     for (let i = 0; i < 2; i++) {
                         const offset = handleSize - 4 - (i * 4);
