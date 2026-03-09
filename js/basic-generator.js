@@ -262,11 +262,16 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
 
         // Now generate BASIC for each paragraph
         const lastTextParaIdx = paragraphs.map((p, i) => p.type === 'text' ? i : -1).reduce((max, i) => Math.max(max, i), -1);
+        const lastContentIdx = paragraphs.map((p, i) => (p.type === 'text' || p.type === 'image') ? i : -1).reduce((max, i) => Math.max(max, i), -1);
 
         paragraphs.forEach((para, pIdx) => {
             if (para.type === 'empty') {
-                basicCode += `${lineNr} PRINT ""\n`;
-                lineNr += 10;
+                // Avoid emitting trailing empty PRINTs: only print empty lines
+                // if there is content afterwards on the screen.
+                if (pIdx < lastContentIdx) {
+                    basicCode += `${lineNr} PRINT ""\n`;
+                    lineNr += 10;
+                }
             } else if (para.type === 'image') {
                 const nm = (para.name || '').toUpperCase();
                 basicCode += `${lineNr} LOAD! "${nm}" CODE 16384\n`;
@@ -278,7 +283,10 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
                 if (wrappedLines.length > 0) {
                     const isLastPrint = (pIdx === lastTextParaIdx);
                     const semicolon = isLastPrint ? ";" : "";
-                    const combinedPrint = `"${wrappedLines.join(`" '"`)}"`;
+                    // Ensure we emit all wrapped lines with a single PRINT using commas
+                    const sanitized = wrappedLines.map(s => s.replace(/"/g, "'"));
+                    // Use the BASIC carriage-return marker the project expects: single-quote '\'' between strings
+                    const combinedPrint = sanitized.map(s => `"${s}"`).join("' ");
 
                     if (para.command && para.command.startsWith('$O ')) {
                         const condStr = para.command.substring(3);

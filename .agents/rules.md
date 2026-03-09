@@ -14,3 +14,6 @@ To ensure the integrity of the user's design and the specific constraints of the
 - **BASIC Wrapping**: When transpiling MuCho to BASIC, the `wrapText` function (or any replacement) **MUST NOT** use `split(' ')` or any logic that destroys leading whitespace. 
 - Leading spaces in paragraphs must be preserved exactly to maintain manual centering.
 - Only wrap lines that exceed 32 characters, and do so by finding the last space within the limit, preserving the initial indentation of the paragraph.
+
+## BASIC PRINT formatting
+- **USE SINGLE-QUOTE AS CARRIAGE-RETURN**: When emitting ZX BASIC `PRINT` statements for multi-line screen text, concatenate the strings using a single-quote followed by a space (`' `) between quoted substrings so that the BASIC single-quote acts as the screen carriage-return marker. Do not emit multiple separate `PRINT` statements for lines that belong to the same screen paragraph.
