@@ -421,12 +421,12 @@ function renumberBasic(basicCode) {
         const match = line.match(/^(\d+)/);
         if (match) {
             const oldNum = parseInt(match[1]);
-            if (oldNum < 9985) {
-                oldToNew[oldNum] = nextNum;
-                nextNum += 10;
-            } else {
+            if (oldNum >= 9985 && oldNum <= 9999) {
                 // Keep system routines where they are
                 oldToNew[oldNum] = oldNum;
+            } else {
+                oldToNew[oldNum] = nextNum;
+                nextNum += 10;
             }
         }
     });
