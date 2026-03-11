@@ -106,7 +106,11 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
         let initLine = `2 CLEAR 58455`;
         imageNames.forEach(name => {
             const nm = (name || '').toUpperCase();
-            initLine += `:LOAD "${nm}" CODE 58455:SAVE! "${nm}" CODE 58455,6912`;
+            // 6912 -> full screen with attributes.
+            // 6144 -> full screen BW
+            // 4096 -> 2/3 screen BW
+            // 2048 -> 1/3 screen BW (default)
+            initLine += `:LOAD "${nm}" CODE 58455:SAVE! "${nm}" CODE 58455,2048`; 
         });
         initLine += `\n`;
         basicCode += initLine;
