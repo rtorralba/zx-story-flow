@@ -156,7 +156,8 @@
         false
       ]
     },
-    "border": "black"
+    "border": "black",
+    "rulerWidth": "32ch"
   },
   "nodes": [
     {
@@ -172,15 +173,20 @@
         {
           "label": "Tocar el volumen",
           "target": "n2",
-          "eligible": true
+          "eligible": true,
+          "prefix": "",
+          "suffix": ""
         },
         {
           "label": "Esperar con paciencia",
           "target": "n3",
-          "eligible": true
+          "eligible": true,
+          "prefix": "",
+          "suffix": ""
         }
       ],
       "actions": "",
+      "cydCommands": "",
       "paragraphImages": [
         {
           "paragraphIndex": 0,
@@ -197,21 +203,26 @@
       "height": 160,
       "type": "Screen",
       "title": "Azimut",
-      "text": "[[ CLEAR ]]Coges tu diminuto destornillador amarillo.\nGiras el tornillo de azimut del Datasette 0.01mm a la derecha.\n\nEl sonido cambia. Ha mejorado?",
+      "text": "Coges tu diminuto destornillador amarillo.\nGiras el tornillo de azimut del Datasette 0.01mm a la derecha.\n\nEl sonido cambia. Ha mejorado?",
       "outputs": [
         {
           "label": "Si! Suena perfecto!",
           "target": "n4",
-          "eligible": true
+          "eligible": true,
+          "prefix": "",
+          "suffix": ""
         },
         {
           "label": "Ups, ahora no suena",
           "target": "n5",
           "flag": "clear:key",
-          "eligible": true
+          "eligible": true,
+          "prefix": "",
+          "suffix": ""
         }
       ],
-      "actions": ""
+      "actions": "",
+      "cydCommands": ""
     },
     {
       "id": "n3",
@@ -221,21 +232,26 @@
       "height": 193,
       "type": "Screen",
       "title": "Paciencia",
-      "text": "                     Esperas.\nPasan 5 minutos.\nPasan 10 minutos.\nTu te se enfria.\n\nFinalmente aparece el mensaje: \n'R Tape loading error, 0:1'.",
+      "text": "Esperas.\nPasan 5 minutos.\nPasan 10 minutos.\nTu te se enfria.\n\nFinalmente aparece el mensaje: \n'R Tape loading error, 0:1'.",
       "outputs": [
         {
           "label": "Rebobinar y reintentar",
           "target": "n5",
           "flag": "set:key",
-          "eligible": false
+          "eligible": false,
+          "prefix": "",
+          "suffix": ""
         },
         {
           "label": "Destrozar el teclado",
           "target": "n6",
-          "eligible": false
+          "eligible": false,
+          "prefix": "",
+          "suffix": ""
         }
       ],
-      "actions": "SET Imagen TO 8 : SET Modo TO 2 : GOSUB Pantalla"
+      "actions": "",
+      "cydCommands": ""
     },
     {
       "id": "n4",
@@ -250,10 +266,13 @@
         {
           "label": "Jugar otro juego",
           "target": "ref_1771608889239",
-          "eligible": true
+          "eligible": true,
+          "prefix": "",
+          "suffix": ""
         }
       ],
       "actions": "",
+      "cydCommands": "",
       "useCustomConfig": true,
       "borderColor": "black"
     },
@@ -270,28 +289,34 @@
         {
           "label": "Irse a dormir",
           "target": "ref_1771608889239",
-          "eligible": true
+          "eligible": true,
+          "prefix": "",
+          "suffix": ""
         }
       ],
-      "actions": ""
+      "actions": "",
+      "cydCommands": ""
     },
     {
       "id": "n6",
-      "x": 800,
-      "y": 350,
+      "x": 798,
+      "y": 351,
       "width": 268,
       "height": 178,
       "type": "Screen",
       "title": "Rabia",
-      "text": "[[CLEAR]] Golpeas las teclas de goma con frustracion.\nUna tecla sale volando y golpea al gato.\nEl gato te arana.\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\nGAME OVER.",
+      "text": "Golpeas las teclas de goma con\nfrustracion. Una tecla sale\nvolando y golpea al gato.\n\nEl gato te arana.\n\nGAME OVER.",
       "outputs": [
         {
           "label": "Intentar de nuevo",
           "target": "ref_1771608889239",
-          "eligible": true
+          "eligible": true,
+          "prefix": "",
+          "suffix": ""
         }
       ],
       "actions": "",
+      "cydCommands": "",
       "useCustomConfig": true,
       "borderColor": "yellow"
     },
@@ -325,5 +350,5 @@
   ],
   "cydGeneralCode": "[[#IMPRIMIR_MARCO_COMPLETO\n    PICTURE 0\n  BLIT 0, 0, 2, 2 AT 0, 0\n  BLIT 4, 0, 2, 2 AT 30, 0\n  BLIT 12, 0, 2, 2 AT 0, 22\n  BLIT 14, 0, 2, 2 AT 30, 22\n  SET col TO 2\n  WHILE (@col <= 29)\n    BLIT 2, 0, 1, 2 AT @col,0\n    BLIT 3, 0, 1, 2 AT @col,22\n    SET col TO @col+1\n  WEND\n    SET row TO 2\n  WHILE (@row <= 21)\n    BLIT 6, 0, 2, 1 AT 0,@row\n    BLIT 6, 1, 2, 1 AT 30,@row\n    SET row TO @row+1\n  WEND\n  MARGINS 2, 2, 28, 20\n    CLEAR\n    RETURN\n]]",
   "cydGeneralCodeEnd": "[[#IMPRIMIR_MARCO_COMPLETO\n    PICTURE 0\n  BLIT 0, 0, 2, 2 AT 0, 0\n  BLIT 4, 0, 2, 2 AT 30, 0\n  BLIT 12, 0, 2, 2 AT 0, 22\n  BLIT 14, 0, 2, 2 AT 30, 22\n  SET col TO 2\n  WHILE (@col <= 29)\n    BLIT 2, 0, 1, 2 AT @col,0\n    BLIT 3, 0, 1, 2 AT @col,22\n    SET col TO @col+1\n  WEND\n    SET row TO 2\n  WHILE (@row <= 21)\n    BLIT 6, 0, 2, 1 AT 0,@row\n    BLIT 6, 1, 2, 1 AT 30,@row\n    SET row TO @row+1\n  WEND\n  MARGINS 2, 2, 28, 20\n    CLEAR\n    RETURN\n]]",
-  "lastSaved": 1772665405308
+  "lastSaved": 1773274991290
 }

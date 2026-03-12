@@ -73,7 +73,13 @@ export function generateMucho(nodes, globalConfig = null) {
 
     let muchoCode = "";
 
-    screenNodes.forEach(node => {
+    // Track previous-emitted attributes so we only emit changes
+    let prevPageAttr = null;
+    let prevSepAttr = null;
+    let prevIntAttr = null;
+    let prevBorderVal = null;
+
+    screenNodes.forEach((node, nodeIndex) => {
         const label = labelMap[node.id];
         let description = node.text || "";
         // Replace lines that only contain whitespace with $P
@@ -104,9 +110,33 @@ export function generateMucho(nodes, globalConfig = null) {
             : (globalConfig.border || 'black');
         const borderVal = colorToZX(borderColor);
 
-        // Build $Q line, appending any node-level actions
+        // Build $Q line, but only include flags that changed since the previous node.
+        // Always emit all attribute flags for the first node.
+        const parts = [];
+        parts.push(label);
+
         const actionsStr = node.actions && node.actions.trim() ? ' ' + node.actions.trim() : '';
-        muchoCode += `$Q ${label} attr:${pageAttr} dattr:${sepAttr} iattr:${intAttr} border:${borderVal}${actionsStr}\n`;
+
+        if (nodeIndex === 0) {
+            // First node: include all attributes
+            parts.push(`attr:${pageAttr}`);
+            parts.push(`dattr:${sepAttr}`);
+            parts.push(`iattr:${intAttr}`);
+            parts.push(`border:${borderVal}`);
+        } else {
+            if (prevPageAttr === null || pageAttr !== prevPageAttr) parts.push(`attr:${pageAttr}`);
+            if (prevSepAttr === null || sepAttr !== prevSepAttr) parts.push(`dattr:${sepAttr}`);
+            if (prevIntAttr === null || intAttr !== prevIntAttr) parts.push(`iattr:${intAttr}`);
+            if (prevBorderVal === null || borderVal !== prevBorderVal) parts.push(`border:${borderVal}`);
+        }
+
+        // Update previous values for next iteration
+        prevPageAttr = pageAttr;
+        prevSepAttr = sepAttr;
+        prevIntAttr = intAttr;
+        prevBorderVal = borderVal;
+
+        muchoCode += `$Q ${parts.join(' ')}${actionsStr}\n`;
         muchoCode += description + '\n';
 
         // Iterate all options
