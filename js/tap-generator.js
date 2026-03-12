@@ -137,12 +137,12 @@ function tokenizeLine(line) {
 }
 
 // Generate TAP data from an Image.
-export function ima2tap(img, filename = "SCREEN") {
+export function img2tap(img, filename = "SCREEN") {
     // img: string with image data in base64
     // filename: block name.
 
     // Image from base64 to bytes.
-    const base64Data = (img.data || '').split(',')[1] || '';
+    const base64Data = (img || '').split(',')[1] || '';
     const binaryString = typeof atob === 'function' ? atob(base64Data) : Buffer.from(base64Data, 'base64').toString('binary');
     const imageBytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) imageBytes[i] = binaryString.charCodeAt(i);
@@ -163,7 +163,7 @@ export function ima2tap(img, filename = "SCREEN") {
 
     // Tap file name padded with spaces, max 10 char.
     // !!!! Probably no need to remove extension.
-    let screenName = img.name.toUpperCase().replace(/\.SCR$/i, '');
+    let screenName = filename.toUpperCase().replace(/\.SCR$/i, '');
     screenName = (screenName + '          ').substr(0, 10);
 
     // Build header.
@@ -187,19 +187,23 @@ export function ima2tap(img, filename = "SCREEN") {
 }
 
 
+// Generate TAP data from an Image.
+export function bas2tap(basicCode, filename = "SCREEN") {
+    // basicCode: string with the code
+    // filename: block name.
 
-
-// Generate TAP file from BASIC code
-export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImages = []) {
     const lines = basicCode.split('\n').filter(l => l.trim().length > 0);
     const plainData = [];
 
     lines.forEach(line => {
+        // Split line number and content.
         const l = line.replace(/^\s+/, '');
         const match = l.match(/^(\d+)\s+(.*)$/);
-        if (!match) return;
+        if (!match) return;  
         const lineNum = parseInt(match[1]);
         const content = match[2].trim();
+
+        // Build line.
         const tokens = tokenizeLine(content);
         plainData.push((lineNum >> 8) & 0xFF);
         plainData.push(lineNum & 0xFF);
@@ -230,9 +234,22 @@ export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImag
     const dataBlock = createTapBlock(0xFF, dataUint);
 
     const blocks = [];
-    // Program first
     blocks.push(headerBlock);
     blocks.push(dataBlock);
+
+    return blocks
+}
+
+
+// Generate TAP file from BASIC code
+export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImages = []) {
+    
+    const blocks = [];
+
+
+    // Program first
+    const basicTap = bas2tap(basicCode, filename)
+    blocks.push(...basicTap)
 
     // Then images (CODE blocks)
     screenImages.forEach(img => {
@@ -244,7 +261,8 @@ export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImag
         }
     });
 
-    // Concatenate
+
+    // Concatenate all tap blocks into buffer.
     let totalLen = 0;
     blocks.forEach(b => totalLen += b.length);
     const tapData = new Uint8Array(totalLen);
