@@ -136,6 +136,59 @@ function tokenizeLine(line) {
     return res;
 }
 
+// Generate TAP data from an Image.
+export function ima2tap(img, filename = "SCREEN") {
+    // img: string with image data in base64
+    // filename: block name.
+
+    // Image from base64 to bytes.
+    const base64Data = (img.data || '').split(',')[1] || '';
+    const binaryString = typeof atob === 'function' ? atob(base64Data) : Buffer.from(base64Data, 'base64').toString('binary');
+    const imageBytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) imageBytes[i] = binaryString.charCodeAt(i);
+    
+    // Accept either: 
+    // full SCREEN$ with attributes (6912 bytes) 
+    // full screen, pixels-only (6144 bytes)
+    // 2/3  screen, pixels only (4096 bytes)
+    // 1/3  screen, pixels only (2048 bytes)
+    // !!!! May be just check that length <== 6912 
+    if (imageBytes.length !== 6912 
+        && imageBytes.length !== 6144
+        && imageBytes.length !== 4096
+        && imageBytes.length !== 2048) {
+        console.warn(`Image ${img.name} is not in {6912,6144,4096,2048} bytes (got ${imageBytes.length}), skipping`);
+        return;
+    }
+
+    // Tap file name padded with spaces, max 10 char.
+    // !!!! Probably no need to remove extension.
+    let screenName = img.name.toUpperCase().replace(/\.SCR$/i, '');
+    screenName = (screenName + '          ').substr(0, 10);
+
+    // Build header.
+    const screenHeader = new Uint8Array(17);
+    screenHeader[0] = 0x03; // Type: Code
+    for (let i = 0; i < 10; i++) screenHeader[i + 1] = screenName.charCodeAt(i);
+    const imageLen = imageBytes.length;
+    screenHeader[11] = imageLen & 0xFF;
+    screenHeader[12] = (imageLen >> 8) & 0xFF;
+    const loadAddr = 58455;
+    screenHeader[13] = loadAddr & 0xFF;
+    screenHeader[14] = (loadAddr >> 8) & 0xFF;
+    screenHeader[15] = 0;
+    screenHeader[16] = 0;
+
+    // Build tap.
+    const blocks = [];
+    blocks.push(createTapBlock(0x00, screenHeader));
+    blocks.push(createTapBlock(0xFF, imageBytes));
+    return blocks
+}
+
+
+
+
 // Generate TAP file from BASIC code
 export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImages = []) {
     const lines = basicCode.split('\n').filter(l => l.trim().length > 0);
@@ -184,30 +237,8 @@ export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImag
     // Then images (CODE blocks)
     screenImages.forEach(img => {
         try {
-            const base64Data = (img.data || '').split(',')[1] || '';
-            const binaryString = typeof atob === 'function' ? atob(base64Data) : Buffer.from(base64Data, 'base64').toString('binary');
-            const imageBytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) imageBytes[i] = binaryString.charCodeAt(i);
-            // Accept either full SCREEN$ (6912 bytes) or pixels-only (6144 bytes)
-            if (imageBytes.length !== 6912 && imageBytes.length !== 6144) {
-                console.warn(`Image ${img.name} is not 6912 or 6144 bytes (got ${imageBytes.length}), skipping`);
-                return;
-            }
-            let screenName = img.name.toUpperCase().replace(/\.SCR$/i, '');
-            screenName = (screenName + '          ').substr(0, 10);
-            const screenHeader = new Uint8Array(17);
-            screenHeader[0] = 0x03; // Type: Code
-            for (let i = 0; i < 10; i++) screenHeader[i + 1] = screenName.charCodeAt(i);
-            const imageLen = imageBytes.length;
-            screenHeader[11] = imageLen & 0xFF;
-            screenHeader[12] = (imageLen >> 8) & 0xFF;
-            const loadAddr = 58455;
-            screenHeader[13] = loadAddr & 0xFF;
-            screenHeader[14] = (loadAddr >> 8) & 0xFF;
-            screenHeader[15] = 0;
-            screenHeader[16] = 0;
-            blocks.push(createTapBlock(0x00, screenHeader));
-            blocks.push(createTapBlock(0xFF, imageBytes));
+            const tapImg = img2tap(img.data, img.name)
+            blocks.push(...tapImg);
         } catch (e) {
             console.error(`Error adding image ${img.name}:`, e);
         }
