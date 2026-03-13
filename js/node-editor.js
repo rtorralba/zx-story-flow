@@ -686,13 +686,36 @@ export class NodeEditor {
             return;
         }
 
-        // If not a connection, check for node to highlight descendants
+        // If not a connection, check for node to highlight its immediate
+        // children (first-level) and its parent(s) only.
         const node = this.getNodeAt(x, y);
         this.highlightedNodes.clear(); // Clear previous highlights
 
         if (node) {
-            const descendants = this.getDescendants(node);
-            this.highlightedNodes = descendants;
+            const highlighted = new Set();
+
+            // Include the node itself
+            highlighted.add(node.id);
+
+            // Add immediate children (first-level outputs)
+            if (node.outputs) {
+                node.outputs.forEach(opt => {
+                    if (opt.target) {
+                        const child = this.nodes.find(n => n.id === opt.target);
+                        if (child) highlighted.add(child.id);
+                    }
+                });
+            }
+
+            // Add parent nodes (nodes that point to this node)
+            for (const n of this.nodes) {
+                if (!n.outputs) continue;
+                if (n.outputs.some(o => o.target === node.id)) {
+                    highlighted.add(n.id);
+                }
+            }
+
+            this.highlightedNodes = highlighted;
         }
 
         this.draw();
