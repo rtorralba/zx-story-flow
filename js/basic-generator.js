@@ -235,7 +235,8 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
                 }
             } else if (para.type === 'image') {
                 const nm = (para.name || '').toUpperCase();
-                basicCode += `${lineNr} LOAD! "${nm}" CODE 16384\n`;
+                //basicCode += `${lineNr} LOAD! "${nm}" CODE 16384\n`;
+                basicCode += `${lineNr} LET i$="${nm}":GO SUB 9982\n`;
                 lineNr += 10;
             } else if (para.type === 'text') {
                 const fullText = para.lines.join('\n');
@@ -349,6 +350,11 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     // SYSTEM SUBROUTINES  (9988 – 9999)
     // Identical in structure to flow3.zx.bas
     // =========================================================
+    basicCode += `
+    9982 REM Load i$ from RAMDISK
+    9983 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
+    9984 LOAD! i$ CODE 16384:RETURN
+    `
     basicCode += `9985 REM Option bar subroutine (also called after image load).\n`;
     basicCode += `9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:LET i=1:RETURN\n`;
     basicCode += `9988 REM New screen. CLS + option bar (no image).\n`;
@@ -442,6 +448,8 @@ export function collectImageNamesFromMucho(muchoText) {
     return imageNames
 }
 
+
+// !!!! Fix me: should get mucho code as input, not nodes.
 export function generateLoaderFromMucho(nodes, globalConfig = null) {
     // 1. Convert everything to MuCho intermediate format
     const muchoText = generateMucho(nodes, globalConfig);
@@ -455,31 +463,13 @@ export function generateLoaderFromMucho(nodes, globalConfig = null) {
     return loaderBasic
 }
 
+
+// !!!! Fix me: should get mucho code as input, not nodes.
 export function generateBasicFromMucho(nodes, globalConfig = null) {
     if (!nodes || nodes.length === 0) return "10 REM No nodes";
 
     // 1. Convert everything to MuCho intermediate format
     const muchoText = generateMucho(nodes, globalConfig);
-
-
-    // // 2. Collect unique image base-names (no extension) from:
-    // //    a) node.paragraphImages — files uploaded via the editor
-    // //    b) $I directives in the generated MuCho text
-    // const imageNameSet = new Set();
-    // nodes.forEach(n => {
-    //     if (n.paragraphImages && n.paragraphImages.length > 0) {
-    //         n.paragraphImages.forEach(pi => {
-    //             if (pi.imageName && pi.imageData) {
-    //                 imageNameSet.add(pi.imageName.replace(/\.scr$/i, '').replace(/\.[^.]+$/, ''));
-    //             }
-    //         });
-    //     }
-    // });
-    // (muchoText.match(/\$I\s+([^\s\n]+)/g) || []).forEach(m => {
-    //     const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
-    //     if (nm) imageNameSet.add(nm);
-    // });
-    // const imageNames = [...imageNameSet];
 
     // 3. Transpile MuCho to ZX Basic (image names drive the one-time init preamble)
     const rawBasic = transpileMuchoToBasic(muchoText, globalConfig);
@@ -520,7 +510,6 @@ export function getDefaultUDGs(globalConfig){
     }
 
     return [udgA,udgB]
-
 }
 
 export function generateBasicLoader(globalConfig, imageNames){
@@ -565,7 +554,7 @@ export function generateBasicLoader(globalConfig, imageNames){
         basicCode   += `190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
         let initLine = ``
         // Code for 128k/+2
-        initLine += `200 IF PEEK(23312)=251 THEN`;
+        initLine += `200 IF PEEK(23312) <> 1 THEN`;
         imageNames.forEach(name => {
             const nm = (name || '').toUpperCase();
             initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm}" CODE 58456,2048`; 
