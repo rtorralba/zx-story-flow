@@ -5,10 +5,10 @@
 
 import { NodeEditor } from './node-editor.js';
 import { ScreenNode, Group, NodeReference } from './nodes.js';
-import { generateBasicFromMucho } from './basic-generator.js';
+import { generateBasicFromMucho, generateLoaderFromMucho } from './basic-generator.js';
 import { generateBasicFromCYD } from './cyd-basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
-import { generateTapFromBasic } from './tap-generator.js';
+import { generateTapFromBasic, bas2tap, img2tap, tap2buffer } from './tap-generator.js';
 import { generateCYD } from './cyd-generator.js';
 import { MuchoEditor } from './mucho-editor.js';
 import { CYDEditor } from './cyd-editor.js';
@@ -1085,6 +1085,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const basicCode = projectType === 'CYD'
                 ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
                 : generateBasicFromMucho(editor.nodes, globalConfig);
+            const loaderCode = projectType === 'CYD'
+                ? ""
+                : generateLoaderFromMucho(editor.nodes, globalConfig);
 
             // Collect all images from nodes
             const screenImages = [];
@@ -1104,6 +1107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
+            /**
             // Include global loading screen if configured — ensure it is FIRST in the list
             try {
                 if (globalConfig && globalConfig.loadingScreen) {
@@ -1137,6 +1141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (e) {
                 console.warn('Error including global loading screen into export images', e);
             }
+            */
 
             // Try to include SCR files from known locations if not present in nodes
             const tryAddScr = async (url, name) => {
@@ -1176,7 +1181,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Usar el nombre del proyecto, reemplazando espacios por _
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
-            const tapData = generateTapFromBasic(basicCode, exportName, screenImages);
+
+
+            const tapLoader = bas2tap(loaderCode, exportName)
+            const tapScreen = globalConfig.loadingScreen
+                ? img2tap(globalConfig.loadingScreen.imageData,"SCREEN")
+                : []
+            const tapGame = generateTapFromBasic(basicCode, "ADVENTURE", screenImages);
+
+            const tapBlocks = []
+            tapBlocks.push(...tapLoader)
+            tapBlocks.push(...tapScreen)
+            tapBlocks.push(...tapGame)
+            const tapData = tap2buffer(tapBlocks)
+
 
             const blob = new Blob([tapData], { type: 'application/x-tap' });
             const url = URL.createObjectURL(blob);

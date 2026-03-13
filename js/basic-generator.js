@@ -98,23 +98,10 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
 
     // =========================================================
     // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
-    // Loads each .scr from the TAP into RAM at 58455, then saves
-    // it as a named block so LOAD! can recall it instantly later.
+    // Using loader, frees memory and wait for a key.
     // =========================================================
-    if (imageNames.length > 0) {
-        basicCode += `1 REM = one-time init =\n`;
-        let initLine = `2 CLEAR 58455`;
-        imageNames.forEach(name => {
-            const nm = (name || '').toUpperCase();
-            // 6912 -> full screen with attributes.
-            // 6144 -> full screen BW
-            // 4096 -> 2/3 screen BW
-            // 2048 -> 1/3 screen BW (default)
-            initLine += `:LOAD "${nm}" CODE 58455:SAVE! "${nm}" CODE 58455,2048`; 
-        });
-        initLine += `\n`;
-        basicCode += initLine;
-    }
+    basicCode += `1 REM = one-time init =\n`;
+    basicCode += `2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367\n`;
 
     // =========================================================
     // GLOBAL INIT  (lines 10 – 120)
@@ -133,36 +120,6 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) 
         basicCode += `60 REM no flags\n`;
     }
 
-    basicCode += `70 REM 23675 for divider and selector.\n`;
-
-    // Get UDGs from globalConfig or use defaults
-    let udgA = ["00000000", "00010000", "00111000", "01111100", "11111110", "11111111", "11111111", "11111111"]; // Default arrow (A)
-    let udgB = ["00000000", "10001000", "11001100", "11101110", "11001100", "10001000", "00000000", "00000000"]; // Default cursor (B)
-
-    if (globalConfig && globalConfig.basicGraphics) {
-        if (globalConfig.basicGraphics.separator) {
-            udgA = [];
-            for (let i = 0; i < 8; i++) {
-                let row = "";
-                for (let j = 0; j < 8; j++) {
-                    row += globalConfig.basicGraphics.separator[i * 8 + j] ? "1" : "0";
-                }
-                udgA.push(row);
-            }
-        }
-        if (globalConfig.basicGraphics.selector) {
-            udgB = [];
-            for (let i = 0; i < 8; i++) {
-                let row = "";
-                for (let j = 0; j < 8; j++) {
-                    row += globalConfig.basicGraphics.selector[i * 8 + j] ? "1" : "0";
-                }
-                udgB.push(row);
-            }
-        }
-    }
-
-    basicCode += `80 POKE USR("A")+0,BIN ${udgA[0]}:POKE USR("A")+1,BIN ${udgA[1]}:POKE USR("A")+2,BIN ${udgA[2]}:POKE USR("A")+3,BIN ${udgA[3]}:POKE USR("A")+4,BIN ${udgA[4]}:POKE USR("A")+5,BIN ${udgA[5]}:POKE USR("A")+6,BIN ${udgA[6]}:POKE USR("A")+7,BIN ${udgA[7]}:POKE USR("B")+0,BIN ${udgB[0]}:POKE USR("B")+1,BIN ${udgB[1]}:POKE USR("B")+2,BIN ${udgB[2]}:POKE USR("B")+3,BIN ${udgB[3]}:POKE USR("B")+4,BIN ${udgB[4]}:POKE USR("B")+5,BIN ${udgB[5]}:POKE USR("B")+6,BIN ${udgB[6]}:POKE USR("B")+7,BIN ${udgB[7]}:\n`;
 
     basicCode += `90 REM Va a primera pantalla\n`;
     basicCode += `100 GO SUB 110:GO TO ${labelLines[startLabel] || 1000}\n`;
@@ -470,6 +427,34 @@ function renumberBasic(basicCode) {
 }
 
 
+export function collectImageNamesFromMucho(muchoText) {
+    // Collect unique image set of used Image Names
+    // from $I directives in the generated MuCho text
+   
+    const imageNameSet = new Set();
+    
+    (muchoText.match(/\$I\s+([^\s\n]+)/g) || []).forEach(m => {
+        const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+        if (nm) imageNameSet.add(nm);
+    });
+    const imageNames = [...imageNameSet];
+
+    return imageNames
+}
+
+export function generateLoaderFromMucho(nodes, globalConfig = null) {
+    // 1. Convert everything to MuCho intermediate format
+    const muchoText = generateMucho(nodes, globalConfig);
+   
+    // 2. Get list of images.
+    const imageNames = collectImageNamesFromMucho(muchoText);
+
+    // Generate a loader
+    const loaderBasic = generateBasicLoader(globalConfig, imageNames);
+
+    return loaderBasic
+}
+
 export function generateBasicFromMucho(nodes, globalConfig = null) {
     if (!nodes || nodes.length === 0) return "10 REM No nodes";
 
@@ -497,7 +482,109 @@ export function generateBasicFromMucho(nodes, globalConfig = null) {
 
     // 3. Transpile MuCho to ZX Basic (image names drive the one-time init preamble)
     const rawBasic = transpileMuchoToBasic(muchoText, globalConfig, imageNames);
-
+    
     // 4. Renumber lines compactly to free up space
-    return renumberBasic(rawBasic);
+    const gameBasic = renumberBasic(rawBasic)
+
+    return gameBasic;
+}
+
+export function getDefaultUDGs(globalConfig){
+    // Get UDGs from globalConfig or use defaults
+
+    let udgA = ["00000000", "00010000", "00111000", "01111100", "11111110", "11111111", "11111111", "11111111"]; // Default arrow (A)
+    let udgB = ["00000000", "10001000", "11001100", "11101110", "11001100", "10001000", "00000000", "00000000"]; // Default cursor (B)
+
+    if (globalConfig && globalConfig.basicGraphics) {
+        if (globalConfig.basicGraphics.separator) {
+            udgA = [];
+            for (let i = 0; i < 8; i++) {
+                let row = "";
+                for (let j = 0; j < 8; j++) {
+                    row += globalConfig.basicGraphics.separator[i * 8 + j] ? "1" : "0";
+                }
+                udgA.push(row);
+            }
+        }
+        if (globalConfig.basicGraphics.selector) {
+            udgB = [];
+            for (let i = 0; i < 8; i++) {
+                let row = "";
+                for (let j = 0; j < 8; j++) {
+                    row += globalConfig.basicGraphics.selector[i * 8 + j] ? "1" : "0";
+                }
+                udgB.push(row);
+            }
+        }
+    }
+
+    return [udgA,udgB]
+
+}
+
+export function generateBasicLoader(globalConfig, imageNames){
+
+    let basicCode = "";
+    basicCode += `  10 CLEAR:INK 0:PAPER 7:BORDER 7:CLS:PRINT"\xA4"\n`;
+    basicCode += `  20 IF SCREEN$(0,0)="U" THEN GO TO 50\n`;//GO TO Case 48k
+    basicCode += `  30 REM Case 128k BASIC\n`;
+    basicCode += `  40 GO TO 100\n`; // Go TO 128k mode. Load game.
+
+    basicCode += `  50 REM Case 40k BASIC\n`;
+    basicCode += `  60 CLS:BEEP 1/10,20:BEEP 1/10,20:BEEP 1/10,20\n`;
+    basicCode += `  70 PRINT FLASH 1;"PARA LA CINTA"\n`;
+    basicCode += `  80 PRINT "Este juego requiere un spectrum 128k/+2/+2b/+3"\n`;
+    basicCode += `  90 GO TO 90\n`; //GO TO Current Line
+
+    basicCode += ` 100 REM ** Load game. **\n`; // 128k mode.
+    basicCode += ` 110 REM 128k pero no sabemos si 128 BASIC o +3.\n`;
+    basicCode += ` 120 REM Pendiente esa iteracion, afecta al loader y al juego.\n`;
+    basicCode += ` 130 BORDER 0:PAPER 0:INK 0:CLS\n`;
+    basicCode += ` 140 CLEAR 58455\n`; // IMBUF-1
+    basicCode += ` 150 REM Disable load prompt.\n`;
+    basicCode += ` 160 POKE 23739,111\n`;
+    basicCode += ` 170 GO SUB 1000\n`; // Configure UDGs.
+
+
+    // Loading screen.
+    if (globalConfig.loadingScreen) {
+        basicCode += `180 LOAD "SCREEN" SCREEN$\n`
+    }
+
+    // Load assets for the game.
+    if (imageNames.length > 0) {
+        basicCode   += ` 190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
+        let initLine = ` 200 `; // IMBUF-1
+        imageNames.forEach(name => {
+            const nm = (name || '').toUpperCase();
+            // 6912 -> full screen with attributes.
+            // 6144 -> full screen BW
+            // 4096 -> 2/3 screen BW
+            // 2048 -> 1/3 screen BW (default)
+            initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm}" CODE 58456,2048`; 
+        });
+        initLine += `\n`;
+        basicCode += initLine;
+    }
+
+
+    basicCode += ` 210 LOAD "ADVENTURE"\n`; // Load the program.
+
+    // Soubroutine to define UDGs.
+    const udgs = getDefaultUDGs(globalConfig)
+    const udgA = udgs[0]
+    const udgB = udgs[1]
+
+    basicCode += `1000 REM Set UDGs\n`;
+    basicCode += `1010 DATA BIN ${udgA[0]},BIN ${udgA[1]},BIN ${udgA[2]},BIN ${udgA[3]},BIN ${udgA[4]},BIN ${udgA[5]},BIN ${udgA[6]},BIN ${udgA[7]}\n`;
+    basicCode += `1020 DATA BIN ${udgB[0]},BIN ${udgB[1]},BIN ${udgB[2]},BIN ${udgB[3]},BIN ${udgB[4]},BIN ${udgB[5]},BIN ${udgB[6]},BIN ${udgB[7]}\n`;
+    basicCode += `1030 FOR X=USR("A") TO USR("A")+15\n`;
+    basicCode += `1040 READ N\n`;
+    basicCode += `1050 POKE X,N\n`;
+    basicCode += `1060 NEXT X\n`;
+    basicCode += `1070 RETURN\n`;
+    basicCode += `\n`;
+
+    return basicCode
+
 }

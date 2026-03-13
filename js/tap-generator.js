@@ -240,18 +240,25 @@ export function bas2tap(basicCode, filename = "SCREEN") {
     return blocks
 }
 
+// Convert tap data, as a list of blocks, into a 
+// buffer of bytes.
+export function tap2buffer(blocks) {
+    // Concatenate all tap blocks into buffer.
+    let totalLen = 0;
+    blocks.forEach(b => totalLen += b.length);
+    const tapData = new Uint8Array(totalLen);
+    let offset = 0;
+    blocks.forEach(b => { tapData.set(b, offset); offset += b.length; });
+
+    return tapData.buffer;
+}
 
 // Generate TAP file from BASIC code
 export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImages = []) {
     
     const blocks = [];
 
-
-    // Program first
-    const basicTap = bas2tap(basicCode, filename)
-    blocks.push(...basicTap)
-
-    // Then images (CODE blocks)
+    // Images first (CODE blocks)
     screenImages.forEach(img => {
         try {
             const tapImg = img2tap(img.data, img.name)
@@ -261,13 +268,10 @@ export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImag
         }
     });
 
+    // Then Program
+    const basicTap = bas2tap(basicCode, filename)
+    blocks.push(...basicTap)
 
-    // Concatenate all tap blocks into buffer.
-    let totalLen = 0;
-    blocks.forEach(b => totalLen += b.length);
-    const tapData = new Uint8Array(totalLen);
-    let offset = 0;
-    blocks.forEach(b => { tapData.set(b, offset); offset += b.length; });
+    return blocks
 
-    return tapData.buffer;
 }
