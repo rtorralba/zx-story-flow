@@ -526,25 +526,28 @@ export function getDefaultUDGs(globalConfig){
 export function generateBasicLoader(globalConfig, imageNames){
 
     let basicCode = "";
-    basicCode += `  10 CLEAR:INK 0:PAPER 7:BORDER 7:CLS:PRINT"\xA4"\n`;
-    basicCode += `  20 IF SCREEN$(0,0)="U" THEN GO TO 50\n`;//GO TO Case 48k
-    basicCode += `  30 REM Case 128k BASIC\n`;
-    basicCode += `  40 GO TO 100\n`; // Go TO 128k mode. Load game.
+    basicCode += `
+    10 CLEAR:INK 0:PAPER 7:BORDER 7:CLS:PRINT"\xA4"
+    20 IF SCREEN$(0,0)="U" THEN GO TO 50
+    30 REM Case 128k BASIC
+    40 GO TO 100`
 
-    basicCode += `  50 REM Case 40k BASIC\n`;
-    basicCode += `  60 CLS:BEEP 1/10,20:BEEP 1/10,20:BEEP 1/10,20\n`;
-    basicCode += `  70 PRINT FLASH 1;"PARA LA CINTA"\n`;
-    basicCode += `  80 PRINT "Este juego requiere un spectrum 128k/+2/+2b/+3"\n`;
-    basicCode += `  90 GO TO 90\n`; //GO TO Current Line
-
-    basicCode += ` 100 REM ** Load game. **\n`; // 128k mode.
-    basicCode += ` 110 REM 128k pero no sabemos si 128 BASIC o +3.\n`;
-    basicCode += ` 120 REM Pendiente esa iteracion, afecta al loader y al juego.\n`;
-    basicCode += ` 130 BORDER 0:PAPER 0:INK 0:CLS\n`;
-    basicCode += ` 140 CLEAR 58455\n`; // IMBUF-1
-    basicCode += ` 150 REM Disable load prompt.\n`;
-    basicCode += ` 160 POKE 23739,111\n`;
-    basicCode += ` 170 GO SUB 1000\n`; // Configure UDGs.
+    basicCode += `
+    50 REM Case 40k BASIC
+    60 CLS:BEEP 1/10,20:BEEP 1/10,20:BEEP 1/10,20
+    70 PRINT FLASH 1;"PARA LA CINTA"
+    80 PRINT "Este juego requiere un spectrum 128k/+2/+2a/+3"
+    90 GO TO 90`
+    
+    basicCode += `
+    100 REM ** 128k model. Load game. **
+    110 BORDER 0:PAPER 0:INK 0:CLS
+    120 CLEAR 58455
+    130 REM Disable load prompt.
+    140 POKE 23739,111
+    150 REM Config GDU
+    160 GO SUB 1000
+    `
 
 
     // Loading screen.
@@ -553,38 +556,49 @@ export function generateBasicLoader(globalConfig, imageNames){
     }
 
     // Load assets for the game.
+    // Expected image sizes.
+    // 6912 -> full screen with attributes.
+    // 6144 -> full screen BW
+    // 4096 -> 2/3 screen BW
+    // 2048 -> 1/3 screen BW (default)
     if (imageNames.length > 0) {
-        basicCode   += ` 190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
-        let initLine = ` 200 `; // IMBUF-1
+        basicCode   += `190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
+        let initLine = ``
+        // Code for 128k/+2
+        initLine += `200 IF PEEK(23312)=251 THEN`;
         imageNames.forEach(name => {
             const nm = (name || '').toUpperCase();
-            // 6912 -> full screen with attributes.
-            // 6144 -> full screen BW
-            // 4096 -> 2/3 screen BW
-            // 2048 -> 1/3 screen BW (default)
             initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm}" CODE 58456,2048`; 
+        });
+        initLine += `\n`;
+        // Code for +2a/+3
+        initLine += `210 IF PEEK(23312)=1 THEN`;
+        imageNames.forEach(name => {
+            const nm = (name || '').toUpperCase();
+            initLine += `:LOAD "${nm}" CODE 58456:SAVE "M:${nm}" CODE 58456,2048`; 
         });
         initLine += `\n`;
         basicCode += initLine;
     }
 
-
-    basicCode += ` 210 LOAD "ADVENTURE"\n`; // Load the program.
+    // Load game code. 
+    basicCode += `300 LOAD "ADVENTURE"\n`;
 
     // Soubroutine to define UDGs.
     const udgs = getDefaultUDGs(globalConfig)
     const udgA = udgs[0]
     const udgB = udgs[1]
 
-    basicCode += `1000 REM Set UDGs\n`;
-    basicCode += `1010 DATA BIN ${udgA[0]},BIN ${udgA[1]},BIN ${udgA[2]},BIN ${udgA[3]},BIN ${udgA[4]},BIN ${udgA[5]},BIN ${udgA[6]},BIN ${udgA[7]}\n`;
-    basicCode += `1020 DATA BIN ${udgB[0]},BIN ${udgB[1]},BIN ${udgB[2]},BIN ${udgB[3]},BIN ${udgB[4]},BIN ${udgB[5]},BIN ${udgB[6]},BIN ${udgB[7]}\n`;
-    basicCode += `1030 FOR X=USR("A") TO USR("A")+15\n`;
-    basicCode += `1040 READ N\n`;
-    basicCode += `1050 POKE X,N\n`;
-    basicCode += `1060 NEXT X\n`;
-    basicCode += `1070 RETURN\n`;
-    basicCode += `\n`;
+    basicCode += `
+    1000 REM Set UDGs
+    1010 DATA BIN ${udgA[0]},BIN ${udgA[1]},BIN ${udgA[2]},BIN ${udgA[3]},BIN ${udgA[4]},BIN ${udgA[5]},BIN ${udgA[6]},BIN ${udgA[7]}
+    1020 DATA BIN ${udgB[0]},BIN ${udgB[1]},BIN ${udgB[2]},BIN ${udgB[3]},BIN ${udgB[4]},BIN ${udgB[5]},BIN ${udgB[6]},BIN ${udgB[7]}
+    1030 FOR X=USR("A") TO USR("A")+15
+    1040 READ N
+    1050 POKE X,N
+    1060 NEXT X\n
+    1070 RETURN\n`;
+    
 
     return basicCode
 
