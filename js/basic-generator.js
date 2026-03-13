@@ -43,7 +43,7 @@ function wrapText(text, maxWidth = 32) {
  * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
  * cursor-based option selection with p() jump table and system subroutines.
  */
-function transpileMuchoToBasic(muchoCode, globalConfig = null, imageNames = []) {
+function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     if (!muchoCode) return "10 REM Project is empty";
 
     const lines = muchoCode.split(/\r?\n/);
@@ -461,27 +461,28 @@ export function generateBasicFromMucho(nodes, globalConfig = null) {
     // 1. Convert everything to MuCho intermediate format
     const muchoText = generateMucho(nodes, globalConfig);
 
-    // 2. Collect unique image base-names (no extension) from:
-    //    a) node.paragraphImages — files uploaded via the editor
-    //    b) $I directives in the generated MuCho text
-    const imageNameSet = new Set();
-    nodes.forEach(n => {
-        if (n.paragraphImages && n.paragraphImages.length > 0) {
-            n.paragraphImages.forEach(pi => {
-                if (pi.imageName && pi.imageData) {
-                    imageNameSet.add(pi.imageName.replace(/\.scr$/i, '').replace(/\.[^.]+$/, ''));
-                }
-            });
-        }
-    });
-    (muchoText.match(/\$I\s+([^\s\n]+)/g) || []).forEach(m => {
-        const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
-        if (nm) imageNameSet.add(nm);
-    });
-    const imageNames = [...imageNameSet];
+
+    // // 2. Collect unique image base-names (no extension) from:
+    // //    a) node.paragraphImages — files uploaded via the editor
+    // //    b) $I directives in the generated MuCho text
+    // const imageNameSet = new Set();
+    // nodes.forEach(n => {
+    //     if (n.paragraphImages && n.paragraphImages.length > 0) {
+    //         n.paragraphImages.forEach(pi => {
+    //             if (pi.imageName && pi.imageData) {
+    //                 imageNameSet.add(pi.imageName.replace(/\.scr$/i, '').replace(/\.[^.]+$/, ''));
+    //             }
+    //         });
+    //     }
+    // });
+    // (muchoText.match(/\$I\s+([^\s\n]+)/g) || []).forEach(m => {
+    //     const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+    //     if (nm) imageNameSet.add(nm);
+    // });
+    // const imageNames = [...imageNameSet];
 
     // 3. Transpile MuCho to ZX Basic (image names drive the one-time init preamble)
-    const rawBasic = transpileMuchoToBasic(muchoText, globalConfig, imageNames);
+    const rawBasic = transpileMuchoToBasic(muchoText, globalConfig);
     
     // 4. Renumber lines compactly to free up space
     const gameBasic = renumberBasic(rawBasic)
