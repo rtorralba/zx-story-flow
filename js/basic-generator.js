@@ -39,6 +39,51 @@ function wrapText(text, maxWidth = 32) {
     return wrappedLines;
 }
 
+
+
+function parseLine(line) {
+    const pline = {
+        type: '',
+        data: [] 
+    }
+
+    const tline = pline.trim();
+    if(tline.startsWith('$')){
+        pline.type = line
+    } else {
+        pline.type = 'T'
+        pline.data.push(line);
+    }
+
+    return pline
+}
+
+/**
+ * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
+ * cursor-based option selection with p() jump table and system subroutines.
+ */
+function transpileMuchoToBasic2(muchoCode, globalConfig = null) {
+    const lines = muchoCode.split(/\r?\n/);
+    let basicCode = "";
+    let basicLine = 100;
+    const blocks = [];
+    
+    lines.forEach(line => {
+        if (line.startsWith('$Q ')) {
+            currentBlock = { header: line, content: [], options: [] };
+            blocks.push(currentBlock);
+        } else if (currentBlock) {
+            if (line.startsWith('$A ')) {
+                currentBlock.options.push({ header: line, text: null });
+            } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
+                currentBlock.options[currentBlock.options.length - 1].text = line || "Continuar";
+            } else {
+                currentBlock.content.push(line);
+            }
+        }
+    });
+}
+
 /**
  * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
  * cursor-based option selection with p() jump table and system subroutines.
