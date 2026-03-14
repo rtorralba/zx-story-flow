@@ -165,38 +165,131 @@ function transpileStatements(text,compileData) {
 
 }
 
+
+function makeInitializationBasic(compileData, globalConfig) {
+
+    // Initialization code.
+    // =========================================================
+    // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
+    // Using loader, frees memory and wait for a key.
+    // =========================================================
+    let initCode = "";
+    initCode += `1 REM = one-time init =\n`;
+    initCode += `2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367\n`;
+    
+    // =========================================================
+    // GLOBAL INIT  (lines 10 – 120)
+    // =========================================================
+    initCode += `10 REM = init global =\n`;
+    const globalBorder = colorToZX(globalConfig?.border || 'black');
+    initCode += `20 POKE 23693,7:BORDER ${globalBorder}:CLS\n`;
+    initCode += `30 REM p() table of line pointers.\n`;
+    initCode += `40 DIM p(10)\n`;
+    initCode += `50 REM Inicializa variables del juego.\n`;
+
+    // Initialise all flags and variables to 0 on a single line
+    if (compileData.flags || compileData.vars) {
+        initCode += `60 LET ` 
+        initCode += [...compileData.flags].map(f => `${f}=0`).join(':LET ');
+        initCode += compileData.flags && compileData.vars?":LET ":"";
+        initCode += [...compileData.vars].map(f => `${f}=0`).join(':LET ');
+        initCode += "\n";
+    } else {
+        initCode += `60 REM no flags nor numeric variables\n`;
+    }
+
+    return initCode;
+}
+
+
 /**
  * Transpiles MuCho code into ZX Basic
  */
 function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     
     let basicCode = "";
-    let basicLine = 100;
-    let flags = new Set()
+    let lineNo = 100; // start at line 100
+    let lineInc = 1; // default line increment.
+    let editLine = ''; // Current line being edited.
+    
+    // Some data to keep updated along the transpilation.
     const compileData = {
         flags : new Set(),
         vars : new Set(),
         screens : {}, // name, line
     }
-    const blocks = [];
+
+    // Utility function to start a new line.
+    function start_new_line() {
+        if (editLine) {
+            basicCode += editLine+"\n";
+            lineNo = lineNo + lineInc;
+        }
+        editLine = `${lineNo} `;
+    }
+
+    // Utility function to start a new statement.
+    // Starts a new line if needed.
+    function start_new_statement() {
+        // New line if needed.
+        if(!editLine) {
+            lineNo = lineNo + lineInc;
+            editLine = `${lineNo} `;
+        } else if (editLine.slice(-1) !== ":") {
+            editLine += ":";
+        }
+    }
    
-    const lines = muchoCode.split(/\r?\n/);
+    // Process muchoCode by lines.
+    const lines = muchoCode.trim().split(/\r?\n/);
     
-    // preparse all lines.
+    // pre-parse all lines.
     var plines = []
     lines.forEach(line => {
         plines.push(parseLine(line));
     });
 
     plines.forEach(pline => {
-        if(pline.type==="T") {
-
-        } else if(pline.type==="O") {
+        if (pline.type==="Q") {
+            start_new_line();
+            // Reference new screen.
+            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
+            const screenName = match[1]
+            compileData.screens[screenName] = editLine;
+            editLine += `REM ${screenName}`;
+            
+            start_new_line();
+            // Additional statements.
+            if (match[2]) {
+                editLine += transpileStatements(pline.text,compileData);
+            }
+        } else if (pline.type==="T") {
+            start_new_statement()
+            editLine += pline.text?`PRINT "${pline.text}"`:`PRINT`;
+        } else if (pline.type==="O") {
+            // new line.
+            basicCode += editLine + "\n";
+            lineNo = lineNo + lineInc;
+            editLine = `${lineNo} `;
+            // Add code to the line.
             const opsCode = transpileOptions(pline.text,compileData)
             const stmCode = transpileStatements(pline.text,compileData)
+            editLine += opsCode?"IF " + opsCode + " THEN ":"";
+            editLine += stmCode;
         }
 
     });
+
+    // flush last line.
+    basicCode += editLine?editLine:"";
+
+
+    const initCode = makeInitializationBasic(compileData, globalConfig);
+
+    basicCode =  initCode + basicCode;
+
+    console.log(basicCode);
+    return basicCode
 }
 
 /**
