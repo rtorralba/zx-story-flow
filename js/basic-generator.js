@@ -40,47 +40,162 @@ function wrapText(text, maxWidth = 32) {
 }
 
 
-
+/** 
+ * First stage parsing.
+ * Parse lines into
+ * 
+ * 
+ */
 function parseLine(line) {
     const pline = {
-        type: '',
-        data: [] 
+        type: '', // { T | Q | O | I | }
+        text: '',
     }
-
-    const tline = pline.trim();
-    if(tline.startsWith('$')){
-        pline.type = line
+    const tline = line.toUpperCase().trim();
+    if(tline && tline.startsWith('$')){
+        pline.type = tline[1];
+        pline.text = tline.slice(2).trim();
     } else {
         pline.type = 'T'
-        pline.data.push(line);
+        pline.text = line;
     }
-
     return pline
 }
 
 /**
- * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
- * cursor-based option selection with p() jump table and system subroutines.
+ * 
+ * @param {str} text - with *only* options and commands.
+ * @param {ojb} compileData - Dictionary with all data
+ *      collected during transpilation. Most of this data
+ *      will be required later, possibly in a second pass.
+ * 
+ * Return a string with BASIC code that will go in the
+ * IF statemet. "IF " + string + " THEN"
  */
-function transpileMuchoToBasic2(muchoCode, globalConfig = null) {
-    const lines = muchoCode.split(/\r?\n/);
+function transpileOptions(text,compileData) {
+
+    var basicCode = '';
+
+    // Flags tested for True.
+    text.matchAll(/(?:^|\s)(?:HAS:)?([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+        const flag = 'f'+match[1];
+        compileData.flags.add(flag);
+        basicCode += basicCode?" AND "+flag:flag;
+    })
+
+    // Flags tested for False.
+    text.matchAll(/(?:!|NOT:)([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+        const flag = 'f'+match[1];
+        compileData.flags.add(flag);
+        basicCode += basicCode?" AND NOT "+flag: "NOT "+flag;
+    })
+
+    // Numeric variable test
+    const isNumber = (str) => str == Number.parseInt(str)
+    text.matchAll(/(?:^|\s)([a-zA-Z0-9]+)(==|!=|<=|>=|<|>)([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+        const var1 = 'i'+match[1];
+        const op = match[2]==="!="?"<>":match[2];
+        const var2 = isNumber(match[3])?match[3]:"i"+match[3];
+        compileData.vars.add(var1);
+        !isNumber(var2)?compileData.vars.add(var2):null;
+        
+        basicCode += basicCode?" AND ":"";
+        basicCode += "(" + var1 + " " + op + " " + var2 + ")"
+    })
+
+    return basicCode
+}
+
+
+/**
+ * 
+ * @param {*} text 
+ * @param {*} compileData 
+ */
+function transpileStatements(text,compileData) {
+    
+    var basicCode = '';
+
+    // Operations with flags
+    text.matchAll(/(?:^|\s)(SET|RESET|TOGGLE):([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+        const op = match[1]
+        const flag = 'f'+match[2];
+        compileData.flags.add(flag);
+
+        basicCode += basicCode?":":"";
+        switch(op) {
+            case "SET":
+                basicCode += `LET ${flag}=SGN PI`;
+                break;
+            case "RESET":
+                basicCode += `LET ${flag}=NOT PI`;
+                break;
+            case "TOGGLE":
+                basicCode += `LET ${flag}=NOT ${flag}`;
+                break;
+        }
+    })
+
+    // Operations with numbers.
+    const isNumber = (str) => str == Number.parseInt(str)
+    text.matchAll(/(?:^|\s)([a-zA-Z0-9]+)(\+=|\-=|\+|\-|=)([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+        const var1 = 'i'+match[1];
+        const op = match[2]==="!="?"<>":match[2];
+        const var2 = isNumber(match[3])?match[3]:"i"+match[3];
+        compileData.vars.add(var1);
+        !isNumber(var2)?compileData.vars.add(var2):null;
+        
+        basicCode += basicCode?":":"";
+        switch(op) {
+            case "=":
+                basicCode += `LET ${var1} = ${var2}`;
+                break;
+            case "+=":
+            case "+":
+                basicCode += `LET ${var1} = ${var1} + ${var2}`;
+                break;
+            case "-=":
+            case "-":
+                basicCode += `LET ${var1} = ${var1} - ${var2}`;
+                break;
+        }
+    })
+
+    return basicCode;
+
+}
+
+/**
+ * Transpiles MuCho code into ZX Basic
+ */
+function transpileMuchoToBasic(muchoCode, globalConfig = null) {
+    
     let basicCode = "";
     let basicLine = 100;
+    let flags = new Set()
+    const compileData = {
+        flags : new Set(),
+        vars : new Set(),
+        screens : {}, // name, line
+    }
     const blocks = [];
+   
+    const lines = muchoCode.split(/\r?\n/);
     
+    // preparse all lines.
+    var plines = []
     lines.forEach(line => {
-        if (line.startsWith('$Q ')) {
-            currentBlock = { header: line, content: [], options: [] };
-            blocks.push(currentBlock);
-        } else if (currentBlock) {
-            if (line.startsWith('$A ')) {
-                currentBlock.options.push({ header: line, text: null });
-            } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
-                currentBlock.options[currentBlock.options.length - 1].text = line || "Continuar";
-            } else {
-                currentBlock.content.push(line);
-            }
+        plines.push(parseLine(line));
+    });
+
+    plines.forEach(pline => {
+        if(pline.type==="T") {
+
+        } else if(pline.type==="O") {
+            const opsCode = transpileOptions(pline.text,compileData)
+            const stmCode = transpileStatements(pline.text,compileData)
         }
+
     });
 }
 
@@ -88,7 +203,7 @@ function transpileMuchoToBasic2(muchoCode, globalConfig = null) {
  * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
  * cursor-based option selection with p() jump table and system subroutines.
  */
-function transpileMuchoToBasic(muchoCode, globalConfig = null) {
+function transpileMuchoToBasic_(muchoCode, globalConfig = null) {
     if (!muchoCode) return "10 REM Project is empty";
 
     const lines = muchoCode.split(/\r?\n/);
