@@ -1082,12 +1082,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
             const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
-            const basicCode = projectType === 'CYD'
-                ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
-                : generateBasicFromMucho(editor.nodes, globalConfig);
-            const loaderCode = projectType === 'CYD'
-                ? ""
-                : generateLoaderFromMucho(editor.nodes, globalConfig);
+            const {loaderCode,basicCode} = (() => {
+                if(projectType === 'CYD') {
+                    return {
+                        loaderCode: "",
+                        basicCode: generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
+                    };
+                } else {
+                    const muchoText = generateMucho(editor.nodes, globalConfig);
+                    return {
+                        loaderCode: generateLoaderFromMucho(muchoText, globalConfig),
+                        basicCode: generateBasicFromMucho(muchoText, globalConfig)
+                    }
+                }
+            })();
 
             // Collect all images from nodes
             const screenImages = [];
@@ -1107,41 +1115,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            /**
-            // Include global loading screen if configured — ensure it is FIRST in the list
-            try {
-                if (globalConfig && globalConfig.loadingScreen) {
-                    const lsName = globalConfig.loadingScreen.imageName;
-                    const lsData = globalConfig.loadingScreen.imageData;
-                    if (lsName) {
-                        // Remove any existing occurrence (case-insensitive)
-                        const idxExisting = screenImages.findIndex(img => img.name && img.name.toLowerCase() === lsName.toLowerCase());
-                        if (idxExisting >= 0) screenImages.splice(idxExisting, 1);
-
-                        if (lsData) {
-                            // Put loading image first
-                            screenImages.unshift({ name: lsName, data: lsData });
-                        } else {
-                            // Try to find imageData from node.paragraphImages (case-insensitive)
-                            let found = null;
-                            editor.nodes.forEach(node => {
-                                if (node.paragraphImages && node.paragraphImages.length) {
-                                    node.paragraphImages.forEach(pi => {
-                                        if (pi.imageName && pi.imageData && pi.imageName.toLowerCase() === lsName.toLowerCase()) {
-                                            found = pi.imageData;
-                                        }
-                                    });
-                                }
-                            });
-                            if (found) screenImages.unshift({ name: lsName, data: found });
-                            else console.warn('Loading screen referenced in config has no embedded data and was not found in nodes:', lsName);
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn('Error including global loading screen into export images', e);
-            }
-            */
 
             // Try to include SCR files from known locations if not present in nodes
             const tryAddScr = async (url, name) => {

@@ -450,11 +450,9 @@ export function collectImageNamesFromMucho(muchoText) {
 
 
 // !!!! Fix me: should get mucho code as input, not nodes.
-export function generateLoaderFromMucho(nodes, globalConfig = null) {
-    // 1. Convert everything to MuCho intermediate format
-    const muchoText = generateMucho(nodes, globalConfig);
+export function generateLoaderFromMucho(muchoText, globalConfig = null) {
    
-    // 2. Get list of images.
+    // Get list of images.
     const imageNames = collectImageNamesFromMucho(muchoText);
 
     // Generate a loader
@@ -465,20 +463,17 @@ export function generateLoaderFromMucho(nodes, globalConfig = null) {
 
 
 // !!!! Fix me: should get mucho code as input, not nodes.
-export function generateBasicFromMucho(nodes, globalConfig = null) {
-    if (!nodes || nodes.length === 0) return "10 REM No nodes";
+export function generateBasicFromMucho(muchoText, globalConfig = null) {
 
-    // 1. Convert everything to MuCho intermediate format
-    const muchoText = generateMucho(nodes, globalConfig);
-
-    // 3. Transpile MuCho to ZX Basic (image names drive the one-time init preamble)
+    // Transpile MuCho to ZX Basic (image names drive the one-time init preamble)
     const rawBasic = transpileMuchoToBasic(muchoText, globalConfig);
     
-    // 4. Renumber lines compactly to free up space
+    // Renumber lines compactly to free up space
     const gameBasic = renumberBasic(rawBasic)
 
     return gameBasic;
 }
+
 
 export function getDefaultUDGs(globalConfig){
     // Get UDGs from globalConfig or use defaults
@@ -585,8 +580,8 @@ export function generateBasicLoader(globalConfig, imageNames){
     1030 FOR X=USR("A") TO USR("A")+15
     1040 READ N
     1050 POKE X,N
-    1060 NEXT X\n
-    1070 RETURN\n`;
+    1060 NEXT X
+    1070 RETURN`;
     
 
     return basicCode
