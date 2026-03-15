@@ -161,6 +161,29 @@ function transpileStatements(text,basicData) {
         }
     })
 
+
+    // Attribute changes.
+    text.matchAll(/(?:^|\s)(ATTR|DATTR|IATTR|BORDER):([0-9]+)(?=\s|$)/g)?.forEach(match=>{
+        const op = match[1]
+        const value = match[2];
+
+        basicCode += basicCode?":":"";
+        switch(op) {
+            case "ATTR":
+                basicCode += `LET tattr = ${value}:POKE 23693,tattr`;//ATTR_P
+                break;
+            case "DATTR":
+                basicCode += `LET dattr = ${value}`;
+                break;
+            case "IATTR":
+                basicCode += `LET iattr = ${value}:POKE 23624,iattr`;//BORDCR
+                break;
+            case "BORDER":
+                basicCode += `LET battr = ${value}:OUT 254,battr`;//
+                break;
+        }
+    })
+
     return basicCode;
 
 }
@@ -311,7 +334,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
             basicData.editLine += "GO SUB [[sys_cls_interface]]"
             // Additional statements.
             if (match[2]) {
-                basicData.editLine += transpileStatements(pline.text,basicData);
+                basicData.editLine += ":"+transpileStatements(pline.text,basicData);
             }
         } else if (pline.type==="A") {
             state = 'option';
