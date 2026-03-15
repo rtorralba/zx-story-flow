@@ -116,10 +116,10 @@ export class NodeEditor {
         const newNode = new ScreenNode(id, x, y);
 
         if (newNode) {
+            this.nodes.push(newNode); // Always update local array for rendering
             if (this.stateHandlers && this.stateHandlers.onNodeAdded) {
                 this.stateHandlers.onNodeAdded(newNode);
             } else {
-                this.nodes.push(newNode);
                 if (this.onStateChange) this.onStateChange();
             }
             this.selectNode(newNode, false); // Don't open panel automatically
@@ -138,10 +138,10 @@ export class NodeEditor {
         const id = 'ref_' + Date.now();
         const newRef = new NodeReference(id, x, y, targetNodeId);
 
+        this.nodes.push(newRef); // Always update local array for rendering
         if (this.stateHandlers && this.stateHandlers.onNodeAdded) {
             this.stateHandlers.onNodeAdded(newRef);
         } else {
-            this.nodes.push(newRef);
             if (this.onStateChange) this.onStateChange();
         }
         
@@ -161,10 +161,10 @@ export class NodeEditor {
         const id = 'group_' + Date.now();
         const newGroup = new Group(id, x, y);
         
+        this.groups.push(newGroup); // Always update local array for rendering
         if (this.stateHandlers && this.stateHandlers.onGroupAdded) {
             this.stateHandlers.onGroupAdded(newGroup);
         } else {
-            this.groups.push(newGroup);
             if (this.onStateChange) this.onStateChange();
         }
 
@@ -176,10 +176,10 @@ export class NodeEditor {
     removeGroup(group) {
         if (!group) return;
         
+        this.groups = this.groups.filter(g => g !== group); // Always update local array
         if (this.stateHandlers && this.stateHandlers.onGroupRemoved) {
             this.stateHandlers.onGroupRemoved(group.id);
         } else {
-            this.groups = this.groups.filter(g => g !== group);
             if (this.onStateChange) this.onStateChange();
         }
 
@@ -279,18 +279,21 @@ export class NodeEditor {
     removeNode(node) {
         if (!node) return;
 
-        if (this.stateHandlers && this.stateHandlers.onNodeRemoved) {
-            this.stateHandlers.onNodeRemoved(node.id);
-        } else {
-            // Clear any outputs that point to this node
-            this.nodes.forEach(n => {
+        // Always update local arrays for immediate canvas refresh
+        this.nodes.forEach(n => {
+            if (n.outputs) {
                 n.outputs.forEach(output => {
                     if (output.target === node.id) {
                         output.target = null;
                     }
                 });
-            });
-            this.nodes = this.nodes.filter(n => n !== node);
+            }
+        });
+        this.nodes = this.nodes.filter(n => n !== node);
+
+        if (this.stateHandlers && this.stateHandlers.onNodeRemoved) {
+            this.stateHandlers.onNodeRemoved(node.id);
+        } else {
             if (this.onStateChange) this.onStateChange();
         }
 
@@ -748,10 +751,12 @@ export class NodeEditor {
                     const fromNode = this.dragState.fromNode;
                     const portIndex = this.dragState.fromPortIndex;
 
+                    // Always update local state for immediate canvas refresh
+                    if (fromNode.outputs[portIndex]) {
+                        fromNode.outputs[portIndex].target = targetNode.id;
+                    }
                     if (this.stateHandlers && this.stateHandlers.onConnectionCreated) {
                         this.stateHandlers.onConnectionCreated(fromNode.id, portIndex, targetNode.id);
-                    } else if (fromNode.outputs[portIndex]) {
-                        fromNode.outputs[portIndex].target = targetNode.id;
                     }
                 }
             } else if (this.dragState.type === 'node') {
@@ -792,12 +797,12 @@ export class NodeEditor {
         // Check if right-clicking on a connection
         const connection = this.getConnectionAt(x, y);
         if (connection) {
-            // Remove the connection
+            // Always clear locally for immediate canvas refresh
+            connection.fromNode.outputs[connection.outputIndex].target = null;
+            this.draw();
             if (this.stateHandlers && this.stateHandlers.onConnectionRemoved) {
                 this.stateHandlers.onConnectionRemoved(connection.fromNode.id, connection.outputIndex);
             } else {
-                connection.fromNode.outputs[connection.outputIndex].target = null;
-                this.draw();
                 if (this.onStateChange) this.onStateChange();
             }
             return;
