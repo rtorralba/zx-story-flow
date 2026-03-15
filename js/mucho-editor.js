@@ -132,7 +132,7 @@ export class MuchoEditor {
             lines.forEach(line => {
                 const trimmed = line.trim();
                 if (trimmed.startsWith('$I ')) {
-                    const imgName = trimmed.substring(3).trim();
+                    const imgName = trimmed.substring(3).trim().split(/\s+/)[0];
                     if (imgName) newImgs.push({ paragraphIndex: idx, imageName: imgName });
                 } else if (trimmed.startsWith('$O ')) {
                     const condStr = trimmed.substring(3).trim();

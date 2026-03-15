@@ -6,13 +6,14 @@
 import { ScreenNode, Group, NodeReference } from './nodes.js';
 
 export class NodeEditor {
-    constructor(canvas, propertyPanelCallback) {
+    constructor(canvas, propertyPanelCallback, stateHandlers = null) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.nodes = [];
         this.groups = []; // Array of Group objects
         this.camera = { x: 0, y: 0, zoom: 1 };
         this.propertyPanelCallback = propertyPanelCallback;
+        this.stateHandlers = stateHandlers;
 
         this.selectedNode = null;
         this.selectedGroup = null;
@@ -42,6 +43,59 @@ export class NodeEditor {
         this.draw();
     }
 
+    renderState(state) {
+        if (!state) return;
+
+        this.nodes = [];
+        this.groups = [];
+
+        // Reconstruct groups
+        if (state.groups) {
+            state.groups.forEach(gData => {
+                const group = new Group(gData.id, gData.x, gData.y);
+                group.width = gData.width || group.width;
+                group.height = gData.height || group.height;
+                group.name = gData.name || "New Group";
+                group.color = gData.color || "#4a90e2";
+                group.nodeIds = gData.nodeIds ? [...gData.nodeIds] : [];
+                this.groups.push(group);
+            });
+        }
+
+        // Reconstruct nodes
+        if (state.nodes) {
+            state.nodes.forEach(nData => {
+                let node;
+                if (nData.type === 'Reference' || nData.type === 'reference') {
+                    node = new NodeReference(nData.id, nData.x, nData.y, nData.targetNodeId);
+                    if (nData.width) node.width = nData.width;
+                    if (nData.height) node.height = nData.height;
+                } else {
+                    node = new ScreenNode(nData.id, nData.x, nData.y);
+                    Object.assign(node, nData); // Quick copy of properties like title, text, etc
+                    
+                    // We need to ensure outputs arrays are decoupled from state so changes don't mutate state directly (unless intended)
+                    // But for simple rendering, assigning properties works.
+                    // For outputs specifically, we deep copy them to keep local state safe
+                    if (nData.outputs) {
+                        node.outputs = JSON.parse(JSON.stringify(nData.outputs));
+                    }
+                }
+                this.nodes.push(node);
+            });
+        }
+        
+        // Ensure references exist locally if selection was restored by app
+        if (this.selectedNode) {
+            this.selectedNode = this.nodes.find(n => n.id === this.selectedNode.id) || null;
+        }
+        if (this.selectedGroup) {
+            this.selectedGroup = this.groups.find(g => g.id === this.selectedGroup.id) || null;
+        }
+
+        this.draw();
+    }
+
     // Get the center of the current view in world coordinates
     getViewCenter() {
         const centerX = (this.canvas.width / 2 - this.camera.x) / this.camera.zoom;
@@ -62,10 +116,14 @@ export class NodeEditor {
         const newNode = new ScreenNode(id, x, y);
 
         if (newNode) {
-            this.nodes.push(newNode);
+            if (this.stateHandlers && this.stateHandlers.onNodeAdded) {
+                this.stateHandlers.onNodeAdded(newNode);
+            } else {
+                this.nodes.push(newNode);
+                if (this.onStateChange) this.onStateChange();
+            }
             this.selectNode(newNode, false); // Don't open panel automatically
             this.draw();
-            if (this.onStateChange) this.onStateChange();
         }
     }
 
@@ -80,10 +138,15 @@ export class NodeEditor {
         const id = 'ref_' + Date.now();
         const newRef = new NodeReference(id, x, y, targetNodeId);
 
-        this.nodes.push(newRef);
+        if (this.stateHandlers && this.stateHandlers.onNodeAdded) {
+            this.stateHandlers.onNodeAdded(newRef);
+        } else {
+            this.nodes.push(newRef);
+            if (this.onStateChange) this.onStateChange();
+        }
+        
         this.selectNode(newRef, false); // Don't open panel automatically
         this.draw();
-        if (this.onStateChange) this.onStateChange();
         return newRef;
     }
 
@@ -97,21 +160,33 @@ export class NodeEditor {
 
         const id = 'group_' + Date.now();
         const newGroup = new Group(id, x, y);
-        this.groups.push(newGroup);
+        
+        if (this.stateHandlers && this.stateHandlers.onGroupAdded) {
+            this.stateHandlers.onGroupAdded(newGroup);
+        } else {
+            this.groups.push(newGroup);
+            if (this.onStateChange) this.onStateChange();
+        }
+
         this.selectGroup(newGroup, false); // Don't open panel automatically
         this.draw();
-        if (this.onStateChange) this.onStateChange();
         return newGroup;
     }
 
     removeGroup(group) {
         if (!group) return;
-        this.groups = this.groups.filter(g => g !== group);
+        
+        if (this.stateHandlers && this.stateHandlers.onGroupRemoved) {
+            this.stateHandlers.onGroupRemoved(group.id);
+        } else {
+            this.groups = this.groups.filter(g => g !== group);
+            if (this.onStateChange) this.onStateChange();
+        }
+
         if (this.selectedGroup === group) {
             this.selectGroup(null);
         }
         this.draw();
-        if (this.onStateChange) this.onStateChange();
     }
 
     selectGroup(group, openPanel = false) {
@@ -177,34 +252,52 @@ export class NodeEditor {
     updateGroupMembership() {
         // Update which nodes belong to which groups
         this.groups.forEach(group => {
-            group.nodeIds = [];
+            const previousNodeIds = [...group.nodeIds];
+            const newNodeIds = [];
             this.nodes.forEach(node => {
                 if (group.containsNode(node)) {
-                    group.nodeIds.push(node.id);
+                    newNodeIds.push(node.id);
                 }
             });
+            
+            // Check if membership actually changed before emitting event
+            const changed = previousNodeIds.length !== newNodeIds.length || !previousNodeIds.every((v,i) => v === newNodeIds[i]);
+            
+            if (changed) {
+                if (this.stateHandlers && this.stateHandlers.onGroupMembershipUpdated) {
+                    this.stateHandlers.onGroupMembershipUpdated(group.id, newNodeIds);
+                } else {
+                    group.nodeIds = newNodeIds;
+                    if (this.onStateChange) this.onStateChange();
+                }
+            } else {
+                group.nodeIds = newNodeIds; // Sync locally anyway
+            }
         });
-        if (this.onStateChange) this.onStateChange();
     }
 
     removeNode(node) {
         if (!node) return;
 
-        // Clear any outputs that point to this node
-        this.nodes.forEach(n => {
-            n.outputs.forEach(output => {
-                if (output.target === node.id) {
-                    output.target = null;
-                }
+        if (this.stateHandlers && this.stateHandlers.onNodeRemoved) {
+            this.stateHandlers.onNodeRemoved(node.id);
+        } else {
+            // Clear any outputs that point to this node
+            this.nodes.forEach(n => {
+                n.outputs.forEach(output => {
+                    if (output.target === node.id) {
+                        output.target = null;
+                    }
+                });
             });
-        });
+            this.nodes = this.nodes.filter(n => n !== node);
+            if (this.onStateChange) this.onStateChange();
+        }
 
-        this.nodes = this.nodes.filter(n => n !== node);
         if (this.selectedNode === node) {
             this.selectNode(null);
         }
         this.draw();
-        if (this.onStateChange) this.onStateChange();
     }
 
     selectNode(node, openPanel = false) {
@@ -644,19 +737,38 @@ export class NodeEditor {
     }
 
     handleMouseUp(e) {
-        if (this.dragState && this.dragState.type === 'connection') {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
-            const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
+        if (this.dragState) {
+            if (this.dragState.type === 'connection') {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
+                const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
 
-            const targetNode = this.getNodeAt(x, y);
-            if (targetNode && targetNode !== this.dragState.fromNode) {
-                // Set connection target directly in output
-                const fromNode = this.dragState.fromNode;
-                const portIndex = this.dragState.fromPortIndex;
+                const targetNode = this.getNodeAt(x, y);
+                if (targetNode && targetNode !== this.dragState.fromNode) {
+                    const fromNode = this.dragState.fromNode;
+                    const portIndex = this.dragState.fromPortIndex;
 
-                if (fromNode.outputs[portIndex]) {
-                    fromNode.outputs[portIndex].target = targetNode.id;
+                    if (this.stateHandlers && this.stateHandlers.onConnectionCreated) {
+                        this.stateHandlers.onConnectionCreated(fromNode.id, portIndex, targetNode.id);
+                    } else if (fromNode.outputs[portIndex]) {
+                        fromNode.outputs[portIndex].target = targetNode.id;
+                    }
+                }
+            } else if (this.dragState.type === 'node') {
+                if (this.stateHandlers && this.stateHandlers.onNodeMoved) {
+                    this.stateHandlers.onNodeMoved(this.dragState.node.id, this.dragState.node.x, this.dragState.node.y);
+                }
+            } else if (this.dragState.type === 'resize-node' || this.dragState.type === 'resize-ref') {
+                if (this.stateHandlers && this.stateHandlers.onNodeResized) {
+                    this.stateHandlers.onNodeResized(this.dragState.node.id, this.dragState.node.width, this.dragState.node.height);
+                }
+            } else if (this.dragState.type === 'group') {
+                if (this.stateHandlers && this.stateHandlers.onGroupMoved) {
+                    this.stateHandlers.onGroupMoved(this.dragState.group.id, this.dragState.group.x, this.dragState.group.y);
+                }
+            } else if (this.dragState.type === 'resize-group') {
+                if (this.stateHandlers && this.stateHandlers.onGroupResized) {
+                    this.stateHandlers.onGroupResized(this.dragState.group.id, this.dragState.group.width, this.dragState.group.height);
                 }
             }
         }
@@ -681,8 +793,13 @@ export class NodeEditor {
         const connection = this.getConnectionAt(x, y);
         if (connection) {
             // Remove the connection
-            connection.fromNode.outputs[connection.outputIndex].target = null;
-            this.draw();
+            if (this.stateHandlers && this.stateHandlers.onConnectionRemoved) {
+                this.stateHandlers.onConnectionRemoved(connection.fromNode.id, connection.outputIndex);
+            } else {
+                connection.fromNode.outputs[connection.outputIndex].target = null;
+                this.draw();
+                if (this.onStateChange) this.onStateChange();
+            }
             return;
         }
 

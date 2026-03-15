@@ -855,23 +855,130 @@ document.addEventListener('DOMContentLoaded', async () => {
         // (no hay llave de cierre aquí)
     }
 
+    // ==========================================
+    // CENTRALIZED PROJECT STATE (JSON)
+    // ==========================================
+    let projectState = {
+        nodes: [],
+        groups: []
+    };
+
+    // State Handlers for NodeEditor to interact with
+    const stateHandlers = {
+        onNodeAdded: (node) => {
+            projectState.nodes.push(node);
+            autoSave();
+        },
+        onNodeRemoved: (nodeId) => {
+            projectState.nodes = projectState.nodes.filter(n => n.id !== nodeId);
+            // Clear connections to this node
+            projectState.nodes.forEach(n => {
+                if (n.outputs) {
+                    n.outputs.forEach(opt => {
+                        if (opt.target === nodeId) opt.target = null;
+                    });
+                }
+            });
+            // Remove from groups
+            projectState.groups.forEach(g => {
+                if (g.nodeIds) {
+                    g.nodeIds = g.nodeIds.filter(id => id !== nodeId);
+                }
+            });
+            autoSave();
+        },
+        onNodeMoved: (nodeId, newX, newY) => {
+            const node = projectState.nodes.find(n => n.id === nodeId);
+            if (node) {
+                node.x = newX;
+                node.y = newY;
+            }
+            autoSave();
+        },
+        onNodeResized: (nodeId, newWidth, newHeight) => {
+            const node = projectState.nodes.find(n => n.id === nodeId);
+            if (node) {
+                node.width = newWidth;
+                node.height = newHeight;
+            }
+            autoSave();
+        },
+        onConnectionCreated: (sourceId, portIndex, targetId) => {
+            const source = projectState.nodes.find(n => n.id === sourceId);
+            if (source && source.outputs && source.outputs[portIndex]) {
+                source.outputs[portIndex].target = targetId;
+            }
+            autoSave();
+        },
+        onConnectionRemoved: (sourceId, portIndex) => {
+            const source = projectState.nodes.find(n => n.id === sourceId);
+            if (source && source.outputs && source.outputs[portIndex]) {
+                source.outputs[portIndex].target = null;
+            }
+            autoSave();
+        },
+        onGroupAdded: (group) => {
+            projectState.groups.push(group);
+            autoSave();
+        },
+        onGroupRemoved: (groupId) => {
+            projectState.groups = projectState.groups.filter(g => g.id !== groupId);
+            autoSave();
+        },
+        onGroupMoved: (groupId, newX, newY) => {
+            const group = projectState.groups.find(g => g.id === groupId);
+            if (group) {
+                const deltaX = newX - group.x;
+                const deltaY = newY - group.y;
+                group.x = newX;
+                group.y = newY;
+                
+                // Move member nodes
+                if (group.nodeIds) {
+                    group.nodeIds.forEach(nodeId => {
+                        const node = projectState.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            node.x += deltaX;
+                            node.y += deltaY;
+                        }
+                    });
+                }
+            }
+            autoSave();
+        },
+        onGroupResized: (groupId, newWidth, newHeight) => {
+            const group = projectState.groups.find(g => g.id === groupId);
+            if (group) {
+                group.width = newWidth;
+                group.height = newHeight;
+            }
+            autoSave();
+        },
+        onGroupMembershipUpdated: (groupId, nodeIds) => {
+            const group = projectState.groups.find(g => g.id === groupId);
+            if (group) {
+                group.nodeIds = nodeIds;
+            }
+            autoSave();
+        }
+    };
+
     // Initialize Editor
     const editor = new NodeEditor(canvas, (selectedNode) => {
         // Cuando se selecciona un nodo, abrir el modal de edición
-        if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen')) {
+        if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen' || selectedNode.type === 'Reference' || selectedNode.type === 'reference')) {
             openNodeEditModal(selectedNode);
-        } else if (selectedNode instanceof Group) {
-            openNodeEditModal(selectedNode);
-        } else if (selectedNode instanceof NodeReference) {
+        } else if (selectedNode && (selectedNode instanceof Group || selectedNode.type === 'group' || selectedNode.type === 'Group')) {
             openNodeEditModal(selectedNode);
         } else {
             // Si se deselecciona, cerrar cualquier modal de edición
             closeNodeEditModal();
             closeCompactEditModal();
         }
-    });
+    }, stateHandlers);
 
     window.editor = editor;
+    window.projectState = projectState; // Expose for debugging
 
     // Auto-save logic
     const STORAGE_KEY = 'zx_story_flow_project';
@@ -882,7 +989,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: projectName,
             projectType: projectType,
             globalConfig: globalConfig,
-            nodes: editor.nodes.map(n => {
+            nodes: projectState.nodes.map(n => {
                 const nodeData = {
                     id: n.id,
                     x: n.x,
@@ -904,7 +1011,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     cydCommands: n.cydCommands
                 };
 
-                if (n instanceof NodeReference) {
+                // Because projectState is now JSON, we can't use instanceof. Use 'type' instead.
+                if (n.type === 'reference' || n.type === 'Reference') {
                     nodeData.targetNodeId = n.targetNodeId;
                 }
 
@@ -925,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 return nodeData;
             }),
-            groups: editor.groups.map(g => {
+            groups: projectState.groups.map(g => {
                 return {
                     id: g.id,
                     x: g.x,
@@ -954,8 +1062,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             editor.onStateChange = null;
 
             // Clear existing
-            editor.nodes = [];
-            editor.groups = [];
+            projectState.nodes = [];
+            projectState.groups = [];
             editor.selectNode(null);
             editor.selectGroup(null);
 
@@ -999,56 +1107,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Restore Nodes
             if (data.nodes) {
                 data.nodes.forEach(n => {
-                    let newNode;
-                    if (n.type === 'Reference' || n.type === 'reference') {
-                        newNode = new NodeReference(n.id, n.x, n.y, n.targetNodeId);
-                        if (n.width) newNode.width = n.width;
-                        if (n.height) newNode.height = n.height;
-                    } else {
-                        newNode = new ScreenNode(n.id, n.x, n.y);
-                        newNode.text = n.text || "";
-                        newNode.title = n.title || n.type;
-                        newNode.actions = n.actions || "";
-                        newNode.width = n.width || newNode.width;
-                        newNode.height = n.height || newNode.height;
-                        if (n.outputs) {
-                            newNode.outputs = n.outputs.map(o => ({
-                                label: o.label,
-                                target: o.target,
-                                flag: o.flag,
-                                eligible: o.eligible !== false,
-                                prefix: o.prefix || "",
-                                suffix: o.suffix || ""
-                            }));
-                        }
-                        newNode.cydCommands = n.cydCommands || "";
-                        if (n.conditionalParagraphs) newNode.conditionalParagraphs = n.conditionalParagraphs;
-                        if (n.paragraphImages) newNode.paragraphImages = n.paragraphImages;
-                        if (n.useCustomConfig) {
-                            newNode.useCustomConfig = true;
-                            if (n.pageConfig) newNode.pageConfig = n.pageConfig;
-                            if (n.separatorConfig) newNode.separatorConfig = n.separatorConfig;
-                            if (n.interfaceConfig) newNode.interfaceConfig = n.interfaceConfig;
-                            if (n.borderColor) newNode.borderColor = n.borderColor;
-                        }
-                    }
-                    editor.nodes.push(newNode);
+                    projectState.nodes.push(n);
                 });
             }
 
             // Restore Groups
             if (data.groups) {
                 data.groups.forEach(g => {
-                    const newGroup = new Group(g.id, g.x, g.y, g.width, g.height);
-                    newGroup.name = g.name || "New Group";
-                    newGroup.color = g.color || "#4a90e2";
-                    newGroup.nodeIds = g.nodeIds || [];
-                    editor.groups.push(newGroup);
+                    projectState.groups.push(g);
                 });
             }
 
+            editor.renderState(projectState); // Feed state to editor
             editor.onStateChange = originalOnStateChange;
-            editor.draw();
             updateExportButtons();
             console.log("Restoration successful");
             return true;
@@ -1125,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper: validate no duplicated labels
     function hasDuplicateLabels() {
-        const screenNodes = editor.nodes.filter(n => n && (n.type === 'screen' || n.type === 'Screen' || n.constructor.name === 'ScreenNode'));
+        const screenNodes = projectState.nodes.filter(n => n && (n.type === 'screen' || n.type === 'Screen' || n.type === 'ScreenNode'));
         const slugify = (text) => (text || '').toString().replace(/[^a-zA-Z0-9_]/g, '') || null;
         const labels = {};
         const duplicates = [];
@@ -1163,10 +1234,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (projectType === 'CYD') {
                     return {
                         loaderCode: "",
-                        basicCode: generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
+                        basicCode: generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
                     };
                 } else {
-                    const muchoText = generateMucho(editor.nodes, globalConfig);
+                    const muchoText = generateMucho(projectState.nodes, globalConfig);
                     return {
                         loaderCode: generateLoaderFromMucho(muchoText, globalConfig),
                         basicCode: generateBasicFromMucho(muchoText, globalConfig)
@@ -1176,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Collect all images from nodes
             const screenImages = [];
-            editor.nodes.forEach(node => {
+            projectState.nodes.forEach(node => {
                 if (node.paragraphImages && node.paragraphImages.length > 0) {
                     node.paragraphImages.forEach(pi => {
                         if (pi.imageName && pi.imageData) {
@@ -1269,8 +1340,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
         const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
         const basicCode = projectType === 'CYD'
-            ? generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
-            : generateBasicFromMucho(editor.nodes, globalConfig);
+            ? generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
+            : generateBasicFromMucho(projectState.nodes, globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([basicCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -1283,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-mucho-btn').addEventListener('click', () => {
         if (hasDuplicateLabels()) return;
-        const muchoCode = generateMucho(editor.nodes, globalConfig);
+        const muchoCode = generateMucho(projectState.nodes, globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([muchoCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -1296,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-cyd-btn').addEventListener('click', () => {
         try {
-            const cydCodeResult = generateCYD(editor.nodes, globalConfig);
+            const cydCodeResult = generateCYD(projectState.nodes, globalConfig);
             let cydCode = cydCodeResult;
             // Prepend CYD general code if present
             const cydGeneralCode = (document.getElementById('cyd-general-code')?.value || '').trim();
