@@ -42,7 +42,7 @@ function parseFlagToCmds(flagStr) {
 export function generateCYD(nodes, globalConfig = null) {
     if (!nodes || nodes.length === 0) return '';
 
-    const screenNodes = nodes.filter(n => n && (n.type === 'Screen' || (n.constructor && n.constructor.name === 'ScreenNode')));
+    const screenNodes = nodes.filter(n => n && (n.type === 'Screen' || n.type === 'screen'));
     if (screenNodes.length === 0) return '';
 
     if (!globalConfig) globalConfig = { page: { ink: 'white', paper: 'black', bright: false, flash: false } };

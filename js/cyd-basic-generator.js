@@ -410,7 +410,7 @@ function transpileCYDToBasic(cydSrc) {
  */
 export function generateBasicFromCYD(nodes, globalConfig, cydGeneralCode = '', cydGeneralCodeEnd = '') {
     // Build CYD source from nodes (same logic as export-cyd-btn for CYD projects)
-    const screenNodes = (nodes || []).filter(n => n && (n.type === 'Screen' || (n.constructor && n.constructor.name === 'ScreenNode')));
+    const screenNodes = (nodes || []).filter(n => n && (n.type === 'Screen' || n.type === 'screen'));
     if (screenNodes.length === 0) return '10 REM No screens';
 
     function slugify(str) {

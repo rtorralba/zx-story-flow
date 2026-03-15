@@ -13,7 +13,7 @@ function resolveNodeId(nodeId, nodes) {
     if (!node) return null;
 
     // If it's a reference, follow it to the target
-    if (node instanceof NodeReference) {
+    if (node.type === 'Reference' || node.type === 'reference') {
         return resolveNodeId(node.targetNodeId, nodes);
     }
 
@@ -48,7 +48,7 @@ export function generateMucho(nodes, globalConfig = null) {
     if (nodes.length === 0) return "";
 
     // Filter out references - only process ScreenNodes
-    const screenNodes = nodes.filter(n => n instanceof ScreenNode);
+    const screenNodes = nodes.filter(n => n.type === 'Screen' || n.type === 'screen');
     if (screenNodes.length === 0) return "";
 
     // Default global config
