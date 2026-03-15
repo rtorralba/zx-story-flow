@@ -201,6 +201,84 @@ function makeInitializationBasic(compileData, globalConfig) {
     return initCode;
 }
 
+/**
+ * 
+ * @param {dict} CompileData 
+ * @param {dict} globalConfig 
+ * @returns BASIC code texto with routines.
+ */
+function makeSystemSubroutinesBasic(CompileData, globalConfig) {
+    
+    let basicCode="";
+
+    // Load image from RAMdisk
+    compileData.labels["sys_load_image"] = 9982;
+    basicCode += `
+    9982 REM Load i$ from RAMDISK
+    9983 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
+    9984 LOAD! i$ CODE 16384:RETURN
+    `
+    
+    // Routine to clean the options section.
+    compileData.labels["sys_cls_interface"] = 9985;
+    basicCode += `
+    9985 REM Option bar subroutine (also called after image load)
+    9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:LET i=1:RETURN
+    `
+    
+    
+    compileData.labels["fun"] = 9982;
+    basicCode += `
+    9988 REM New screen. CLS + option bar (no image)
+    9989 POKE 23693,tattr:POKE 23624,dattr:CLS:GO SUB 9985:RETURN
+    `;
+    
+    compileData.labels["fun"] = 9982;
+    basicCode += `
+    9990 REM New screen. CLS only (image will follow)
+    9991 POKE 23693,tattr:POKE 23624,dattr:CLS:RETURN
+    `;
+
+    // Routine to clean the options section.
+    basicCode += `
+    9000 REM CLS:2 Clear interface
+    9000 POKE BORDCR,dattr:POKE DF_SZ,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE BORDCR
+
+    `
+   
+    // Routine to launch interactive selecction of option
+    compileData.labels["sys_choose_option"] = 9993;
+    basicCode += `
+    9993 REM choose an option
+    9994 IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO 0:
+    9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
+    9996 IF k=10 THEN LET i=i+1-(n AND i=n)
+    9997 IF k=11 THEN LET i=i-1+(n AND i=1)
+    9998 IF k=13 THEN GO SUB 110:GO TO p(i)
+    9999 GO TO 9993\n`;
+
+    return basicCode;
+}
+
+/**
+ * Split a list of preparsed mucho lines into Q$ blocks. 
+ */
+function splitIntoScreenBlocks(muchoLines) {
+   
+    let currentBlock = []
+    let blocks = []
+
+    muchoLines.forEach(line => {
+        if (line.type==='Q') {
+            currentBlock = [];
+            blocks.push(currentBlock);
+        };
+        currentBlock.push(line)
+    });
+
+    return blocks;
+
+}
 
 /**
  * Transpiles MuCho code into ZX Basic
@@ -216,7 +294,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     const compileData = {
         flags : new Set(),
         vars : new Set(),
-        screens : {}, // name, line
+        labels : {}, // {name, line}
     }
 
     // Utility function to start a new line.
@@ -249,13 +327,16 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         plines.push(parseLine(line));
     });
 
+    // Split into blocks.
+    const blocks = splitIntoScreenBlocks(plines);
+
     plines.forEach(pline => {
         if (pline.type==="Q") {
             start_new_line();
             // Reference new screen.
             const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
             const screenName = match[1]
-            compileData.screens[screenName] = editLine;
+            compileData.labels[screenName] = editLine;
             editLine += `REM ${screenName}`;
             
             start_new_line();
@@ -263,6 +344,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
             if (match[2]) {
                 editLine += transpileStatements(pline.text,compileData);
             }
+        } else if (pline.type==="A") {
         } else if (pline.type==="T") {
             start_new_statement()
             editLine += pline.text?`PRINT "${pline.text}"`:`PRINT`;
