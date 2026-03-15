@@ -136,6 +136,73 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (typeof autoSave === 'function') autoSave();
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist loading screen removal', e); }
         });
+
+        // --- Font config UI (.bin) ---
+        const fontRow = document.createElement('div');
+        fontRow.id = 'global-font-row';
+        fontRow.className = 'config-row';
+        fontRow.style.display = 'flex';
+        fontRow.style.alignItems = 'center';
+        fontRow.style.gap = '8px';
+        fontRow.style.marginTop = '12px';
+
+        const fontLabel = document.createElement('label');
+        fontLabel.textContent = 'Fuente (.bin):';
+        fontLabel.style.minWidth = '180px';
+
+        const fontFileInput = document.createElement('input');
+        fontFileInput.type = 'file';
+        fontFileInput.accept = '.bin';
+        fontFileInput.id = 'global-font-input';
+
+        const fontNameSpan = document.createElement('span');
+        fontNameSpan.id = 'global-font-name';
+        fontNameSpan.textContent = '(ninguna)';
+        fontNameSpan.style.color = '#ddd';
+
+        const fontClearBtn = document.createElement('button');
+        fontClearBtn.type = 'button';
+        fontClearBtn.id = 'global-font-clear';
+        fontClearBtn.textContent = 'Borrar';
+
+        fontRow.appendChild(fontLabel);
+        fontRow.appendChild(fontFileInput);
+        fontRow.appendChild(fontNameSpan);
+        fontRow.appendChild(fontClearBtn);
+
+        if (row.parentElement) {
+            row.parentElement.insertBefore(fontRow, row.nextSibling);
+        }
+
+        fontFileInput.addEventListener('change', async (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try {
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = (ev) => resolve(ev.target.result);
+                    r.onerror = (err) => reject(err);
+                    r.readAsDataURL(f);
+                });
+                if (!globalConfig) globalConfig = {};
+                globalConfig.font = { fontName: f.name, fontData: dataUrl };
+                fontNameSpan.textContent = f.name;
+                if (typeof autoSave === 'function') autoSave();
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist font', e); }
+            } catch (err) {
+                console.error('Failed to read font BIN:', err);
+            } finally {
+                try { fontFileInput.value = ''; } catch (e) { }
+            }
+        });
+
+        fontClearBtn.addEventListener('click', () => {
+            if (globalConfig && globalConfig.font) delete globalConfig.font;
+            fontNameSpan.textContent = '(ninguna)';
+            if (typeof autoSave === 'function') autoSave();
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist font removal', e); }
+        });
+
     })();
     // Helper: Convert color name to CSS color value
     function zxColorToCSS(colorName, bright = false) {
@@ -245,6 +312,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     nameSpan.textContent = globalConfig.loadingScreen.imageName;
                 } else {
                     nameSpan.textContent = '(ninguna)';
+                }
+            }
+            const fontNameSpan = document.getElementById('global-font-name');
+            if (fontNameSpan) {
+                if (globalConfig && globalConfig.font && globalConfig.font.fontName) {
+                    fontNameSpan.textContent = globalConfig.font.fontName;
+                } else {
+                    fontNameSpan.textContent = '(ninguna)';
                 }
             }
         } catch (e) {
@@ -1082,8 +1157,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
             const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
-            const {loaderCode,basicCode} = (() => {
-                if(projectType === 'CYD') {
+            const { loaderCode, basicCode } = (() => {
+                if (projectType === 'CYD') {
                     return {
                         loaderCode: "",
                         basicCode: generateBasicFromCYD(editor.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
@@ -1158,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const tapLoader = bas2tap(loaderCode, exportName)
             const tapScreen = globalConfig.loadingScreen
-                ? img2tap(globalConfig.loadingScreen.imageData,"SCREEN")
+                ? img2tap(globalConfig.loadingScreen.imageData, "SCREEN")
                 : []
             const tapGame = generateTapFromBasic(basicCode, "ADVENTURE", screenImages);
 
@@ -1444,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         Object.values(byDepth).forEach(col => col.sort((a, b) => (visitOrder[a.id] ?? 0) - (visitOrder[b.id] ?? 0)));
 
         const NODE_W = 350;  // node width + horizontal gap
-        const GAP_Y  = 20;   // vertical gap between nodes
+        const GAP_Y = 20;   // vertical gap between nodes
         const START_X = 80;
         const START_Y = 80;
 

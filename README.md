@@ -228,6 +228,10 @@ Este proyecto no habría sido posible sin el apoyo y contribuciones de la comuni
 
 - **Darkside29** ([itch.io](https://darkside29.itch.io/)) - Por la idea de integrar MuCho y el feedback constante
 
+#### Otras atribuciones
+
+- **Computer.bin** ([https://www.jimblimey.com/](https://www.jimblimey.com/)) - Fuente de ejemplo transformada a binario de la fuente del repositorio [https://github.com/epto/epto-fonts](https://github.com/epto/epto-fonts)
+
 #### Testing y Consejos
 
 - **CarlosITV** ([itch.io](https://charlyitv.itch.io/)) - Por las pruebas exhaustivas y reportes de bugs
