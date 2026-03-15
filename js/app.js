@@ -746,11 +746,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         editorViewMode = globalConfig.viewMode || 'simple';
 
         // Actualizar título del modal
-        if (nodeOrGroup instanceof Group) {
+        if (nodeOrGroup.type === 'Group' || nodeOrGroup.type === 'group') {
             // Use compact modal for groups (narrower, no view switch)
             if (nodeEditModal) nodeEditModal.style.display = 'none';
             if (compactEditModalTitle) setupCompactEditableTitle(t('editor.edit_group'), nodeOrGroup, 'name');
-        } else if (nodeOrGroup instanceof NodeReference) {
+        } else if (nodeOrGroup.type === 'Reference' || nodeOrGroup.type === 'reference') {
             // Use compact modal for references (narrower, no view switch)
             if (nodeEditModal) nodeEditModal.style.display = 'none';
             if (compactEditModalTitle) {
@@ -817,12 +817,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Generar y mostrar contenido según el tipo
-        if (nodeOrGroup instanceof Group) {
+        if (nodeOrGroup.type === 'Group' || nodeOrGroup.type === 'group') {
             // compact container
             compactEditModalContent.innerHTML = '';
             updateGroupProperties(nodeOrGroup, compactEditModalContent);
             compactEditModal.style.display = 'flex';
-        } else if (nodeOrGroup instanceof NodeReference) {
+        } else if (nodeOrGroup.type === 'Reference' || nodeOrGroup.type === 'reference') {
             compactEditModalContent.innerHTML = '';
             updateReferenceProperties(nodeOrGroup, compactEditModalContent);
             compactEditModal.style.display = 'flex';
@@ -863,119 +863,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         groups: []
     };
 
-    // State Handlers for NodeEditor to interact with
-    const stateHandlers = {
-        onNodeAdded: (node) => {
-            projectState.nodes.push(node);
-            autoSave();
-        },
-        onNodeRemoved: (nodeId) => {
-            projectState.nodes = projectState.nodes.filter(n => n.id !== nodeId);
-            // Clear connections to this node
-            projectState.nodes.forEach(n => {
-                if (n.outputs) {
-                    n.outputs.forEach(opt => {
-                        if (opt.target === nodeId) opt.target = null;
-                    });
-                }
-            });
-            // Remove from groups
-            projectState.groups.forEach(g => {
-                if (g.nodeIds) {
-                    g.nodeIds = g.nodeIds.filter(id => id !== nodeId);
-                }
-            });
-            autoSave();
-        },
-        onNodeMoved: (nodeId, newX, newY) => {
-            const node = projectState.nodes.find(n => n.id === nodeId);
-            if (node) {
-                node.x = newX;
-                node.y = newY;
-            }
-            autoSave();
-        },
-        onNodeResized: (nodeId, newWidth, newHeight) => {
-            const node = projectState.nodes.find(n => n.id === nodeId);
-            if (node) {
-                node.width = newWidth;
-                node.height = newHeight;
-            }
-            autoSave();
-        },
-        onConnectionCreated: (sourceId, portIndex, targetId) => {
-            const source = projectState.nodes.find(n => n.id === sourceId);
-            if (source && source.outputs && source.outputs[portIndex]) {
-                source.outputs[portIndex].target = targetId;
-            }
-            autoSave();
-        },
-        onConnectionRemoved: (sourceId, portIndex) => {
-            const source = projectState.nodes.find(n => n.id === sourceId);
-            if (source && source.outputs && source.outputs[portIndex]) {
-                source.outputs[portIndex].target = null;
-            }
-            autoSave();
-        },
-        onGroupAdded: (group) => {
-            projectState.groups.push(group);
-            autoSave();
-        },
-        onGroupRemoved: (groupId) => {
-            projectState.groups = projectState.groups.filter(g => g.id !== groupId);
-            autoSave();
-        },
-        onGroupMoved: (groupId, newX, newY) => {
-            const group = projectState.groups.find(g => g.id === groupId);
-            if (group) {
-                const deltaX = newX - group.x;
-                const deltaY = newY - group.y;
-                group.x = newX;
-                group.y = newY;
-                
-                // Move member nodes
-                if (group.nodeIds) {
-                    group.nodeIds.forEach(nodeId => {
-                        const node = projectState.nodes.find(n => n.id === nodeId);
-                        if (node) {
-                            node.x += deltaX;
-                            node.y += deltaY;
-                        }
-                    });
-                }
-            }
-            autoSave();
-        },
-        onGroupResized: (groupId, newWidth, newHeight) => {
-            const group = projectState.groups.find(g => g.id === groupId);
-            if (group) {
-                group.width = newWidth;
-                group.height = newHeight;
-            }
-            autoSave();
-        },
-        onGroupMembershipUpdated: (groupId, nodeIds) => {
-            const group = projectState.groups.find(g => g.id === groupId);
-            if (group) {
-                group.nodeIds = nodeIds;
-            }
-            autoSave();
-        }
-    };
-
     // Initialize Editor
     const editor = new NodeEditor(canvas, (selectedNode) => {
-        // Cuando se selecciona un nodo, abrir el modal de edición
         if (selectedNode && (selectedNode.type === 'screen' || selectedNode.type === 'Screen' || selectedNode.type === 'Reference' || selectedNode.type === 'reference')) {
             openNodeEditModal(selectedNode);
-        } else if (selectedNode && (selectedNode instanceof Group || selectedNode.type === 'group' || selectedNode.type === 'Group')) {
+        } else if (selectedNode && (selectedNode.type === 'group' || selectedNode.type === 'Group')) {
             openNodeEditModal(selectedNode);
         } else {
-            // Si se deselecciona, cerrar cualquier modal de edición
             closeNodeEditModal();
             closeCompactEditModal();
         }
-    }, stateHandlers);
+    });
+
+    // editor.nodes and editor.groups are set to projectState.nodes/groups by renderState(),
+    // so mutations from the editor automatically update projectState and vice versa.
+    editor.onStateChange = autoSave;
 
     window.editor = editor;
     window.projectState = projectState; // Expose for debugging
@@ -989,62 +891,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: projectName,
             projectType: projectType,
             globalConfig: globalConfig,
-            nodes: projectState.nodes.map(n => {
-                const nodeData = {
-                    id: n.id,
-                    x: n.x,
-                    y: n.y,
-                    width: n.width,
-                    height: n.height,
-                    type: n.type,
-                    title: n.title,
-                    text: n.text,
-                    outputs: n.outputs ? n.outputs.map(o => ({
-                        label: o.label,
-                        target: o.target,
-                        flag: o.flag,
-                        eligible: o.eligible !== false,
-                        prefix: o.prefix,
-                        suffix: o.suffix
-                    })) : [],
-                    actions: n.actions,
-                    cydCommands: n.cydCommands
-                };
-
-                // Because projectState is now JSON, we can't use instanceof. Use 'type' instead.
-                if (n.type === 'reference' || n.type === 'Reference') {
-                    nodeData.targetNodeId = n.targetNodeId;
-                }
-
-                if (n.conditionalParagraphs && n.conditionalParagraphs.length > 0) {
-                    nodeData.conditionalParagraphs = n.conditionalParagraphs;
-                }
-
-                if (n.paragraphImages && n.paragraphImages.length > 0) {
-                    nodeData.paragraphImages = n.paragraphImages;
-                }
-
-                if (n.useCustomConfig) {
-                    nodeData.useCustomConfig = true;
-                    nodeData.pageConfig = n.pageConfig;
-                    nodeData.separatorConfig = n.separatorConfig;
-                    nodeData.interfaceConfig = n.interfaceConfig;
-                    nodeData.borderColor = n.borderColor;
-                }
-                return nodeData;
-            }),
-            groups: projectState.groups.map(g => {
-                return {
-                    id: g.id,
-                    x: g.x,
-                    y: g.y,
-                    width: g.width,
-                    height: g.height,
-                    name: g.name,
-                    color: g.color,
-                    nodeIds: g.nodeIds
-                };
-            }),
+            nodes: projectState.nodes,
+            groups: projectState.groups,
             cydGeneralCode: document.getElementById('cyd-general-code')?.value || '',
             cydGeneralCodeEnd: document.getElementById('cyd-general-code-end')?.value || '',
             lastSaved: Date.now()
@@ -1104,19 +952,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Restore Nodes
-            if (data.nodes) {
-                data.nodes.forEach(n => {
-                    projectState.nodes.push(n);
-                });
-            }
-
-            // Restore Groups
-            if (data.groups) {
-                data.groups.forEach(g => {
-                    projectState.groups.push(g);
-                });
-            }
+            // Restore Nodes and Groups — assign directly (POJOs, no conversion needed)
+            projectState.nodes = data.nodes || [];
+            projectState.groups = data.groups || [];
 
             editor.renderState(projectState); // Feed state to editor
             editor.onStateChange = originalOnStateChange;
@@ -1143,6 +981,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert(t('messages.storage_full'));
             }
         }
+    }
+
+    /** Apply a mutation to projectState, redraw the canvas, then persist.
+     *  Use this for discrete changes (add/remove node, edit property, etc.).
+     *  During drag, mutate the POJO directly and call editor.draw() — no commitChange needed. */
+    function commitChange(mutatorFn) {
+        if (mutatorFn) mutatorFn(projectState);
+        editor.draw();
+        autoSave();
     }
 
     function loadFromLocalStorage() {
@@ -1341,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
         const basicCode = projectType === 'CYD'
             ? generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
-            : generateBasicFromMucho(projectState.nodes, globalConfig);
+            : generateBasicFromMucho(generateMucho(projectState.nodes, globalConfig), globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([basicCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -1609,7 +1456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // so multiple back-edge refs from the same node don't overlap.
         const refOffsetBySource = {}; // sourceNodeId -> accumulated y offset
         allNodes.forEach(n => {
-            if (!(n instanceof NodeReference)) return;
+            if (n.type !== 'Reference' && n.type !== 'reference') return;
             const sourceNode = nodes.find(sn => sn.outputs.some(o => o.target === n.id));
             if (sourceNode) {
                 if (refOffsetBySource[sourceNode.id] === undefined) {
@@ -1641,17 +1488,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     alert(t('messages.import_mucho_empty') || 'No MuCho blocks ($Q) found in the file.');
                     return;
                 }
-                // Replace current project content
-                const wasInitialized = isInitialized;
+                // Replace current project content — update both projectState and editor
                 isInitialized = false;
-                editor.nodes = [];
-                editor.groups = [];
+                projectState.nodes = nodes;
+                projectState.groups = [];
                 editor.selectNode(null);
                 editor.selectGroup(null);
-                nodes.forEach(n => editor.nodes.push(n));
+                editor.renderState(projectState);
                 updateProjectName(file.name.replace(/\.[^.]+$/, ''));
-                editor.draw();
-                isInitialized = wasInitialized;
+                isInitialized = true;
                 updateExportButtons();
                 autoSave();
             } catch (err) {
@@ -1666,14 +1511,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // New Project
     document.getElementById('new-btn').addEventListener('click', () => {
         if (confirm(t('messages.new_confirm'))) {
-            // Temporary block auto-save to ensure clean wipe
             isInitialized = false;
-            editor.nodes = [];
-            editor.groups = [];
+            projectState.nodes = [];
+            projectState.groups = [];
             editor.selectNode(null);
             editor.selectGroup(null);
+            editor.renderState(projectState);
             updateProjectName('Untitled');
-            editor.draw();
 
             isInitialized = true;
             updateExportButtons();
@@ -1780,7 +1624,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Add all screen nodes as options
         editor.nodes.forEach(node => {
-            if (node instanceof ScreenNode) {
+            if (node.type === 'Screen' || node.type === 'screen') {
                 const option = document.createElement('option');
                 option.value = node.id;
                 option.textContent = node.title;
@@ -1811,13 +1655,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!container) propertyPanel.classList.remove('hidden');
 
         // Check if it's a Group
-        if (nodeOrGroup instanceof Group) {
+        if (nodeOrGroup.type === 'Group' || nodeOrGroup.type === 'group') {
             updateGroupProperties(nodeOrGroup, targetContainer);
             return;
         }
 
         // Check if it's a NodeReference
-        if (nodeOrGroup instanceof NodeReference) {
+        if (nodeOrGroup.type === 'Reference' || nodeOrGroup.type === 'reference') {
             updateReferenceProperties(nodeOrGroup, targetContainer);
             return;
         }

@@ -1,169 +1,181 @@
-// ZX Story Flow - Node Classes
+// ZX Story Flow - Node Geometry Utilities
 // Copyright (C) 2026 Raül Torralba Adsuara
 // Licensed under the GNU Affero General Public License v3.0 or later
 // See LICENSE file for details
+//
+// Nodes are now PLAIN OBJECTS (POJOs). These classes provide:
+//   - Static factory methods to create new plain node objects
+//   - Static geometry/hit-testing functions used by the canvas
 
-export class Node {
-    constructor(id, x, y, type) {
-        this.id = id;
-        this.x = x;
-        this.y = y;
-        this.width = 150;
-        this.height = 100; // Base height
-        this.type = type;
-        this.title = type;
-        this.text = "";
-        this.outputs = []; // Array of connections { label:Str, target:NodeId }
+export class ScreenNode {
+    // Constants shared by all screen nodes
+    static BASE_HEIGHT = 100;
+    static OPTION_HEIGHT = 30;
+    static FOOTER_HEIGHT = 20;
+    static DEFAULT_WIDTH = 280;
+
+    /** Create a new plain ScreenNode object */
+    static create(id, x, y) {
+        const suffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const outputs = [{ label: 'Next', target: null, eligible: true, prefix: '', suffix: '' }];
+        return {
+            id,
+            type: 'Screen',
+            x, y,
+            width: ScreenNode.DEFAULT_WIDTH,
+            height: ScreenNode.BASE_HEIGHT + outputs.length * ScreenNode.OPTION_HEIGHT + ScreenNode.FOOTER_HEIGHT,
+            title: 'Screen_' + suffix,
+            text: 'Screen Text',
+            outputs,
+            borderColor: 'black'
+        };
     }
 
-    isHit(x, y) {
-        return x >= this.x && x <= this.x + this.width &&
-            y >= this.y && y <= this.y + this.height;
-    }
-}
-
-export class ScreenNode extends Node {
-    constructor(id, x, y) {
-        super(id, x, y, "Screen");
-        // Añadir sufijo aleatorio de 3 dígitos para evitar colisiones
-        this.title = "Screen_" + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        this.text = "Screen Text";
-
-        // Option/Port Management
-        this.outputs = [{ label: "Next", target: null, eligible: true, prefix: "", suffix: "" }]; // Default 1 option
-        this.borderColor = 'black'; // Default border color
-        this.baseHeight = 100;
-        this.optionHeight = 30;
-        this.footerHeight = 20; // Extra space at bottom to avoid resize handle overlap
-
-        // Initial auto-size
-        this.height = this.baseHeight + (this.outputs.length * this.optionHeight) + this.footerHeight;
+    /** Hit-test a (cx,cy) world point against a node POJO */
+    static isHit(node, x, y) {
+        return x >= node.x && x <= node.x + node.width &&
+               y >= node.y && y <= node.y + node.height;
     }
 
-    getOutputPort(index) {
-        // Position options starting above the footer
-        const totalOptionsHeight = this.outputs.length * this.optionHeight;
-        const optionsStartY = this.height - totalOptionsHeight - this.footerHeight;
-        const y = this.y + optionsStartY + (index * this.optionHeight) + (this.optionHeight / 2);
-        return { x: this.x + this.width, y: y };
+    /** Get the world position of an output port */
+    static getOutputPort(node, index) {
+        const totalOpts = node.outputs.length * ScreenNode.OPTION_HEIGHT;
+        const startY = node.height - totalOpts - ScreenNode.FOOTER_HEIGHT;
+        const y = node.y + startY + index * ScreenNode.OPTION_HEIGHT + ScreenNode.OPTION_HEIGHT / 2;
+        return { x: node.x + node.width, y };
     }
 
-    addOption(label = "New Option") {
-        this.outputs.push({ label: label, target: null, eligible: true, prefix: "", suffix: "" });
-        // Increase height to accommodate new option
-        this.height += this.optionHeight;
+    /** Check resize handle (bottom-right corner) */
+    static isResizeHandleHit(node, x, y) {
+        const h = 20;
+        return x >= node.x + node.width - h && x <= node.x + node.width &&
+               y >= node.y + node.height - h && y <= node.y + node.height;
     }
 
-    removeOption(index) {
-        if (this.outputs.length > 0) {
-            this.outputs.splice(index, 1);
-            // Decrease height
-            this.height -= this.optionHeight;
+    /** Check delete icon (top-right circle) */
+    static isDeleteIconHit(node, x, y) {
+        const s = 16;
+        const cx = node.x + node.width - s - 5 + s / 2;
+        const cy = node.y + 5 + s / 2;
+        return Math.hypot(x - cx, y - cy) <= s / 2;
+    }
+
+    /** Check config icon (bottom-left circle) */
+    static isConfigIconHit(node, x, y) {
+        const s = 16;
+        const cx = node.x + 5 + s / 2;
+        const cy = node.y + node.height - s - 5 + s / 2;
+        return Math.hypot(x - cx, y - cy) <= s / 2;
+    }
+
+    /** Add an option to a node POJO in-place */
+    static addOption(node, label = 'New Option') {
+        node.outputs.push({ label, target: null, eligible: true, prefix: '', suffix: '' });
+        node.height += ScreenNode.OPTION_HEIGHT;
+    }
+
+    /** Remove an option from a node POJO in-place */
+    static removeOption(node, index) {
+        if (node.outputs.length > 0) {
+            node.outputs.splice(index, 1);
+            node.height -= ScreenNode.OPTION_HEIGHT;
         }
     }
-
-    // Check if the resize handle is being clicked (bottom-right corner)
-    isResizeHandleHit(x, y) {
-        const handleSize = 20;
-        return x >= this.x + this.width - handleSize &&
-            x <= this.x + this.width &&
-            y >= this.y + this.height - handleSize &&
-            y <= this.y + this.height;
-    }
 }
 
-// Node Reference (Pointer) - A small node that references another node
-export class NodeReference extends Node {
-    constructor(id, x, y, targetNodeId = null) {
-        super(id, x, y, "Reference");
-        this.targetNodeId = targetNodeId; // ID of the node this reference points to
-        this.width = 120;
-        this.height = 50;
-        this.outputs = []; // References don't have outputs, they ARE outputs
+export class NodeReference {
+    static DEFAULT_WIDTH = 120;
+    static DEFAULT_HEIGHT = 50;
+
+    /** Create a new plain NodeReference object */
+    static create(id, x, y, targetNodeId = null) {
+        return {
+            id,
+            type: 'Reference',
+            x, y,
+            width: NodeReference.DEFAULT_WIDTH,
+            height: NodeReference.DEFAULT_HEIGHT,
+            title: 'Reference',
+            text: '',
+            outputs: [],
+            targetNodeId
+        };
     }
 
-    // Get the title based on the target node
-    getDisplayTitle(nodes) {
-        if (!this.targetNodeId) return "(No target)";
-        const targetNode = nodes.find(n => n.id === this.targetNodeId);
-        return targetNode ? `${targetNode.title}` : "(Not found)";
+    static isHit(node, x, y) {
+        return x >= node.x && x <= node.x + node.width &&
+               y >= node.y && y <= node.y + node.height;
     }
 
-    // Check if the resize handle is being clicked (bottom-right corner)
-    isResizeHandleHit(x, y) {
-        const handleSize = 14;
-        return x >= this.x + this.width - handleSize &&
-            x <= this.x + this.width &&
-            y >= this.y + this.height - handleSize &&
-            y <= this.y + this.height;
+    static isResizeHandleHit(node, x, y) {
+        const h = 14;
+        return x >= node.x + node.width - h && x <= node.x + node.width &&
+               y >= node.y + node.height - h && y <= node.y + node.height;
+    }
+
+    static getDisplayTitle(node, nodes) {
+        if (!node.targetNodeId) return '(No target)';
+        const target = nodes.find(n => n.id === node.targetNodeId);
+        return target ? target.title : '(Not found)';
     }
 }
 
 export class Group {
-    constructor(id, x, y, width = 400, height = 300) {
-        this.id = id;
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.name = "New Group";
-        this.color = "#4a90e2"; // Default blue color
-        this.nodeIds = []; // IDs of nodes contained in this group
+    static DEFAULT_WIDTH = 400;
+    static DEFAULT_HEIGHT = 300;
+
+    /** Create a new plain Group object */
+    static create(id, x, y) {
+        return {
+            id,
+            type: 'Group',
+            x, y,
+            width: Group.DEFAULT_WIDTH,
+            height: Group.DEFAULT_HEIGHT,
+            name: 'New Group',
+            color: '#4a90e2',
+            nodeIds: []
+        };
     }
 
-    isHit(x, y) {
-        return x >= this.x && x <= this.x + this.width &&
-            y >= this.y && y <= this.y + this.height;
+    static isHit(group, x, y) {
+        return x >= group.x && x <= group.x + group.width &&
+               y >= group.y && y <= group.y + group.height;
     }
 
-    // Check if header bar is being clicked (for moving group)
-    isHeaderHit(x, y) {
-        const headerHeight = 30;
-        return x >= this.x && x <= this.x + this.width &&
-            y >= this.y && y <= this.y + headerHeight;
+    static isHeaderHit(group, x, y) {
+        const h = 30;
+        return x >= group.x && x <= group.x + group.width &&
+               y >= group.y && y <= group.y + h;
     }
 
-    // Check if a point is inside the group
-    containsPoint(x, y) {
-        return x >= this.x && x <= this.x + this.width &&
-            y >= this.y && y <= this.y + this.height;
+    static containsPoint(group, x, y) {
+        return Group.isHit(group, x, y);
     }
 
-    // Check if a node should be in this group
-    containsNode(node) {
-        const centerX = node.x + node.width / 2;
-        const centerY = node.y + node.height / 2;
-        return this.containsPoint(centerX, centerY);
+    static containsNode(group, node) {
+        const cx = node.x + node.width / 2;
+        const cy = node.y + node.height / 2;
+        return Group.containsPoint(group, cx, cy);
     }
 
-    // Check if the resize handle is being clicked (bottom-right corner)
-    isResizeHandleHit(x, y) {
-        const handleSize = 20;
-        return x >= this.x + this.width - handleSize &&
-            x <= this.x + this.width &&
-            y >= this.y + this.height - handleSize &&
-            y <= this.y + this.height;
+    static isResizeHandleHit(group, x, y) {
+        const h = 20;
+        return x >= group.x + group.width - h && x <= group.x + group.width &&
+               y >= group.y + group.height - h && y <= group.y + group.height;
     }
 
-    // Check if delete icon is being clicked (top-right corner of header)
-    isDeleteIconHit(x, y) {
-        const deleteIconSize = 16;
-        const deleteIconX = this.x + this.width - deleteIconSize - 5;
-        const deleteIconY = this.y + 5;
-        const centerX = deleteIconX + deleteIconSize / 2;
-        const centerY = deleteIconY + deleteIconSize / 2;
-        const distance = Math.hypot(x - centerX, y - centerY);
-        return distance <= deleteIconSize / 2;
+    static isDeleteIconHit(group, x, y) {
+        const s = 16;
+        const cx = group.x + group.width - s - 5 + s / 2;
+        const cy = group.y + 5 + s / 2;
+        return Math.hypot(x - cx, y - cy) <= s / 2;
     }
 
-    // Check if config icon is being clicked (bottom-left corner)
-    isConfigIconHit(x, y) {
-        const configIconSize = 16;
-        const configIconX = this.x + 5;
-        const configIconY = this.y + this.height - configIconSize - 5;
-        const centerX = configIconX + configIconSize / 2;
-        const centerY = configIconY + configIconSize / 2;
-        const distance = Math.hypot(x - centerX, y - centerY);
-        return distance <= configIconSize / 2;
+    static isConfigIconHit(group, x, y) {
+        const s = 16;
+        const cx = group.x + 5 + s / 2;
+        const cy = group.y + group.height - s - 5 + s / 2;
+        return Math.hypot(x - cx, y - cy) <= s / 2;
     }
 }

@@ -6,21 +6,20 @@
 import { ScreenNode, Group, NodeReference } from './nodes.js';
 
 export class NodeEditor {
-    constructor(canvas, propertyPanelCallback, stateHandlers = null) {
+    constructor(canvas, propertyPanelCallback) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.nodes = [];
-        this.groups = []; // Array of Group objects
+        this.groups = [];
         this.camera = { x: 0, y: 0, zoom: 1 };
         this.propertyPanelCallback = propertyPanelCallback;
-        this.stateHandlers = stateHandlers;
 
         this.selectedNode = null;
         this.selectedGroup = null;
         this.highlightedNodes = new Set();
-        this.dragState = null; // { type: 'node'|'connection'|'group', ... }
-        this.hoveredConnection = null; // Track which connection is being hovered
-        this.onStateChange = null;
+        this.dragState = null;
+        this.hoveredConnection = null;
+        this.onStateChange = null; // Called after any state change (e.g. autosave)
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -43,56 +42,19 @@ export class NodeEditor {
         this.draw();
     }
 
+    /** Load state from a plain JSON object (projectState). The node/group arrays
+     *  become direct references so mutations by the editor are immediately visible
+     *  in projectState, and vice versa. */
     renderState(state) {
         if (!state) return;
-
-        this.nodes = [];
-        this.groups = [];
-
-        // Reconstruct groups
-        if (state.groups) {
-            state.groups.forEach(gData => {
-                const group = new Group(gData.id, gData.x, gData.y);
-                group.width = gData.width || group.width;
-                group.height = gData.height || group.height;
-                group.name = gData.name || "New Group";
-                group.color = gData.color || "#4a90e2";
-                group.nodeIds = gData.nodeIds ? [...gData.nodeIds] : [];
-                this.groups.push(group);
-            });
-        }
-
-        // Reconstruct nodes
-        if (state.nodes) {
-            state.nodes.forEach(nData => {
-                let node;
-                if (nData.type === 'Reference' || nData.type === 'reference') {
-                    node = new NodeReference(nData.id, nData.x, nData.y, nData.targetNodeId);
-                    if (nData.width) node.width = nData.width;
-                    if (nData.height) node.height = nData.height;
-                } else {
-                    node = new ScreenNode(nData.id, nData.x, nData.y);
-                    Object.assign(node, nData); // Quick copy of properties like title, text, etc
-                    
-                    // We need to ensure outputs arrays are decoupled from state so changes don't mutate state directly (unless intended)
-                    // But for simple rendering, assigning properties works.
-                    // For outputs specifically, we deep copy them to keep local state safe
-                    if (nData.outputs) {
-                        node.outputs = JSON.parse(JSON.stringify(nData.outputs));
-                    }
-                }
-                this.nodes.push(node);
-            });
-        }
-        
-        // Ensure references exist locally if selection was restored by app
+        this.nodes = state.nodes || [];
+        this.groups = state.groups || [];
         if (this.selectedNode) {
             this.selectedNode = this.nodes.find(n => n.id === this.selectedNode.id) || null;
         }
         if (this.selectedGroup) {
             this.selectedGroup = this.groups.find(g => g.id === this.selectedGroup.id) || null;
         }
-
         this.draw();
     }
 
@@ -104,88 +66,55 @@ export class NodeEditor {
     }
 
     addNode(type, x = null, y = null) {
-        // If no coordinates provided, use center of current view
         if (x === null || y === null) {
             const center = this.getViewCenter();
-            x = center.x - 75; // Offset by half node width for centering
-            y = center.y - 50; // Offset by half node height for centering
+            x = center.x - ScreenNode.DEFAULT_WIDTH / 2;
+            y = center.y - 50;
         }
-
-        const id = 'node_' + Date.now();
-        // type ignored now effectively, or we can just assume screen
-        const newNode = new ScreenNode(id, x, y);
-
-        if (newNode) {
-            this.nodes.push(newNode); // Always update local array for rendering
-            if (this.stateHandlers && this.stateHandlers.onNodeAdded) {
-                this.stateHandlers.onNodeAdded(newNode);
-            } else {
-                if (this.onStateChange) this.onStateChange();
-            }
-            this.selectNode(newNode, false); // Don't open panel automatically
-            this.draw();
-        }
+        const id = 'node_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        const newNode = ScreenNode.create(id, x, y);
+        this.nodes.push(newNode);
+        if (this.onStateChange) this.onStateChange();
+        this.selectNode(newNode, false);
+        this.draw();
+        return newNode;
     }
 
     addReference(targetNodeId = null, x = null, y = null) {
-        // If no coordinates provided, use center of current view
         if (x === null || y === null) {
             const center = this.getViewCenter();
-            x = center.x - 60; // Offset by half reference width for centering
-            y = center.y - 25; // Offset by half reference height for centering
+            x = center.x - NodeReference.DEFAULT_WIDTH / 2;
+            y = center.y - NodeReference.DEFAULT_HEIGHT / 2;
         }
-
-        const id = 'ref_' + Date.now();
-        const newRef = new NodeReference(id, x, y, targetNodeId);
-
-        this.nodes.push(newRef); // Always update local array for rendering
-        if (this.stateHandlers && this.stateHandlers.onNodeAdded) {
-            this.stateHandlers.onNodeAdded(newRef);
-        } else {
-            if (this.onStateChange) this.onStateChange();
-        }
-        
-        this.selectNode(newRef, false); // Don't open panel automatically
+        const id = 'ref_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        const newRef = NodeReference.create(id, x, y, targetNodeId);
+        this.nodes.push(newRef);
+        if (this.onStateChange) this.onStateChange();
+        this.selectNode(newRef, false);
         this.draw();
         return newRef;
     }
 
     addGroup(x = null, y = null) {
-        // If no coordinates provided, use center of current view
         if (x === null || y === null) {
             const center = this.getViewCenter();
-            x = center.x - 200; // Offset by half group width for centering
-            y = center.y - 150; // Offset by half group height for centering
+            x = center.x - Group.DEFAULT_WIDTH / 2;
+            y = center.y - Group.DEFAULT_HEIGHT / 2;
         }
-
-        const id = 'group_' + Date.now();
-        const newGroup = new Group(id, x, y);
-        
-        this.groups.push(newGroup); // Always update local array for rendering
-        if (this.stateHandlers && this.stateHandlers.onGroupAdded) {
-            this.stateHandlers.onGroupAdded(newGroup);
-        } else {
-            if (this.onStateChange) this.onStateChange();
-        }
-
-        this.selectGroup(newGroup, false); // Don't open panel automatically
+        const id = 'group_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        const newGroup = Group.create(id, x, y);
+        this.groups.push(newGroup);
+        if (this.onStateChange) this.onStateChange();
+        this.selectGroup(newGroup, false);
         this.draw();
         return newGroup;
     }
 
     removeGroup(group) {
         if (!group) return;
-        
-        this.groups = this.groups.filter(g => g !== group); // Always update local array
-        if (this.stateHandlers && this.stateHandlers.onGroupRemoved) {
-            this.stateHandlers.onGroupRemoved(group.id);
-        } else {
-            if (this.onStateChange) this.onStateChange();
-        }
-
-        if (this.selectedGroup === group) {
-            this.selectGroup(null);
-        }
+        this.groups = this.groups.filter(g => g !== group);
+        if (this.selectedGroup === group) this.selectGroup(null);
+        if (this.onStateChange) this.onStateChange();
         this.draw();
     }
 
@@ -204,16 +133,13 @@ export class NodeEditor {
     getDescendants(node, visited = new Set()) {
         if (!node || visited.has(node.id)) return visited;
         visited.add(node.id);
-
         if (node.outputs) {
             node.outputs.forEach(opt => {
                 if (opt.target) {
                     const child = this.nodes.find(n => n.id === opt.target);
                     if (child) {
-                        // Add the child (ScreenNode or NodeReference) but do NOT
-                        // follow a NodeReference's targetNodeId — the reference itself
-                        // is selected, not the node it points to.
-                        if (child instanceof NodeReference) {
+                        // Don't follow through a Reference, just include it
+                        if (child.type === 'Reference' || child.type === 'reference') {
                             visited.add(child.id);
                         } else {
                             this.getDescendants(child, visited);
@@ -222,7 +148,6 @@ export class NodeEditor {
                 }
             });
         }
-
         return visited;
     }
 
@@ -233,73 +158,42 @@ export class NodeEditor {
     }
 
     getGroupAt(x, y) {
-        // Check header first (for dragging), then check if point is in group
         for (let i = this.groups.length - 1; i >= 0; i--) {
             const group = this.groups[i];
-            if (group.isHeaderHit(x, y)) {
-                return { group, isHeader: true };
-            }
+            if (Group.isHeaderHit(group, x, y)) return { group, isHeader: true };
         }
         for (let i = this.groups.length - 1; i >= 0; i--) {
             const group = this.groups[i];
-            if (group.isHit(x, y)) {
-                return { group, isHeader: false };
-            }
+            if (Group.isHit(group, x, y)) return { group, isHeader: false };
         }
         return null;
     }
 
     updateGroupMembership() {
-        // Update which nodes belong to which groups
         this.groups.forEach(group => {
             const previousNodeIds = [...group.nodeIds];
-            const newNodeIds = [];
-            this.nodes.forEach(node => {
-                if (group.containsNode(node)) {
-                    newNodeIds.push(node.id);
-                }
-            });
-            
-            // Check if membership actually changed before emitting event
-            const changed = previousNodeIds.length !== newNodeIds.length || !previousNodeIds.every((v,i) => v === newNodeIds[i]);
-            
-            if (changed) {
-                if (this.stateHandlers && this.stateHandlers.onGroupMembershipUpdated) {
-                    this.stateHandlers.onGroupMembershipUpdated(group.id, newNodeIds);
-                } else {
-                    group.nodeIds = newNodeIds;
-                    if (this.onStateChange) this.onStateChange();
-                }
-            } else {
-                group.nodeIds = newNodeIds; // Sync locally anyway
-            }
+            const newNodeIds = this.nodes
+                .filter(node => Group.containsNode(group, node))
+                .map(node => node.id);
+            const changed = previousNodeIds.length !== newNodeIds.length ||
+                !previousNodeIds.every((v, i) => v === newNodeIds[i]);
+            group.nodeIds = newNodeIds;
+            if (changed && this.onStateChange) this.onStateChange();
         });
     }
 
     removeNode(node) {
         if (!node) return;
-
-        // Always update local arrays for immediate canvas refresh
         this.nodes.forEach(n => {
             if (n.outputs) {
                 n.outputs.forEach(output => {
-                    if (output.target === node.id) {
-                        output.target = null;
-                    }
+                    if (output.target === node.id) output.target = null;
                 });
             }
         });
         this.nodes = this.nodes.filter(n => n !== node);
-
-        if (this.stateHandlers && this.stateHandlers.onNodeRemoved) {
-            this.stateHandlers.onNodeRemoved(node.id);
-        } else {
-            if (this.onStateChange) this.onStateChange();
-        }
-
-        if (this.selectedNode === node) {
-            this.selectNode(null);
-        }
+        if (this.selectedNode === node) this.selectNode(null);
+        if (this.onStateChange) this.onStateChange();
         this.draw();
     }
 
@@ -322,42 +216,31 @@ export class NodeEditor {
     }
 
     getNodeAt(x, y) {
-        // Reverse iterate to check top-most nodes first
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
-            if (node.isHit(x, y)) {
-                return node;
-            }
+            const hit = (node.type === 'Reference' || node.type === 'reference')
+                ? NodeReference.isHit(node, x, y)
+                : ScreenNode.isHit(node, x, y);
+            if (hit) return node;
         }
         return null;
     }
 
     isDeleteIconHit(node, x, y) {
-        const deleteIconSize = 16;
-        const deleteIconX = node.x + node.width - deleteIconSize - 5;
-        const deleteIconY = node.y + 5;
-        const centerX = deleteIconX + deleteIconSize / 2;
-        const centerY = deleteIconY + deleteIconSize / 2;
-        const distance = Math.hypot(x - centerX, y - centerY);
-        return distance <= deleteIconSize / 2;
+        return (node.type === 'Reference' || node.type === 'reference')
+            ? NodeReference.isDeleteIconHit ? NodeReference.isDeleteIconHit(node, x, y) : ScreenNode.isDeleteIconHit(node, x, y)
+            : ScreenNode.isDeleteIconHit(node, x, y);
     }
 
     isConfigIconHit(node, x, y) {
-        const configIconSize = 16;
-        const configIconX = node.x + 5; // Bottom left corner
-        const configIconY = node.y + node.height - configIconSize - 5;
-        const centerX = configIconX + configIconSize / 2;
-        const centerY = configIconY + configIconSize / 2;
-        const distance = Math.hypot(x - centerX, y - centerY);
-        return distance <= configIconSize / 2;
+        return ScreenNode.isConfigIconHit(node, x, y);
     }
 
     getPortAt(x, y) {
         for (const node of this.nodes) {
-            if (node instanceof ScreenNode) {
-                // Dynamic ports
+            if (node.type === 'Screen' || node.type === 'screen') {
                 for (let i = 0; i < node.outputs.length; i++) {
-                    const port = node.getOutputPort(i);
+                    const port = ScreenNode.getOutputPort(node, i);
                     if (Math.hypot(x - port.x, y - port.y) < 10) return { node, index: i };
                 }
             }
@@ -394,23 +277,17 @@ export class NodeEditor {
     // Find connection at given position
     getConnectionAt(x, y) {
         for (const fromNode of this.nodes) {
-            if (fromNode instanceof ScreenNode) {
-                for (let index = 0; index < fromNode.outputs.length; index++) {
-                    const output = fromNode.outputs[index];
-                    if (!output.target) continue;
-
-                    const toNode = this.nodes.find(n => n.id === output.target);
-                    if (!toNode) continue;
-
-                    const port = fromNode.getOutputPort(index);
-                    const startX = port.x;
-                    const startY = port.y;
-                    const endX = toNode.x;
-                    const endY = toNode.y + toNode.height / 2;
-
-                    if (this.isPointNearBezier(x, y, startX, startY, endX, endY)) {
-                        return { fromNode, outputIndex: index };
-                    }
+            if (fromNode.type !== 'Screen' && fromNode.type !== 'screen') continue;
+            for (let index = 0; index < fromNode.outputs.length; index++) {
+                const output = fromNode.outputs[index];
+                if (!output.target) continue;
+                const toNode = this.nodes.find(n => n.id === output.target);
+                if (!toNode) continue;
+                const port = ScreenNode.getOutputPort(fromNode, index);
+                const endX = toNode.x;
+                const endY = toNode.y + toNode.height / 2;
+                if (this.isPointNearBezier(x, y, port.x, port.y, endX, endY)) {
+                    return { fromNode, outputIndex: index };
                 }
             }
         }
@@ -461,67 +338,38 @@ export class NodeEditor {
             }
         }
 
-        // Check if clicking on a group config icon (before delete and resize handles)
+        // Check if clicking on a group config icon
         for (let i = this.groups.length - 1; i >= 0; i--) {
             const group = this.groups[i];
-            if (group.isConfigIconHit(x, y)) {
-                this.selectGroup(group, true); // Open modal
-                return;
-            }
+            if (Group.isConfigIconHit(group, x, y)) { this.selectGroup(group, true); return; }
         }
-
-        // Check if clicking on a group delete icon (before resize handles)
+        // Check if clicking on a group delete icon
         for (let i = this.groups.length - 1; i >= 0; i--) {
             const group = this.groups[i];
-            if (group.isDeleteIconHit(x, y)) {
-                this.removeGroup(group);
-                this.draw();
-                return;
-            }
+            if (Group.isDeleteIconHit(group, x, y)) { this.removeGroup(group); this.draw(); return; }
         }
-
-        // Check if clicking on a group resize handle (before nodes and headers)
+        // Check if clicking on a group resize handle
         for (let i = this.groups.length - 1; i >= 0; i--) {
             const group = this.groups[i];
-            if (group.isResizeHandleHit(x, y)) {
+            if (Group.isResizeHandleHit(group, x, y)) {
                 this.selectGroup(group);
-                this.dragState = {
-                    type: 'resize-group',
-                    group: group,
-                    startX: x,
-                    startY: y,
-                    initialWidth: group.width,
-                    initialHeight: group.height
-                };
+                this.dragState = { type: 'resize-group', group, startX: x, startY: y, initialWidth: group.width, initialHeight: group.height };
                 return;
             }
         }
-
         // Check if clicking on a node resize handle
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
-            if (node instanceof ScreenNode && node.isResizeHandleHit(x, y)) {
+            const isScreen = node.type === 'Screen' || node.type === 'screen';
+            const isRef = node.type === 'Reference' || node.type === 'reference';
+            if (isScreen && ScreenNode.isResizeHandleHit(node, x, y)) {
                 this.selectNode(node);
-                this.dragState = {
-                    type: 'resize-node',
-                    node: node,
-                    startX: x,
-                    startY: y,
-                    initialWidth: node.width,
-                    initialHeight: node.height
-                };
+                this.dragState = { type: 'resize-node', node, startX: x, startY: y, initialWidth: node.width, initialHeight: node.height };
                 return;
             }
-            if (node instanceof NodeReference && node.isResizeHandleHit(x, y)) {
+            if (isRef && NodeReference.isResizeHandleHit(node, x, y)) {
                 this.selectNode(node);
-                this.dragState = {
-                    type: 'resize-ref',
-                    node: node,
-                    startX: x,
-                    startY: y,
-                    initialWidth: node.width,
-                    initialHeight: node.height
-                };
+                this.dragState = { type: 'resize-ref', node, startX: x, startY: y, initialWidth: node.width, initialHeight: node.height };
                 return;
             }
         }
@@ -605,47 +453,31 @@ export class NodeEditor {
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
                     const group = this.groups[i];
-                    if (group.isConfigIconHit(x, y)) {
-                        this.canvas.style.cursor = 'pointer';
-                        cursorSet = true;
-                        break;
-                    }
+                    if (Group.isConfigIconHit(group, x, y)) { this.canvas.style.cursor = 'pointer'; cursorSet = true; break; }
                 }
             }
-
             // Check if hovering over a group delete icon
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
                     const group = this.groups[i];
-                    if (group.isDeleteIconHit(x, y)) {
-                        this.canvas.style.cursor = 'pointer';
-                        cursorSet = true;
-                        break;
-                    }
+                    if (Group.isDeleteIconHit(group, x, y)) { this.canvas.style.cursor = 'pointer'; cursorSet = true; break; }
                 }
             }
-
             // Check if hovering over a group resize handle
             if (!cursorSet) {
                 for (let i = this.groups.length - 1; i >= 0; i--) {
                     const group = this.groups[i];
-                    if (group.isResizeHandleHit(x, y)) {
-                        this.canvas.style.cursor = 'nwse-resize';
-                        cursorSet = true;
-                        break;
-                    }
+                    if (Group.isResizeHandleHit(group, x, y)) { this.canvas.style.cursor = 'nwse-resize'; cursorSet = true; break; }
                 }
             }
-
             // Check if hovering over a node resize handle
             if (!cursorSet) {
                 for (let i = this.nodes.length - 1; i >= 0; i--) {
                     const node = this.nodes[i];
-                    if ((node instanceof ScreenNode || node instanceof NodeReference) && node.isResizeHandleHit(x, y)) {
-                        this.canvas.style.cursor = 'nwse-resize';
-                        cursorSet = true;
-                        break;
-                    }
+                    const isScreen = node.type === 'Screen' || node.type === 'screen';
+                    const isRef = node.type === 'Reference' || node.type === 'reference';
+                    if (isScreen && ScreenNode.isResizeHandleHit(node, x, y)) { this.canvas.style.cursor = 'nwse-resize'; cursorSet = true; break; }
+                    if (isRef && NodeReference.isResizeHandleHit(node, x, y)) { this.canvas.style.cursor = 'nwse-resize'; cursorSet = true; break; }
                 }
             }
 
@@ -687,12 +519,9 @@ export class NodeEditor {
                 const node = this.dragState.node;
                 const deltaX = x - this.dragState.startX;
                 const deltaY = y - this.dragState.startY;
-
-                // Update width and height with minimum constraints
                 node.width = Math.max(150, this.dragState.initialWidth + deltaX);
-                const minHeight = node.baseHeight + (node.outputs.length * node.optionHeight);
+                const minHeight = ScreenNode.BASE_HEIGHT + (node.outputs.length * ScreenNode.OPTION_HEIGHT);
                 node.height = Math.max(minHeight, this.dragState.initialHeight + deltaY);
-
                 this.draw();
             } else if (this.dragState.type === 'resize-ref') {
                 const node = this.dragState.node;
@@ -735,7 +564,8 @@ export class NodeEditor {
                 this.camera.y = this.dragState.initialCameraY + dy;
                 this.draw();
             }
-            if (this.onStateChange) this.onStateChange();
+            // No autoSave during drag — only mutate POJO + draw() at 60fps.
+            // commitChange / onStateChange is called in handleMouseUp.
         }
     }
 
@@ -745,36 +575,18 @@ export class NodeEditor {
                 const rect = this.canvas.getBoundingClientRect();
                 const x = (e.clientX - rect.left - this.camera.x) / this.camera.zoom;
                 const y = (e.clientY - rect.top - this.camera.y) / this.camera.zoom;
-
                 const targetNode = this.getNodeAt(x, y);
                 if (targetNode && targetNode !== this.dragState.fromNode) {
                     const fromNode = this.dragState.fromNode;
                     const portIndex = this.dragState.fromPortIndex;
-
-                    // Always update local state for immediate canvas refresh
                     if (fromNode.outputs[portIndex]) {
                         fromNode.outputs[portIndex].target = targetNode.id;
                     }
-                    if (this.stateHandlers && this.stateHandlers.onConnectionCreated) {
-                        this.stateHandlers.onConnectionCreated(fromNode.id, portIndex, targetNode.id);
-                    }
+                    if (this.onStateChange) this.onStateChange();
                 }
-            } else if (this.dragState.type === 'node') {
-                if (this.stateHandlers && this.stateHandlers.onNodeMoved) {
-                    this.stateHandlers.onNodeMoved(this.dragState.node.id, this.dragState.node.x, this.dragState.node.y);
-                }
-            } else if (this.dragState.type === 'resize-node' || this.dragState.type === 'resize-ref') {
-                if (this.stateHandlers && this.stateHandlers.onNodeResized) {
-                    this.stateHandlers.onNodeResized(this.dragState.node.id, this.dragState.node.width, this.dragState.node.height);
-                }
-            } else if (this.dragState.type === 'group') {
-                if (this.stateHandlers && this.stateHandlers.onGroupMoved) {
-                    this.stateHandlers.onGroupMoved(this.dragState.group.id, this.dragState.group.x, this.dragState.group.y);
-                }
-            } else if (this.dragState.type === 'resize-group') {
-                if (this.stateHandlers && this.stateHandlers.onGroupResized) {
-                    this.stateHandlers.onGroupResized(this.dragState.group.id, this.dragState.group.width, this.dragState.group.height);
-                }
+            } else if (this.dragState.type !== 'pan') {
+                // node/group drag/resize commit — data already mutated in-place on the POJO
+                if (this.onStateChange) this.onStateChange();
             }
         }
 
@@ -797,14 +609,9 @@ export class NodeEditor {
         // Check if right-clicking on a connection
         const connection = this.getConnectionAt(x, y);
         if (connection) {
-            // Always clear locally for immediate canvas refresh
             connection.fromNode.outputs[connection.outputIndex].target = null;
             this.draw();
-            if (this.stateHandlers && this.stateHandlers.onConnectionRemoved) {
-                this.stateHandlers.onConnectionRemoved(connection.fromNode.id, connection.outputIndex);
-            } else {
-                if (this.onStateChange) this.onStateChange();
-            }
+            if (this.onStateChange) this.onStateChange();
             return;
         }
 
@@ -1000,7 +807,7 @@ export class NodeEditor {
             const isHighlighted = this.highlightedNodes.has(node.id);
 
             // Draw differently for NodeReference
-            if (node instanceof NodeReference) {
+            if (node.type === 'Reference' || node.type === 'reference') {
                 // Draw Reference Box (smaller and different style)
                 this.ctx.fillStyle = isSelected ? "#2a4a5a" : "#1a3a4a";
                 this.ctx.strokeStyle = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#3a7acc");
@@ -1028,7 +835,7 @@ export class NodeEditor {
                 // Draw Reference Title
                 this.ctx.fillStyle = "#fff";
                 this.ctx.font = "bold 11px Courier New";
-                const displayTitle = node.getDisplayTitle(this.nodes);
+                const displayTitle = NodeReference.getDisplayTitle(node, this.nodes);
                 this.ctx.fillText(displayTitle, node.x + 35, node.y + 30);
 
                 // Draw resize handle
@@ -1091,7 +898,7 @@ export class NodeEditor {
                 // Canvas text wrapping
                 const margin = 10;
                 const maxWidth = node.width - (margin * 2);
-                const maxHeight = node.height - (node instanceof ScreenNode ? (node.outputs.length * node.optionHeight + 60) : 40);
+                const maxHeight = node.height - ((node.type === 'Screen' || node.type === 'screen') ? (node.outputs.length * ScreenNode.OPTION_HEIGHT + 60) : 40);
 
                 const lines = text.split('\n');
                 let yPos = node.y + 45;
@@ -1164,7 +971,7 @@ export class NodeEditor {
                 }
 
                 // Draw Ports and Options
-                if (node instanceof ScreenNode) {
+                if (node.type === 'Screen' || node.type === 'screen') {
                     // Draw resize handle
                     const handleSize = 20;
                     const handleX = node.x + node.width - handleSize;
@@ -1193,7 +1000,7 @@ export class NodeEditor {
                     }
 
                     node.outputs.forEach((opt, index) => {
-                        const port = node.getOutputPort(index);
+                        const port = ScreenNode.getOutputPort(node, index);
                         this.drawPort(port, "#00d022");
 
                         // Draw Label
@@ -1260,39 +1067,24 @@ export class NodeEditor {
 
         // Draw Connections
         this.nodes.forEach(fromNode => {
-            if (fromNode instanceof ScreenNode) {
-                fromNode.outputs.forEach((output, index) => {
-                    if (!output.target) return;
-
+            if (fromNode.type !== 'Screen' && fromNode.type !== 'screen') return;
+            fromNode.outputs.forEach((output, index) => {
+                if (!output.target) return;
                     const toNode = this.nodes.find(n => n.id === output.target);
                     if (!toNode) return;
-
-                    const port = fromNode.getOutputPort(index);
-                    const startX = port.x;
-                    const startY = port.y;
-                    const endX = toNode.x;
-                    const endY = toNode.y + toNode.height / 2;
-
-                    // Check if this connection is being hovered
+                    const port = ScreenNode.getOutputPort(fromNode, index);
                     const isHovered = this.hoveredConnection &&
                         this.hoveredConnection.fromNode === fromNode &&
                         this.hoveredConnection.outputIndex === index;
-
-                    this.drawConnection(startX, startY, endX, endY, false, isHovered);
-                });
-            }
+                    this.drawConnection(port.x, port.y, toNode.x, toNode.y + toNode.height / 2, false, isHovered);
+            });
         });
 
         // Draw Dragging Connection
         if (this.dragState && this.dragState.type === 'connection') {
-            let startX, startY;
             const fromNode = this.dragState.fromNode;
-            // Assuming ScreenNode
-            const port = fromNode.getOutputPort(this.dragState.fromPortIndex);
-            startX = port.x;
-            startY = port.y;
-
-            this.drawConnection(startX, startY, this.dragState.currentX, this.dragState.currentY, true);
+            const port = ScreenNode.getOutputPort(fromNode, this.dragState.fromPortIndex);
+            this.drawConnection(port.x, port.y, this.dragState.currentX, this.dragState.currentY, true);
         }
 
         this.ctx.restore();
@@ -1462,9 +1254,9 @@ export class NodeEditor {
             tempCtx.fillText(content, node.x + 10, node.y + 45);
 
             // Draw Ports
-            if (node instanceof ScreenNode) {
+            if (node.type === 'Screen' || node.type === 'screen') {
                 node.outputs.forEach((opt, index) => {
-                    const port = node.getOutputPort(index);
+                    const port = ScreenNode.getOutputPort(node, index);
 
                     // Draw port
                     tempCtx.fillStyle = "#00d022";
@@ -1490,34 +1282,27 @@ export class NodeEditor {
 
         // Draw connections
         this.nodes.forEach(fromNode => {
-            if (fromNode instanceof ScreenNode) {
-                fromNode.outputs.forEach((output, index) => {
-                    if (!output.target) return;
-
-                    const toNode = this.nodes.find(n => n.id === output.target);
-                    if (!toNode) return;
-
-                    const port = fromNode.getOutputPort(index);
-                    const startX = port.x;
-                    const startY = port.y;
-                    const endX = toNode.x;
-                    const endY = toNode.y + toNode.height / 2;
-
-                    // Draw connection
-                    tempCtx.strokeStyle = "#aaa";
-                    tempCtx.lineWidth = 2;
-                    tempCtx.beginPath();
-                    tempCtx.moveTo(startX, startY);
-
-                    const cp1x = startX + (endX - startX) / 2;
-                    const cp1y = startY;
-                    const cp2x = endX - (endX - startX) / 2;
-                    const cp2y = endY;
-
-                    tempCtx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
-                    tempCtx.stroke();
-                });
-            }
+            if (fromNode.type !== 'Screen' && fromNode.type !== 'screen') return;
+            fromNode.outputs.forEach((output, index) => {
+                if (!output.target) return;
+                const toNode = this.nodes.find(n => n.id === output.target);
+                if (!toNode) return;
+                const port = ScreenNode.getOutputPort(fromNode, index);
+                const startX = port.x;
+                const startY = port.y;
+                const endX = toNode.x;
+                const endY = toNode.y + toNode.height / 2;
+                tempCtx.strokeStyle = "#aaa";
+                tempCtx.lineWidth = 2;
+                tempCtx.beginPath();
+                tempCtx.moveTo(startX, startY);
+                const cp1x = startX + (endX - startX) / 2;
+                const cp1y = startY;
+                const cp2x = endX - (endX - startX) / 2;
+                const cp2y = endY;
+                tempCtx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+                tempCtx.stroke();
+            });
         });
 
         tempCtx.restore();
