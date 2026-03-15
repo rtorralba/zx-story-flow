@@ -408,10 +408,17 @@ function transpileCYDToBasic(cydSrc) {
  * @param {string} [cydGeneralCode]  - prepended general code from the global editor
  * @param {string} [cydGeneralCodeEnd]  - appended general code (end) from the global editor
  */
-export function generateBasicFromCYD(nodes, globalConfig, cydGeneralCode = '', cydGeneralCodeEnd = '') {
+export function generateBasicFromCYD(nodes, globalConfig, cydGeneralCode = '', cydGeneralCodeEnd = '', startNodeId = null) {
     // Build CYD source from nodes (same logic as export-cyd-btn for CYD projects)
-    const screenNodes = (nodes || []).filter(n => n && (n.type === 'Screen' || n.type === 'screen'));
+    let screenNodes = (nodes || []).filter(n => n && (n.type === 'Screen' || n.type === 'screen'));
     if (screenNodes.length === 0) return '10 REM No screens';
+    if (startNodeId) {
+        const startIdx = screenNodes.findIndex(n => n.id === startNodeId);
+        if (startIdx > 0) {
+            const [startNode] = screenNodes.splice(startIdx, 1);
+            screenNodes = [startNode, ...screenNodes];
+        }
+    }
 
     function slugify(str) {
         return (str || '').normalize('NFD')

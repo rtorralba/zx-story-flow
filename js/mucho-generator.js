@@ -44,12 +44,20 @@ function calculateAttribute(ink, paper, bright, flash) {
     return flashVal * 128 + brightVal * 64 + paperVal * 8 + inkVal;
 }
 
-export function generateMucho(nodes, globalConfig = null) {
+export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
     if (nodes.length === 0) return "";
 
-    // Filter out references - only process ScreenNodes
-    const screenNodes = nodes.filter(n => n.type === 'Screen' || n.type === 'screen');
+    // Filter out references - only process ScreenNodes.
+    // The start node (if set) is placed first; remaining nodes keep their original order.
+    let screenNodes = nodes.filter(n => n.type === 'Screen' || n.type === 'screen');
     if (screenNodes.length === 0) return "";
+    if (startNodeId) {
+        const startIdx = screenNodes.findIndex(n => n.id === startNodeId);
+        if (startIdx > 0) {
+            const [startNode] = screenNodes.splice(startIdx, 1);
+            screenNodes = [startNode, ...screenNodes];
+        }
+    }
 
     // Default global config
     if (!globalConfig) {

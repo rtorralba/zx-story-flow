@@ -39,11 +39,18 @@ function parseFlagToCmds(flagStr) {
     return cmds;
 }
 
-export function generateCYD(nodes, globalConfig = null) {
+export function generateCYD(nodes, globalConfig = null, startNodeId = null) {
     if (!nodes || nodes.length === 0) return '';
 
-    const screenNodes = nodes.filter(n => n && (n.type === 'Screen' || n.type === 'screen'));
+    let screenNodes = nodes.filter(n => n && (n.type === 'Screen' || n.type === 'screen'));
     if (screenNodes.length === 0) return '';
+    if (startNodeId) {
+        const startIdx = screenNodes.findIndex(n => n.id === startNodeId);
+        if (startIdx > 0) {
+            const [startNode] = screenNodes.splice(startIdx, 1);
+            screenNodes = [startNode, ...screenNodes];
+        }
+    }
 
     if (!globalConfig) globalConfig = { page: { ink: 'white', paper: 'black', bright: false, flash: false } };
 
