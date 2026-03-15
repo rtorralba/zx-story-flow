@@ -128,13 +128,12 @@ export class MuchoEditor {
         paragraphs.forEach((p, idx) => {
             const lines = p.split('\n');
             let conditionData = null;
-            let imageData = null;
 
             lines.forEach(line => {
                 const trimmed = line.trim();
                 if (trimmed.startsWith('$I ')) {
                     const imgName = trimmed.substring(3).trim();
-                    if (imgName) imageData = { paragraphIndex: idx, imageName: imgName };
+                    if (imgName) newImgs.push({ paragraphIndex: idx, imageName: imgName });
                 } else if (trimmed.startsWith('$O ')) {
                     const condStr = trimmed.substring(3).trim();
                     if (condStr) {
@@ -154,7 +153,6 @@ export class MuchoEditor {
             });
 
             if (conditionData && conditionData.conditions.length > 0) newConds.push(conditionData);
-            if (imageData) newImgs.push(imageData);
         });
 
         node.conditionalParagraphs = newConds;

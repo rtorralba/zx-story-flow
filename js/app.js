@@ -871,6 +871,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    window.editor = editor;
+
     // Auto-save logic
     const STORAGE_KEY = 'zx_story_flow_project';
     let isInitialized = false;
