@@ -20,6 +20,8 @@ export class NodeEditor {
         this.dragState = null;
         this.hoveredConnection = null;
         this.onStateChange = null; // Called after any state change (e.g. autosave)
+        this.onContextMenuNode = null; // Called with (node, screenX, screenY) on right-click over a node
+        this.getStartNodeId = null;   // () => string|null — returns the current start node id
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -615,18 +617,19 @@ export class NodeEditor {
             return;
         }
 
-        // If not a connection, check for node to highlight its immediate
-        // children (first-level) and its parent(s) only.
+        // Check if right-clicking on a node → show context menu
         const node = this.getNodeAt(x, y);
-        this.highlightedNodes.clear(); // Clear previous highlights
+        this.highlightedNodes.clear();
 
         if (node) {
+            // Show context menu (e.g. set start node)
+            if (this.onContextMenuNode) {
+                this.onContextMenuNode(node, e.clientX, e.clientY);
+            }
+
+            // Highlight node + immediate children + parents
             const highlighted = new Set();
-
-            // Include the node itself
             highlighted.add(node.id);
-
-            // Add immediate children (first-level outputs)
             if (node.outputs) {
                 node.outputs.forEach(opt => {
                     if (opt.target) {
@@ -635,15 +638,10 @@ export class NodeEditor {
                     }
                 });
             }
-
-            // Add parent nodes (nodes that point to this node)
             for (const n of this.nodes) {
                 if (!n.outputs) continue;
-                if (n.outputs.some(o => o.target === node.id)) {
-                    highlighted.add(n.id);
-                }
+                if (n.outputs.some(o => o.target === node.id)) highlighted.add(n.id);
             }
-
             this.highlightedNodes = highlighted;
         }
 
@@ -882,14 +880,27 @@ export class NodeEditor {
                     this.ctx.shadowBlur = 0; // Reset shadow for subsequent drawing
                 }
 
-                this.ctx.strokeStyle = isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#444");
-                this.ctx.lineWidth = isSelected || isHighlighted ? 3 : 2;
+                const isStartNode = this.getStartNodeId && this.getStartNodeId() === node.id;
+                this.ctx.strokeStyle = isStartNode ? "#00d022" : (isSelected ? "#00d022" : (isHighlighted ? "#4a9eff" : "#444"));
+                this.ctx.lineWidth = isSelected || isHighlighted || isStartNode ? 3 : 2;
+                if (isStartNode) this.ctx.setLineDash([6, 3]);
                 this.ctx.stroke();
+                this.ctx.setLineDash([]);
+
+                // Draw start node badge ▶ in top-left corner
+                if (isStartNode) {
+                    this.ctx.fillStyle = "#00d022";
+                    this.ctx.font = "bold 11px Arial";
+                    this.ctx.textAlign = "left";
+                    this.ctx.textBaseline = "middle";
+                    this.ctx.fillText("▶ START", node.x + 8, node.y + 12);
+                    this.ctx.textBaseline = "alphabetic";
+                }
 
                 // Draw Node Title
-                this.ctx.fillStyle = "#fff";
+                this.ctx.fillStyle = isStartNode ? "#00d022" : "#fff";
                 this.ctx.font = "bold 14px Courier New";
-                this.ctx.fillText(node.title, node.x + 10, node.y + 25);
+                this.ctx.fillText(node.title, node.x + 10, node.y + (isStartNode ? 30 : 25));
 
                 this.ctx.font = "12px Courier New";
                 this.ctx.fillStyle = "#aaa";

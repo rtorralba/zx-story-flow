@@ -860,7 +860,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================
     let projectState = {
         nodes: [],
-        groups: []
+        groups: [],
+        startNodeId: null
     };
 
     // Initialize Editor
@@ -878,6 +879,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     // editor.nodes and editor.groups are set to projectState.nodes/groups by renderState(),
     // so mutations from the editor automatically update projectState and vice versa.
     editor.onStateChange = autoSave;
+    editor.getStartNodeId = () => projectState.startNodeId;
+
+    // Context menu for canvas (right-click on node → set start node)
+    const canvasContextMenu = document.createElement('div');
+    canvasContextMenu.id = 'canvas-context-menu';
+    canvasContextMenu.style.cssText = 'display:none;position:fixed;z-index:9999;background:#1e1e1e;border:1px solid #555;border-radius:6px;padding:4px 0;min-width:180px;box-shadow:0 4px 12px rgba(0,0,0,.6);font:13px Courier New,monospace;color:#fff;';
+    document.body.appendChild(canvasContextMenu);
+
+    function hideContextMenu() { canvasContextMenu.style.display = 'none'; }
+    document.addEventListener('click', hideContextMenu);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hideContextMenu(); });
+
+    editor.onContextMenuNode = (node, screenX, screenY) => {
+        canvasContextMenu.innerHTML = '';
+        if (node.type === 'Screen' || node.type === 'screen') {
+            const item = document.createElement('div');
+            const isStart = projectState.startNodeId === node.id;
+            item.textContent = isStart ? '▶ Es el nodo inicial' : '▶ Establecer como inicio';
+            item.style.cssText = `padding:6px 14px;cursor:${isStart ? 'default' : 'pointer'};color:${isStart ? '#00d022' : '#fff'};opacity:${isStart ? '0.6' : '1'};`;
+            if (!isStart) {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    projectState.startNodeId = node.id;
+                    editor.draw();
+                    autoSave();
+                    hideContextMenu();
+                });
+            }
+            canvasContextMenu.appendChild(item);
+            canvasContextMenu.style.display = 'block';
+            canvasContextMenu.style.left = screenX + 'px';
+            canvasContextMenu.style.top = screenY + 'px';
+        }
+    };
 
     window.editor = editor;
     window.projectState = projectState; // Expose for debugging
@@ -893,6 +928,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             globalConfig: globalConfig,
             nodes: projectState.nodes,
             groups: projectState.groups,
+            startNodeId: projectState.startNodeId || null,
             cydGeneralCode: document.getElementById('cyd-general-code')?.value || '',
             cydGeneralCodeEnd: document.getElementById('cyd-general-code-end')?.value || '',
             lastSaved: Date.now()
@@ -952,9 +988,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Restore Nodes and Groups — assign directly (POJOs, no conversion needed)
+            // Restore Nodes, Groups and start node — assign directly (POJOs, no conversion needed)
             projectState.nodes = data.nodes || [];
             projectState.groups = data.groups || [];
+            projectState.startNodeId = data.startNodeId || null;
 
             editor.renderState(projectState); // Feed state to editor
             editor.onStateChange = originalOnStateChange;
@@ -1081,10 +1118,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (projectType === 'CYD') {
                     return {
                         loaderCode: "",
-                        basicCode: generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
+                        basicCode: generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd, projectState.startNodeId)
                     };
                 } else {
-                    const muchoText = generateMucho(projectState.nodes, globalConfig);
+                    const muchoText = generateMucho(projectState.nodes, globalConfig, projectState.startNodeId);
                     return {
                         loaderCode: generateLoaderFromMucho(muchoText, globalConfig),
                         basicCode: generateBasicFromMucho(muchoText, globalConfig)
@@ -1187,8 +1224,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
         const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
         const basicCode = projectType === 'CYD'
-            ? generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd)
-            : generateBasicFromMucho(generateMucho(projectState.nodes, globalConfig), globalConfig);
+            ? generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd, projectState.startNodeId)
+            : generateBasicFromMucho(generateMucho(projectState.nodes, globalConfig, projectState.startNodeId), globalConfig);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([basicCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -1201,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-mucho-btn').addEventListener('click', () => {
         if (hasDuplicateLabels()) return;
-        const muchoCode = generateMucho(projectState.nodes, globalConfig);
+        const muchoCode = generateMucho(projectState.nodes, globalConfig, projectState.startNodeId);
         const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
         const blob = new Blob([muchoCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -1214,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('export-cyd-btn').addEventListener('click', () => {
         try {
-            const cydCodeResult = generateCYD(projectState.nodes, globalConfig);
+            const cydCodeResult = generateCYD(projectState.nodes, globalConfig, projectState.startNodeId);
             let cydCode = cydCodeResult;
             // Prepend CYD general code if present
             const cydGeneralCode = (document.getElementById('cyd-general-code')?.value || '').trim();
