@@ -65,28 +65,28 @@ function parseLine(line) {
 /**
  * 
  * @param {str} text - with *only* options and commands.
- * @param {ojb} compileData - Dictionary with all data
+ * @param {ojb} basicData - Dictionary with all data
  *      collected during transpilation. Most of this data
  *      will be required later, possibly in a second pass.
  * 
  * Return a string with BASIC code that will go in the
  * IF statemet. "IF " + string + " THEN"
  */
-function transpileOptions(text,compileData) {
+function transpileOptions(text,basicData) {
 
     var basicCode = '';
 
     // Flags tested for True.
     text.matchAll(/(?:^|\s)(?:HAS:)?([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const flag = 'f'+match[1];
-        compileData.flags.add(flag);
+        basicData.flags.add(flag);
         basicCode += basicCode?" AND "+flag:flag;
     })
 
     // Flags tested for False.
     text.matchAll(/(?:!|NOT:)([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const flag = 'f'+match[1];
-        compileData.flags.add(flag);
+        basicData.flags.add(flag);
         basicCode += basicCode?" AND NOT "+flag: "NOT "+flag;
     })
 
@@ -96,8 +96,8 @@ function transpileOptions(text,compileData) {
         const var1 = 'i'+match[1];
         const op = match[2]==="!="?"<>":match[2];
         const var2 = isNumber(match[3])?match[3]:"i"+match[3];
-        compileData.vars.add(var1);
-        !isNumber(var2)?compileData.vars.add(var2):null;
+        basicData.vars.add(var1);
+        !isNumber(var2)?basicData.vars.add(var2):null;
         
         basicCode += basicCode?" AND ":"";
         basicCode += "(" + var1 + " " + op + " " + var2 + ")"
@@ -110,9 +110,9 @@ function transpileOptions(text,compileData) {
 /**
  * 
  * @param {*} text 
- * @param {*} compileData 
+ * @param {*} basicData 
  */
-function transpileStatements(text,compileData) {
+function transpileStatements(text,basicData) {
     
     var basicCode = '';
 
@@ -120,7 +120,7 @@ function transpileStatements(text,compileData) {
     text.matchAll(/(?:^|\s)(SET|RESET|TOGGLE):([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const op = match[1]
         const flag = 'f'+match[2];
-        compileData.flags.add(flag);
+        basicData.flags.add(flag);
 
         basicCode += basicCode?":":"";
         switch(op) {
@@ -142,8 +142,8 @@ function transpileStatements(text,compileData) {
         const var1 = 'i'+match[1];
         const op = match[2]==="!="?"<>":match[2];
         const var2 = isNumber(match[3])?match[3]:"i"+match[3];
-        compileData.vars.add(var1);
-        !isNumber(var2)?compileData.vars.add(var2):null;
+        basicData.vars.add(var1);
+        !isNumber(var2)?basicData.vars.add(var2):null;
         
         basicCode += basicCode?":":"";
         switch(op) {
@@ -166,7 +166,7 @@ function transpileStatements(text,compileData) {
 }
 
 
-function makeInitializationBasic(compileData, globalConfig) {
+function makeInitializationBasic(basicData, globalConfig) {
 
     // Initialization code.
     // =========================================================
@@ -180,19 +180,20 @@ function makeInitializationBasic(compileData, globalConfig) {
     // =========================================================
     // GLOBAL INIT  (lines 10 – 120)
     // =========================================================
+    basicData.labels["sys_start_game"] = 10;
     initCode += `10 REM = init global =\n`;
     const globalBorder = colorToZX(globalConfig?.border || 'black');
     initCode += `20 POKE 23693,7:BORDER ${globalBorder}:CLS\n`;
     initCode += `30 REM p() table of line pointers.\n`;
-    initCode += `40 DIM p(10)\n`;
+    initCode += `40 DIM p(10):LET dattr=7: LET iattr=7:\n`;
     initCode += `50 REM Inicializa variables del juego.\n`;
 
     // Initialise all flags and variables to 0 on a single line
-    if (compileData.flags || compileData.vars) {
+    if (basicData.flags.size || basicData.vars.size) {
         initCode += `60 LET ` 
-        initCode += [...compileData.flags].map(f => `${f}=0`).join(':LET ');
-        initCode += compileData.flags && compileData.vars?":LET ":"";
-        initCode += [...compileData.vars].map(f => `${f}=0`).join(':LET ');
+        initCode += [...basicData.flags].map(f => `${f}=0`).join(':LET ');
+        initCode += basicData.flags.size && basicData.vars.size?":LET ":"";
+        initCode += [...basicData.vars].map(f => `${f}=0`).join(':LET ');
         initCode += "\n";
     } else {
         initCode += `60 REM no flags nor numeric variables\n`;
@@ -203,16 +204,16 @@ function makeInitializationBasic(compileData, globalConfig) {
 
 /**
  * 
- * @param {dict} CompileData 
+ * @param {dict} basicData 
  * @param {dict} globalConfig 
  * @returns BASIC code texto with routines.
  */
-function makeSystemSubroutinesBasic(CompileData, globalConfig) {
+function makeSystemSubroutinesBasic(basicData, globalConfig) {
     
     let basicCode="";
 
     // Load image from RAMdisk
-    compileData.labels["sys_load_image"] = 9982;
+    basicData.labels["sys_load_image"] = 9982;
     basicCode += `
     9982 REM Load i$ from RAMDISK
     9983 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
@@ -220,42 +221,40 @@ function makeSystemSubroutinesBasic(CompileData, globalConfig) {
     `
     
     // Routine to clean the options section.
-    compileData.labels["sys_cls_interface"] = 9985;
+    basicData.labels["sys_cls_interface"] = 9985;
     basicCode += `
     9985 REM Option bar subroutine (also called after image load)
-    9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:LET i=1:RETURN
+    9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
     `
     
     
-    compileData.labels["fun"] = 9982;
+    basicData.labels["sys_cls_all"] = 9988;
     basicCode += `
     9988 REM New screen. CLS + option bar (no image)
-    9989 POKE 23693,tattr:POKE 23624,dattr:CLS:GO SUB 9985:RETURN
+    9989 POKE 23624,dattr:CLS:GO SUB [[sys_cls_interface]]:RETURN
     `;
+    // basicCode += `
+    // 9988 REM New screen. CLS + option bar (no image)
+    // 9989 POKE 23693,tattr:POKE 23624,dattr:CLS:GO SUB [[sys_cls_interface]]:RETURN
+    // `;
     
-    compileData.labels["fun"] = 9982;
+    basicData.labels["fun"] = 9990;
     basicCode += `
     9990 REM New screen. CLS only (image will follow)
     9991 POKE 23693,tattr:POKE 23624,dattr:CLS:RETURN
     `;
 
-    // Routine to clean the options section.
-    basicCode += `
-    9000 REM CLS:2 Clear interface
-    9000 POKE BORDCR,dattr:POKE DF_SZ,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE BORDCR
-
-    `
    
     // Routine to launch interactive selecction of option
-    compileData.labels["sys_choose_option"] = 9993;
+    basicData.labels["sys_choose_option"] = 9993;
     basicCode += `
     9993 REM choose an option
-    9994 IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO 0:
+    9994 LET i=1:IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
     9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
     9996 IF k=10 THEN LET i=i+1-(n AND i=n)
     9997 IF k=11 THEN LET i=i-1+(n AND i=1)
-    9998 IF k=13 THEN GO SUB 110:GO TO p(i)
-    9999 GO TO 9993\n`;
+    9998 IF k=13 THEN GO SUB [[sys_cls_all]]:GO TO p(i)
+    9999 GO TO 9995\n`;
 
     return basicCode;
 }
@@ -280,43 +279,176 @@ function splitIntoScreenBlocks(muchoLines) {
 
 }
 
+
+/**
+ * Transpiles MuCho code into ZX Basic
+ */
+function transpileMuchoBlock(basicData, muchoCode) {
+
+    let screenName = ''; // Store the screen name.
+    let delayed_options = [];
+    let option_counter = 0;
+
+    // A state variable to control how to process
+    // text lines.
+    // 'text' -> expecting text for the screen.
+    // 'option' -> expecting text for an option.
+    // '' -> Not expecting text. Will be ignored.
+    let state = '' 
+
+
+    muchoCode.forEach(pline => {
+        if (pline.type==="Q") {
+            state = 'text';
+            basicData.start_new_line();
+            // Reference new screen.
+            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
+            screenName = match[1]
+            basicData.labels[screenName] = basicData.lineNo;
+            basicData.editLine += `REM ${screenName}`;
+            
+            basicData.start_new_line();
+            basicData.editLine += "GO SUB [[sys_cls_interface]]"
+            // Additional statements.
+            if (match[2]) {
+                basicData.editLine += transpileStatements(pline.text,basicData);
+            }
+        } else if (pline.type==="A") {
+            state = 'option';
+            option_counter++;
+
+            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
+            const destScreen = match[1];
+            const ops =  match[2]?match[2]:"";
+            const opsCode = transpileOptions(ops,basicData);
+            const stmCode = transpileStatements(ops,basicData);
+
+            basicData.start_new_line();
+            basicData.editLine += opsCode? `IF ${opsCode} THEN `:``;
+            basicData.editLine += `LET n = n + 1`;
+            if (stmCode) {
+                // Have statements to run when selected. Need to resolve at
+                // the end of screen block.
+                const label = `${screenName}_OP${option_counter}`;
+                basicData.editLine += `:LET p(n) = [[${label}]]`;
+                delayed_options.push({label: label, code: stmCode, dest: destScreen})
+            } else {
+                // No statements associated to option. Can resolve in a single line.
+                basicData.editLine += `:LET p(n) = [[${destScreen}]]` ;
+            }
+        } else if (pline.type==="T") {
+            if (state==='text') {
+                basicData.start_new_statement()
+                basicData.editLine += pline.text?`PRINT "${pline.text}"`:`PRINT`;
+            } else if (state=='option') {
+                if (pline.text) {
+                    basicData.start_new_statement()
+                    basicData.editLine += `PRINT #1;"   ${pline.text}"`;
+                    state = ''; 
+                }
+            } else {
+                // Text line is ignored.
+            }
+        } else if (pline.type==="O") {
+            basicData.start_new_line();
+            // Add code to the line.
+            const opsCode = transpileOptions(pline.text,basicData);
+            const stmCode = transpileStatements(pline.text,basicData);
+            basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
+            basicData.editLine += stmCode;
+        } else if (pline.type=="I") {
+            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
+            const imgFile = match[1];
+            const ops =  match[2]?match[2]:"";
+
+
+            const imgName = imgFile.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+            
+            basicData.start_new_line();
+            const opsCode = transpileOptions(ops,basicData);
+            const stmCode = transpileStatements(ops,basicData);
+            basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
+            basicData.editLine += `LET i$="${imgName}":GO SUB [[sys_load_image]]:PRINT AT 8,0;`;
+            basicData.editLine += stmCode?`:${stmCode}`:``;
+            basicData.finish_line();
+        }
+
+
+    });
+
+    // flush last line.
+    basicData.finish_line();
+    
+    // Launch option selector.
+    basicData.add_line('GO SUB [[sys_choose_option]]');
+
+    // Process the delayed statements for options.
+    delayed_options.forEach(({label,code,dest}) => {
+        basicData.start_new_line();
+        basicData.labels[label] = basicData.lineNo;
+        basicData.editLine += `REM ${label}`;
+        basicData.start_new_line();
+        basicData.editLine += code + `:GO TO [[${dest}]]`;
+    })
+
+}
+
+
 /**
  * Transpiles MuCho code into ZX Basic
  */
 function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     
-    let basicCode = "";
-    let lineNo = 100; // start at line 100
-    let lineInc = 1; // default line increment.
-    let editLine = ''; // Current line being edited.
     
-    // Some data to keep updated along the transpilation.
-    const compileData = {
+    // This object contain the  BASIC code,
+    // some data collected during transpilation about the program,
+    // and some utility functions.  
+    const basicData = {
+        code : "",
+        lineNo : 100, // start at line 100
+        lineInc : 1, // default line increment.
+        editLine : '', // Current line being edited.
+        
         flags : new Set(),
         vars : new Set(),
         labels : {}, // {name, line}
+
+        // Utility function to start a new line.
+        start_new_line() {
+            this.finish_line();
+            this.editLine = `${this.lineNo} `;
+        },
+
+        // Utility function to start a new statement.
+        // Starts a new line if needed.
+        start_new_statement() {
+            // New line if needed.
+            if(!this.editLine) {
+                this.lineNo = this.lineNo + this.lineInc;
+                this.editLine = `${this.lineNo} `;
+            } else if (this.editLine.slice(-1) !== ":") {
+                this.editLine += ":";
+            }
+        },
+
+        // Finish  last line being editted. If any.
+        finish_line() {
+            if (this.editLine) {
+                this.code += this.editLine + '\n';
+                this.editLine = "";
+                this.lineNo += this.lineInc;
+            }
+        },
+
+        // Safely adds a new basic line with code.
+        add_line(linecontent) {
+            this.start_new_line();
+            this.editLine += linecontent;
+            this.finish_line();
+        },
     }
 
-    // Utility function to start a new line.
-    function start_new_line() {
-        if (editLine) {
-            basicCode += editLine+"\n";
-            lineNo = lineNo + lineInc;
-        }
-        editLine = `${lineNo} `;
-    }
 
-    // Utility function to start a new statement.
-    // Starts a new line if needed.
-    function start_new_statement() {
-        // New line if needed.
-        if(!editLine) {
-            lineNo = lineNo + lineInc;
-            editLine = `${lineNo} `;
-        } else if (editLine.slice(-1) !== ":") {
-            editLine += ":";
-        }
-    }
    
     // Process muchoCode by lines.
     const lines = muchoCode.trim().split(/\r?\n/);
@@ -327,51 +459,31 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         plines.push(parseLine(line));
     });
 
-    // Split into blocks.
+    // Process mucho code by Q blocks.
     const blocks = splitIntoScreenBlocks(plines);
+    blocks.forEach(block => {
+        transpileMuchoBlock(basicData, block);
+    })
 
-    plines.forEach(pline => {
-        if (pline.type==="Q") {
-            start_new_line();
-            // Reference new screen.
-            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
-            const screenName = match[1]
-            compileData.labels[screenName] = editLine;
-            editLine += `REM ${screenName}`;
-            
-            start_new_line();
-            // Additional statements.
-            if (match[2]) {
-                editLine += transpileStatements(pline.text,compileData);
-            }
-        } else if (pline.type==="A") {
-        } else if (pline.type==="T") {
-            start_new_statement()
-            editLine += pline.text?`PRINT "${pline.text}"`:`PRINT`;
-        } else if (pline.type==="O") {
-            // new line.
-            basicCode += editLine + "\n";
-            lineNo = lineNo + lineInc;
-            editLine = `${lineNo} `;
-            // Add code to the line.
-            const opsCode = transpileOptions(pline.text,compileData)
-            const stmCode = transpileStatements(pline.text,compileData)
-            editLine += opsCode?"IF " + opsCode + " THEN ":"";
-            editLine += stmCode;
+
+    const initCode = makeInitializationBasic(basicData, globalConfig);
+    const sysCode = makeSystemSubroutinesBasic(basicData, globalConfig);
+
+    basicData.code =  initCode + basicData.code + sysCode;
+
+    // Resolve labels.
+    const result = basicData.code.replace(/\[\[(.*?)\]\]/g, (match, key) => {
+        if (key in basicData.labels) {
+            return basicData.labels[key]
+        } else {
+            throw new Error(`can't resolve label: ${match}`)
         }
-
     });
-
-    // flush last line.
-    basicCode += editLine?editLine:"";
+    basicData.code = result;
 
 
-    const initCode = makeInitializationBasic(compileData, globalConfig);
-
-    basicCode =  initCode + basicCode;
-
-    console.log(basicCode);
-    return basicCode
+    console.log(basicData.code);
+    return basicData.code
 }
 
 /**
@@ -804,7 +916,8 @@ export function generateBasicFromMucho(muchoText, globalConfig = null) {
     const rawBasic = transpileMuchoToBasic(muchoText, globalConfig);
     
     // Renumber lines compactly to free up space
-    const gameBasic = renumberBasic(rawBasic)
+    //const gameBasic = renumberBasic(rawBasic)
+    const gameBasic = rawBasic;
 
     return gameBasic;
 }
