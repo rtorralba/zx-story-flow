@@ -51,10 +51,10 @@ function parseLine(line) {
         type: '', // { T | Q | O | I | }
         text: '',
     }
-    const tline = line.toUpperCase().trim();
+    const tline = line.trim();
     if(tline && tline.startsWith('$')){
         pline.type = tline[1];
-        pline.text = tline.slice(2).trim();
+        pline.text = tline.slice(2).trim().toLowerCase();
     } else {
         pline.type = 'T'
         pline.text = line;
@@ -77,14 +77,14 @@ function transpileOptions(text,basicData) {
     var basicCode = '';
 
     // Flags tested for True.
-    text.matchAll(/(?:^|\s)(?:HAS:)?([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+    text.matchAll(/(?:^|\s)(?:has:)?([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const flag = 'f'+match[1];
         basicData.flags.add(flag);
         basicCode += basicCode?" AND "+flag:flag;
     })
 
     // Flags tested for False.
-    text.matchAll(/(?:!|NOT:)([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+    text.matchAll(/(?:!|not:)([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const flag = 'f'+match[1];
         basicData.flags.add(flag);
         basicCode += basicCode?" AND NOT "+flag: "NOT "+flag;
@@ -103,6 +103,12 @@ function transpileOptions(text,basicData) {
         basicCode += "(" + var1 + " " + op + " " + var2 + ")"
     })
 
+    // Numeric variable test
+    text.matchAll(/(?:^|\s)(?:rnd):([0-9]+)(?=\s|$)/g)?.forEach(match=>{
+        basicCode += basicCode?" AND ":"";
+        basicCode += `RND*256 < ${match[1]}`;
+    })
+
     return basicCode
 }
 
@@ -117,20 +123,20 @@ function transpileStatements(text,basicData) {
     var basicCode = '';
 
     // Operations with flags
-    text.matchAll(/(?:^|\s)(SET|RESET|TOGGLE):([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+    text.matchAll(/(?:^|\s)(set|reset|toggle):([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const op = match[1]
         const flag = 'f'+match[2];
         basicData.flags.add(flag);
 
         basicCode += basicCode?":":"";
         switch(op) {
-            case "SET":
+            case "set":
                 basicCode += `LET ${flag}=SGN PI`;
                 break;
-            case "RESET":
+            case "reset":
                 basicCode += `LET ${flag}=NOT PI`;
                 break;
-            case "TOGGLE":
+            case "toggle":
                 basicCode += `LET ${flag}=NOT ${flag}`;
                 break;
         }
@@ -163,23 +169,43 @@ function transpileStatements(text,basicData) {
 
 
     // Attribute changes.
-    text.matchAll(/(?:^|\s)(ATTR|DATTR|IATTR|BORDER):([0-9]+)(?=\s|$)/g)?.forEach(match=>{
+    text.matchAll(/(?:^|\s)(attr|dattr|iattr|border):([0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const op = match[1]
         const value = match[2];
 
         basicCode += basicCode?":":"";
         switch(op) {
-            case "ATTR":
+            case "attr":
                 basicCode += `LET tattr = ${value}:POKE 23693,tattr`;//ATTR_P
                 break;
-            case "DATTR":
-                basicCode += `LET dattr = ${value}`;
+            case "dattr":
+                basicCode += `LET dattr = ${value}`; // This will take effect next time divider is drawn.
                 break;
-            case "IATTR":
+            case "iattr":
                 basicCode += `LET iattr = ${value}:POKE 23624,iattr`;//BORDCR
                 break;
-            case "BORDER":
+            case "border":
                 basicCode += `LET battr = ${value}:OUT 254,battr`;//
+                break;
+        }
+    })
+
+
+    // Crelar Screen.
+    // Assume this must be always the last commands.
+    text.matchAll(/(?:^|\s)(?:cls):([0|1|2]+)(?=\s|$)/g)?.forEach(match=>{
+
+        basicCode += basicCode?":":"";
+        switch(match[1]) {
+            case "0":
+                basicCode += `GO SUB [[sys_cls_all]]`;
+                break;
+            case "1":
+                // Clear text not iplemented. Clear all instead.
+                basicCode += `GO SUB [[sys_cls_all]]`;
+                break;
+            case "2":
+                basicCode += `GO SUB [[sys_cls_interface]]`;
                 break;
         }
     })
@@ -243,23 +269,22 @@ function makeSystemSubroutinesBasic(basicData, globalConfig) {
     9984 LOAD! i$ CODE 16384:RETURN
     `
     
-    // Routine to clean the options section.
-    basicData.labels["sys_cls_interface"] = 9985;
+   
+    // Routine to clean all.
+    // Notice it continues to sys_cls_interface.
+    basicData.labels["sys_cls_all"] = 9985;
     basicCode += `
-    9985 REM Option bar subroutine (also called after image load)
-    9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
+    9985 REM New screen. CLS + option bar (no image)
+    9986 RANDOMIZE:POKE 23659,2:POKE 23624,dattr:CLS
+    `;
+    
+    // Routine to clean the interface (options) section.
+    basicData.labels["sys_cls_interface"] = 9987;
+    basicCode += `
+    9987 REM Option bar subroutine (also called after image load)
+    9988 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
     `
     
-    
-    basicData.labels["sys_cls_all"] = 9988;
-    basicCode += `
-    9988 REM New screen. CLS + option bar (no image)
-    9989 POKE 23624,dattr:CLS:GO SUB [[sys_cls_interface]]:RETURN
-    `;
-    // basicCode += `
-    // 9988 REM New screen. CLS + option bar (no image)
-    // 9989 POKE 23693,tattr:POKE 23624,dattr:CLS:GO SUB [[sys_cls_interface]]:RETURN
-    // `;
     
     basicData.labels["fun"] = 9990;
     basicCode += `
@@ -414,6 +439,8 @@ function transpileMuchoBlock(basicData, muchoCode) {
         basicData.editLine += code + `:GO TO [[${dest}]]`;
     })
 
+    basicData.finish_line();
+
 }
 
 
@@ -493,6 +520,19 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     const sysCode = makeSystemSubroutinesBasic(basicData, globalConfig);
 
     basicData.code =  initCode + basicData.code + sysCode;
+
+
+    // Resolve variables.
+    const codeFixedLabels = basicData.code.replace(/<<(.*?)>>/g, (match, key) => {
+        const variable = "i"+key;
+        if (basicData.vars.has(variable)) {
+            return ` ";${variable};" `
+        } else {
+            throw new Error(`can't resolve label: ${match}`)
+        }
+    });
+    basicData.code = codeFixedLabels;
+
 
     // Resolve labels.
     const result = basicData.code.replace(/\[\[(.*?)\]\]/g, (match, key) => {
@@ -1023,14 +1063,14 @@ export function generateBasicLoader(globalConfig, imageNames){
         initLine += `200 IF PEEK(23312) <> 1 THEN`;
         imageNames.forEach(name => {
             const nm = (name || '').toUpperCase();
-            initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm}" CODE 58456,2048`; 
+            initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm.toLowerCase()}" CODE 58456,2048`; 
         });
         initLine += `\n`;
         // Code for +2a/+3
         initLine += `210 IF PEEK(23312)=1 THEN`;
         imageNames.forEach(name => {
             const nm = (name || '').toUpperCase();
-            initLine += `:LOAD "${nm}" CODE 58456:SAVE "M:${nm}" CODE 58456,2048`; 
+            initLine += `:LOAD "${nm}" CODE 58456:SAVE "M:${nm.toLowerCase()}" CODE 58456,2048`; 
         });
         initLine += `\n`;
         basicCode += initLine;
