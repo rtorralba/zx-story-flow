@@ -114,7 +114,8 @@ export class NodeEditor {
 
     removeGroup(group) {
         if (!group) return;
-        this.groups = this.groups.filter(g => g !== group);
+        const idx = this.groups.indexOf(group);
+        if (idx >= 0) this.groups.splice(idx, 1);
         if (this.selectedGroup === group) this.selectGroup(null);
         if (this.onStateChange) this.onStateChange();
         this.draw();
@@ -193,7 +194,8 @@ export class NodeEditor {
                 });
             }
         });
-        this.nodes = this.nodes.filter(n => n !== node);
+        const idx = this.nodes.indexOf(node);
+        if (idx >= 0) this.nodes.splice(idx, 1);
         if (this.selectedNode === node) this.selectNode(null);
         if (this.onStateChange) this.onStateChange();
         this.draw();
