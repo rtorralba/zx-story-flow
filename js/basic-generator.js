@@ -1076,6 +1076,15 @@ export function generateBasicLoader(globalConfig, imageNames){
         basicCode += initLine;
     }
 
+    // Load and activate new font.
+    // At the moment assume that file contains a whole font.
+    if (globalConfig.font) {
+        // Assume only one font. So use generic name.
+        basicCode += `220 LOAD "font" CODE 64600,768: POKE 23606,88: POKE 23607,251\n`;
+        //const fname = globalConfig.font.fontName.toLowerCase().slice(0,10);
+        //basicCode += `220 LOAD "${fname}" CODE 64600,768`;
+    }
+
     // Load game code. 
     basicCode += `300 LOAD "ADVENTURE"\n`;
 

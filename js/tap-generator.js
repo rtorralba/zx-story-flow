@@ -136,6 +136,70 @@ function tokenizeLine(line) {
     return res;
 }
 
+
+/**
+ * Generate TAP data from an binary data.
+ * 
+ * @param {Uint8Array} dataBytes 
+ * @param {str} filename
+ * @param {int} loadAddr Memory address to load the block. 
+ * @returns {list} Tap blocks.
+ */
+export function bin2tap(dataBytes, fileName, loadAddr) {
+    
+    // Make sure fits in memory 
+    if ((loadAddr + dataBytes.length) > 2**16) { 
+        console.warn(`File ${fileName} will fall outside 64kB boundary.`);
+        return;
+    }
+
+    // Tap file name padded with spaces, max 10 char.
+    const name = (fileName + '          ').slice(0, 10);
+
+    // Build header.
+    const header = new Uint8Array(17);
+    header[0] = 0x03; // Type: Code
+    for (let i = 0; i < 10; i++) header[i + 1] = name.charCodeAt(i);
+    header[11] = dataBytes.length & 0xFF;
+    header[12] = (dataBytes.length >> 8) & 0xFF;
+    header[13] = loadAddr & 0xFF;
+    header[14] = (loadAddr >> 8) & 0xFF;
+    header[15] = 0;
+    header[16] = 0;
+
+    // Build tap.
+    const blocks = [];
+    blocks.push(createTapBlock(0x00, header));
+    blocks.push(createTapBlock(0xFF, dataBytes));
+    return blocks
+}
+
+
+/**
+ * Generate TAP data from a Font.
+ * 
+ * @param {string} font font data in base 64
+ * @param {string} fileName tap block filename
+ * @returns 
+ */
+export function font2tap(font, fileName = "font") {
+
+    // Image from base64 to bytes.
+    const base64Data = (font || '').split(',')[1] || '';
+    const binaryString = typeof atob === 'function' ? atob(base64Data) : Buffer.from(base64Data, 'base64').toString('binary');
+    const dataBytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) dataBytes[i] = binaryString.charCodeAt(i);
+    
+    // Accept full fonts. 
+    if (dataBytes.length !== 768) {
+        throw new Error(`Font ${fileName} is not in 768 bytes (got ${dataBytes.length})`);
+    }
+
+    // Generate TAP. Default load address just below UDGs
+    return bin2tap(dataBytes, fileName.toLowerCase(), 64600 )
+}
+
+
 // Generate TAP data from an Image.
 export function img2tap(img, filename = "SCREEN") {
     // img: string with image data in base64
@@ -251,6 +315,29 @@ export function tap2buffer(blocks) {
     blocks.forEach(b => { tapData.set(b, offset); offset += b.length; });
 
     return tapData.buffer;
+}
+
+
+
+/**
+ * 
+ * @param {*} screenImages 
+ * @returns 
+ */
+export function generateTapFromImages(screenImages) {
+    const blocks = [];
+
+    // Images first (CODE blocks)
+    screenImages.forEach(img => {
+        try {
+            const tapImg = img2tap(img.data, img.name)
+            blocks.push(...tapImg);
+        } catch (e) {
+            console.error(`Error adding image ${img.name}:`, e);
+        }
+    });
+
+    return blocks
 }
 
 // Generate TAP file from BASIC code

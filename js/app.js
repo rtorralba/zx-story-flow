@@ -8,7 +8,7 @@ import { ScreenNode, Group, NodeReference } from './nodes.js';
 import { generateBasicFromMucho, generateLoaderFromMucho } from './basic-generator.js';
 import { generateBasicFromCYD } from './cyd-basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
-import { generateTapFromBasic, bas2tap, img2tap, tap2buffer } from './tap-generator.js';
+import { generateTapFromBasic, generateTapFromImages, bas2tap, img2tap, font2tap, tap2buffer } from './tap-generator.js';
 import { generateCYD } from './cyd-generator.js';
 import { MuchoEditor } from './mucho-editor.js';
 import { CYDEditor } from './cyd-editor.js';
@@ -1192,11 +1192,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tapScreen = globalConfig.loadingScreen
                 ? img2tap(globalConfig.loadingScreen.imageData, "SCREEN")
                 : []
-            const tapGame = generateTapFromBasic(basicCode, "ADVENTURE", screenImages);
+            const tapFont = globalConfig.font
+                ? font2tap(globalConfig.font.fontData, "font")
+                : []
+            
+            const tapImages = generateTapFromImages(screenImages);
+            //const tapGame = generateTapFromBasic(basicCode, "ADVENTURE");
+            const tapGame = bas2tap(basicCode, "ADVENTURE");
 
             const tapBlocks = []
             tapBlocks.push(...tapLoader)
             tapBlocks.push(...tapScreen)
+            tapBlocks.push(...tapImages)
+            tapBlocks.push(...tapFont)
             tapBlocks.push(...tapGame)
             const tapData = tap2buffer(tapBlocks)
 
