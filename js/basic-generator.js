@@ -416,7 +416,9 @@ function transpileMuchoBlock(basicData, muchoCode) {
             const opsCode = transpileOptions(ops,basicData);
             const stmCode = transpileStatements(ops,basicData);
             basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
-            basicData.editLine += `LET i$="${imgName}":GO SUB [[sys_load_image]]:PRINT AT 8,0;`;
+            // Assumes images are the first element of screen.
+            // Makes sure attributes of image are the current ones configured for text.
+            basicData.editLine += `PRINT AT 0,0,,,,,,,,,,,,,,,,:LET i$="${imgName}":GO SUB [[sys_load_image]]:`;
             basicData.editLine += stmCode?`:${stmCode}`:``;
             basicData.finish_line();
         }
