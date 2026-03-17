@@ -526,7 +526,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     const codeFixedLabels = basicData.code.replace(/<<(.*?)>>/g, (match, key) => {
         const variable = "i"+key;
         if (basicData.vars.has(variable)) {
-            return ` ";${variable};" `
+            return `";${variable};"`
         } else {
             throw new Error(`can't resolve label: ${match}`)
         }
