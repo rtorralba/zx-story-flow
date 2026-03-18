@@ -297,7 +297,7 @@ function makeSystemSubroutinesBasic(basicData, globalConfig) {
     basicData.labels["sys_choose_option"] = 9993;
     basicCode += `
     9993 REM choose an option
-    9994 LET i=1:IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
+    9994 LET i=1:IF NOT n THEN PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
     9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
     9996 IF k=10 THEN LET i=i+1-(n AND i=n)
     9997 IF k=11 THEN LET i=i-1+(n AND i=1)
