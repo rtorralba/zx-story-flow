@@ -397,6 +397,11 @@ function transpileMuchoBlock(basicData, muchoCode) {
             } else {
                 // Text line is ignored.
             }
+        } else if (pline.type==="P") {
+            if (state==='text') {
+                basicData.start_new_statement()
+                basicData.editLine += `PRINT`;
+            }
         } else if (pline.type==="O") {
             basicData.start_new_line();
             // Add code to the line.
