@@ -57,7 +57,7 @@ function parseLine(line) {
         pline.text = tline.slice(2).trim().toLowerCase();
     } else {
         pline.type = 'T'
-        pline.text = line;
+        pline.text = line.replace(/"/g, `""`);
     }
     return pline
 }
@@ -457,15 +457,17 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     // and some utility functions.  
     const basicData = {
         code : "",
-        lineNo : 100, // start at line 100
-        lineInc : 1, // default line increment.
         editLine : '', // Current line being edited.
+        lineNo : 100, // Contain current line number being editted.
+                      // If line closed, contain line number of next
+                      // line being created.
+        lineInc : 1, // default line increment.
         
         flags : new Set(),
         vars : new Set(),
         labels : {}, // {name, line}
 
-        // Utility function to start a new line.
+        // Utility function to start editting a new line.
         start_new_line() {
             this.finish_line();
             this.editLine = `${this.lineNo} `;
@@ -474,11 +476,16 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         // Utility function to start a new statement.
         // Starts a new line if needed.
         start_new_statement() {
-            // New line if needed.
             if(!this.editLine) {
+                // No line being editted, start new line.
                 this.lineNo = this.lineNo + this.lineInc;
                 this.editLine = `${this.lineNo} `;
             } else if (this.editLine.slice(-1) !== ":") {
+                // Line being editted, append new statement.
+                // Does not check this will be the first statement
+                // of line of after THEN.
+                // In that cases no need to add :, but it is
+                // always safe to addit.
                 this.editLine += ":";
             }
         },
@@ -492,7 +499,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
             }
         },
 
-        // Safely adds a new basic line with code.
+        // Safely adds a new complete basic line with code.
         add_line(linecontent) {
             this.start_new_line();
             this.editLine += linecontent;
