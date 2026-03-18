@@ -327,9 +327,10 @@ function transpileMuchoBlock(basicData, muchoCode) {
     // A state variable to control how to process
     // text lines.
     // 'text' -> expecting text for the screen.
-    // 'option' -> expecting text for an option.
+    // 'option' -> expecting text line for an option.
     // '' -> Not expecting text. Will be ignored.
-    let state = '' 
+    let state = ''
+    let last_pline = {} 
 
 
     muchoCode.forEach(pline => {
@@ -349,6 +350,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
                 basicData.editLine += ":"+transpileStatements(pline.text,basicData);
             }
         } else if (pline.type==="O") {
+            // Start an optional text block.
             basicData.start_new_line();
             // Add code to the line.
             const opsCode = transpileOptions(pline.text,basicData);
@@ -357,8 +359,14 @@ function transpileMuchoBlock(basicData, muchoCode) {
             basicData.editLine += stmCode;
         } else if (pline.type==="T") {
             if (state==='text') {
-                basicData.start_new_statement()
-                basicData.editLine += pline.text?`PRINT "${pline.text}"`:`PRINT`;
+                if (last_pline.type==="T" || last_pline.type==="P"){
+                    // Already an ongoing print. 
+                    basicData.editLine += pline.text?`'"${pline.text}";`:`'`;
+                } else {
+                    // Need to start a new PRINT statement.
+                    basicData.start_new_statement();
+                    basicData.editLine += pline.text?`PRINT "${pline.text}";`:`PRINT ;`;
+                }
             } else if (state=='option') {
                 if (pline.text) {
                     basicData.start_new_statement()
@@ -366,12 +374,19 @@ function transpileMuchoBlock(basicData, muchoCode) {
                     state = ''; 
                 }
             } else {
-                // Text line is ignored.
+                // A text line in a wrong position -> ignored..
+                // !!!! Consider throwing an exception.
             }
         } else if (pline.type==="P") {
             if (state==='text') {
-                basicData.start_new_statement()
-                basicData.editLine += `PRINT`;
+                if (last_pline.type==="T" || last_pline.type==="P"){
+                    // Already an ongoing print. 
+                    basicData.editLine += `'`;
+                } else {
+                    // Need to start a new PRINT statement.
+                    basicData.start_new_statement();
+                    basicData.editLine += `PRINT ';`;
+                }
             }
         } else if (pline.type=="I") {
             const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
@@ -413,7 +428,8 @@ function transpileMuchoBlock(basicData, muchoCode) {
                 // No statements associated to option. Can resolve in a single line.
                 basicData.editLine += `:LET p(n) = [[${destScreen}]]` ;
             }
-        }
+        };
+        last_pline = pline;
     });
 
     // flush last line.
@@ -467,9 +483,10 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         // Starts a new line if needed.
         start_new_statement() {
             if(!this.editLine) {
-                // No line being editted, start new line.
-                this.lineNo = this.lineNo + this.lineInc;
-                this.editLine = `${this.lineNo} `;
+                // No line being editted, starting a new line.
+                // need do nothing.
+                //this.lineNo = this.lineNo + this.lineInc;
+                //this.editLine = `${this.lineNo} `;
             } else if (this.editLine.slice(-1) !== ":") {
                 // Line being editted, append new statement.
                 // Does not check this will be the first statement
