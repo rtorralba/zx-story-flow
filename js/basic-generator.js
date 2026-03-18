@@ -215,97 +215,84 @@ function transpileStatements(text,basicData) {
 }
 
 
-function makeInitializationBasic(basicData, globalConfig) {
 
+function addBASICSystemCode(basicData, globalConfig) {
+
+    let sysCode = "";
+    
     // Initialization code.
     // =========================================================
     // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
     // Using loader, frees memory and wait for a key.
     // =========================================================
-    let initCode = "";
-    initCode += `1 REM = one-time init =\n`;
-    initCode += `2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367\n`;
+    sysCode += `
+    1 REM = one-time init =
+    2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367: GO TO [[sys_start_game]]
+    `;
+   
+    // Routine to launch interactive selecction of option
+    // This is kept closest to the start to improve key scan loop the fastest.
+    basicData.labels["sys_choose_option"] = 10;
+    basicData.labels["sys_choose_option_loop"] = 12;
+    sysCode += `
+    10 REM choose an option
+    11 LET i=1:IF NOT n THEN PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
+    12 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
+    13 IF k=10 THEN LET i=i+1-(n AND i=n)
+    14 IF k=11 THEN LET i=i-1+(n AND i=1)
+    15 IF k=13 THEN GO SUB [[sys_cls_all]]:GO TO p(i)
+    16 GO TO [[sys_choose_option_loop]]\n`;
     
-    // =========================================================
-    // GLOBAL INIT  (lines 10 – 120)
-    // =========================================================
-    basicData.labels["sys_start_game"] = 10;
-    initCode += `10 REM = init global =\n`;
-    const globalBorder = colorToZX(globalConfig?.border || 'black');
-    initCode += `20 POKE 23693,7:BORDER ${globalBorder}:CLS\n`;
-    initCode += `30 REM p() table of line pointers.\n`;
-    initCode += `40 DIM p(10):LET dattr=7: LET iattr=7:\n`;
-    initCode += `50 REM Inicializa variables del juego.\n`;
-
-    // Initialise all flags and variables to 0 on a single line
-    if (basicData.flags.size || basicData.vars.size) {
-        initCode += `60 LET ` 
-        initCode += [...basicData.flags].map(f => `${f}=0`).join(':LET ');
-        initCode += basicData.flags.size && basicData.vars.size?":LET ":"";
-        initCode += [...basicData.vars].map(f => `${f}=0`).join(':LET ');
-        initCode += "\n";
-    } else {
-        initCode += `60 REM no flags nor numeric variables\n`;
-    }
-
-    return initCode;
-}
-
-/**
- * 
- * @param {dict} basicData 
- * @param {dict} globalConfig 
- * @returns BASIC code texto with routines.
- */
-function makeSystemSubroutinesBasic(basicData, globalConfig) {
-    
-    let basicCode="";
-
     // Load image from RAMdisk
-    basicData.labels["sys_load_image"] = 9982;
-    basicCode += `
-    9982 REM Load i$ from RAMDISK
-    9983 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
-    9984 LOAD! i$ CODE 16384:RETURN
+    basicData.labels["sys_load_image"] = 20;
+    sysCode += `
+    20 REM Load i$ from RAMDISK
+    21 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
+    22 LOAD! i$ CODE 16384:RETURN
     `
     
-   
     // Routine to clean all.
     // Notice it continues to sys_cls_interface.
-    basicData.labels["sys_cls_all"] = 9985;
-    basicCode += `
-    9985 REM New screen. CLS + option bar (no image)
-    9986 RANDOMIZE:POKE 23659,2:POKE 23624,dattr:CLS
+    basicData.labels["sys_cls_all"] = 30;
+    sysCode += `
+    30 REM New screen. CLS + option bar (no image)
+    31 RANDOMIZE:POKE 23659,2:POKE 23624,dattr:CLS
     `;
     
     // Routine to clean the interface (options) section.
-    basicData.labels["sys_cls_interface"] = 9987;
-    basicCode += `
-    9987 REM Option bar subroutine (also called after image load)
-    9988 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
+    basicData.labels["sys_cls_interface"] = 40;
+    sysCode += `
+    40 REM Option bar subroutine (also called after image load)
+    41 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
     `
-    
-    
-    basicData.labels["fun"] = 9990;
-    basicCode += `
-    9990 REM New screen. CLS only (image will follow)
-    9991 POKE 23693,tattr:POKE 23624,dattr:CLS:RETURN
+
+    // =========================================================
+    // START A NEW GAME.
+    // =========================================================
+    const globalBorder = colorToZX(globalConfig?.border || 'black');
+    basicData.labels["sys_start_game"] = 50;
+    sysCode += `
+    50 REM = init global =
+    51 POKE 23693,7:BORDER ${globalBorder}:CLS
+    52 REM p() table of line pointers.
+    53 DIM p(10):LET dattr=7: LET iattr=7
+    54 REM Inicializa variables del juego.
     `;
 
-   
-    // Routine to launch interactive selecction of option
-    basicData.labels["sys_choose_option"] = 9993;
-    basicCode += `
-    9993 REM choose an option
-    9994 LET i=1:IF NOT n THEN PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
-    9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
-    9996 IF k=10 THEN LET i=i+1-(n AND i=n)
-    9997 IF k=11 THEN LET i=i-1+(n AND i=1)
-    9998 IF k=13 THEN GO SUB [[sys_cls_all]]:GO TO p(i)
-    9999 GO TO 9995\n`;
+    // Initialise all flags and variables to 0 on a single line
+    if (basicData.flags.size || basicData.vars.size) {
+        sysCode += `55 LET ` 
+        sysCode += [...basicData.flags].map(f => `${f}=0`).join(':LET ');
+        sysCode += basicData.flags.size && basicData.vars.size?":LET ":"";
+        sysCode += [...basicData.vars].map(f => `${f}=0`).join(':LET ');
+        sysCode += "\n";
+    } else {
+        sysCode += `55 REM no flags nor numeric variables\n`;
+    }
 
-    return basicCode;
+    return sysCode;
 }
+
 
 /**
  * Split a list of preparsed mucho lines into Q$ blocks. 
@@ -361,6 +348,48 @@ function transpileMuchoBlock(basicData, muchoCode) {
             if (match[2]) {
                 basicData.editLine += ":"+transpileStatements(pline.text,basicData);
             }
+        } else if (pline.type==="O") {
+            basicData.start_new_line();
+            // Add code to the line.
+            const opsCode = transpileOptions(pline.text,basicData);
+            const stmCode = transpileStatements(pline.text,basicData);
+            basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
+            basicData.editLine += stmCode;
+        } else if (pline.type==="T") {
+            if (state==='text') {
+                basicData.start_new_statement()
+                basicData.editLine += pline.text?`PRINT "${pline.text}"`:`PRINT`;
+            } else if (state=='option') {
+                if (pline.text) {
+                    basicData.start_new_statement()
+                    basicData.editLine += `PRINT #1;"   ${pline.text}"`;
+                    state = ''; 
+                }
+            } else {
+                // Text line is ignored.
+            }
+        } else if (pline.type==="P") {
+            if (state==='text') {
+                basicData.start_new_statement()
+                basicData.editLine += `PRINT`;
+            }
+        } else if (pline.type=="I") {
+            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
+            const imgFile = match[1];
+            const ops =  match[2]?match[2]:"";
+
+
+            const imgName = imgFile.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+            
+            basicData.start_new_line();
+            const opsCode = transpileOptions(ops,basicData);
+            const stmCode = transpileStatements(ops,basicData);
+            basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
+            // Assumes images are the first element of screen.
+            // Makes sure attributes of image are the current ones configured for text.
+            basicData.editLine += `PRINT AT 0,0,,,,,,,,,,,,,,,,:LET i$="${imgName}":GO SUB [[sys_load_image]]:`;
+            basicData.editLine += stmCode?`:${stmCode}`:``;
+            basicData.finish_line();
         } else if (pline.type==="A") {
             state = 'option';
             option_counter++;
@@ -384,51 +413,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
                 // No statements associated to option. Can resolve in a single line.
                 basicData.editLine += `:LET p(n) = [[${destScreen}]]` ;
             }
-        } else if (pline.type==="T") {
-            if (state==='text') {
-                basicData.start_new_statement()
-                basicData.editLine += pline.text?`PRINT "${pline.text}"`:`PRINT`;
-            } else if (state=='option') {
-                if (pline.text) {
-                    basicData.start_new_statement()
-                    basicData.editLine += `PRINT #1;"   ${pline.text}"`;
-                    state = ''; 
-                }
-            } else {
-                // Text line is ignored.
-            }
-        } else if (pline.type==="P") {
-            if (state==='text') {
-                basicData.start_new_statement()
-                basicData.editLine += `PRINT`;
-            }
-        } else if (pline.type==="O") {
-            basicData.start_new_line();
-            // Add code to the line.
-            const opsCode = transpileOptions(pline.text,basicData);
-            const stmCode = transpileStatements(pline.text,basicData);
-            basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
-            basicData.editLine += stmCode;
-        } else if (pline.type=="I") {
-            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
-            const imgFile = match[1];
-            const ops =  match[2]?match[2]:"";
-
-
-            const imgName = imgFile.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
-            
-            basicData.start_new_line();
-            const opsCode = transpileOptions(ops,basicData);
-            const stmCode = transpileStatements(ops,basicData);
-            basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
-            // Assumes images are the first element of screen.
-            // Makes sure attributes of image are the current ones configured for text.
-            basicData.editLine += `PRINT AT 0,0,,,,,,,,,,,,,,,,:LET i$="${imgName}":GO SUB [[sys_load_image]]:`;
-            basicData.editLine += stmCode?`:${stmCode}`:``;
-            basicData.finish_line();
         }
-
-
     });
 
     // flush last line.
@@ -475,7 +460,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         // Utility function to start editting a new line.
         start_new_line() {
             this.finish_line();
-            this.editLine = `${this.lineNo} `;
+            //this.editLine = `${this.lineNo} `;
         },
 
         // Utility function to start a new statement.
@@ -498,7 +483,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
         // Finish  last line being editted. If any.
         finish_line() {
             if (this.editLine) {
-                this.code += this.editLine + '\n';
+                this.code += `${this.lineNo} ${this.editLine}\n`;
                 this.editLine = "";
                 this.lineNo += this.lineInc;
             }
@@ -530,10 +515,9 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     })
 
 
-    const initCode = makeInitializationBasic(basicData, globalConfig);
-    const sysCode = makeSystemSubroutinesBasic(basicData, globalConfig);
+    const sysCode = addBASICSystemCode(basicData, globalConfig);
 
-    basicData.code =  initCode + basicData.code + sysCode;
+    basicData.code =  sysCode + basicData.code;
 
 
     // Resolve variables.
