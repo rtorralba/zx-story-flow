@@ -225,9 +225,13 @@ function addBASICSystemCode(basicData, globalConfig) {
     // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
     // Using loader, frees memory and wait for a key.
     // =========================================================
+    // sysCode += `
+    // 1 REM = one-time init =
+    // 2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367: GO TO [[sys_start_game]]
+    // `;
     sysCode += `
     1 REM = one-time init =
-    2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367: GO TO [[sys_start_game]]
+    2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]
     `;
    
     // Routine to launch interactive selecction of option
