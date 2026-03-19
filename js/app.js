@@ -861,7 +861,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let projectState = {
         nodes: [],
         groups: [],
-        startNodeId: null
+        startNodeId: null,
+        camera: { x: 0, y: 0, zoom: 1 }
     };
 
     // Initialize Editor
@@ -928,7 +929,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             globalConfig: globalConfig,
             nodes: projectState.nodes,
             groups: projectState.groups,
-            startNodeId: projectState.startNodeId || null,
+            startNodeId: projectState.startNodeId,
+            camera: editor.camera,
             cydGeneralCode: document.getElementById('cyd-general-code')?.value || '',
             cydGeneralCodeEnd: document.getElementById('cyd-general-code-end')?.value || '',
             lastSaved: Date.now()
@@ -1038,6 +1040,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             projectState.startNodeId = data.startNodeId || null;
+            projectState.camera = data.camera || { x: 0, y: 0, zoom: 1 };
 
             editor.renderState(projectState); // Feed state to editor
             editor.onStateChange = originalOnStateChange;
