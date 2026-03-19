@@ -23,6 +23,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentLangDisplay) currentLangDisplay.textContent = i18n.currentLang.toUpperCase();
     const canvas = document.getElementById('node-canvas');
     const propertyContent = document.getElementById('properties-content');
+
+    const DEFAULT_SEPARATOR_MATRIX = [
+        false, false, false, false, false, false, false, false,
+        false, false, false, true, false, false, false, false,
+        false, false, true, true, true, false, false, false,
+        false, true, true, true, true, true, false, false,
+        true, true, true, true, true, true, true, false,
+        true, true, true, true, true, true, true, true,
+        true, true, true, true, true, true, true, true,
+        true, true, true, true, true, true, true, true
+    ];
+
+    const DEFAULT_SELECTOR_MATRIX = [
+        false, false, false, false, false, false, false, false,
+        true, false, false, false, true, false, false, false,
+        true, true, false, false, true, true, false, false,
+        true, true, true, false, true, true, true, false,
+        true, true, false, false, true, true, false, false,
+        true, false, false, false, true, false, false, false,
+        false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false
+    ];
+
     let projectName = 'Untitled';
     let projectType = 'MuCho';
 
@@ -35,8 +58,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         viewMode: 'simple',
         rulerWidth: '32ch',
         basicGraphics: {
-            separator: Array(64).fill(false), // 8x8 matrix for BASIC separator
-            selector: Array(64).fill(false)   // 8x8 matrix for BASIC selector
+            separator: [...DEFAULT_SEPARATOR_MATRIX],
+            selector: [...DEFAULT_SELECTOR_MATRIX]
         }
     };
 
@@ -60,149 +83,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     const separatorMatrixEl = document.getElementById('separator-matrix');
     const selectorMatrixEl = document.getElementById('selector-matrix');
 
-    // --- Loading screen config UI (MuCho only) ---
-    (function setupLoadingScreenUI() {
-        const muchoSections = document.getElementById('mucho-sections');
-        if (!muchoSections) return;
+    // --- Asset config handlers (Loading screen & Font) ---
+    (function setupAssetHandlers() {
+        const loadingInput = document.getElementById('global-loading-screen-input');
+        const loadingName = document.getElementById('global-loading-screen-name');
+        const loadingClear = document.getElementById('global-loading-screen-clear');
+        const fontInput = document.getElementById('global-font-input');
+        const fontName = document.getElementById('global-font-name');
+        const fontClear = document.getElementById('global-font-clear');
 
-        if (document.getElementById('global-loading-screen-row')) return; // already created
-
-        const row = document.createElement('div');
-        row.id = 'global-loading-screen-row';
-        row.className = 'config-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '8px';
-        row.style.marginTop = '12px';
-
-        const label = document.createElement('label');
-        label.textContent = 'Pantalla de carga (SCR):';
-        label.style.minWidth = '180px';
-
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.scr';
-        fileInput.id = 'global-loading-screen-input';
-
-        const nameSpan = document.createElement('span');
-        nameSpan.id = 'global-loading-screen-name';
-        nameSpan.textContent = '(ninguna)';
-        nameSpan.style.color = '#ddd';
-
-        const clearBtn = document.createElement('button');
-        clearBtn.type = 'button';
-        clearBtn.id = 'global-loading-screen-clear';
-        clearBtn.textContent = 'Borrar';
-
-        row.appendChild(label);
-        row.appendChild(fileInput);
-        row.appendChild(nameSpan);
-        row.appendChild(clearBtn);
-
-        // Insert before the "Gráficos (solo para BASIC)" header if present, otherwise append
-        const graphicsHeader = muchoSections.querySelector('h3[data-i18n="config.basic_graphics"]') || muchoSections.querySelector('h3');
-        if (graphicsHeader && graphicsHeader.parentElement === muchoSections) {
-            muchoSections.insertBefore(row, graphicsHeader);
-        } else {
-            muchoSections.appendChild(row);
+        if (loadingInput) {
+            loadingInput.addEventListener('change', async (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                try {
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const r = new FileReader();
+                        r.onload = (ev) => resolve(ev.target.result);
+                        r.onerror = (err) => reject(err);
+                        r.readAsDataURL(f);
+                    });
+                    if (!globalConfig) globalConfig = {};
+                    globalConfig.loadingScreen = { imageName: f.name, imageData: dataUrl };
+                    if (loadingName) loadingName.textContent = f.name;
+                    autoSave();
+                } catch (err) {
+                    console.error('Failed to read loading screen SCR:', err);
+                } finally {
+                    try { loadingInput.value = ''; } catch (e) { }
+                }
+            });
         }
 
-        // Handlers
-        fileInput.addEventListener('change', async (e) => {
-            const f = e.target.files[0];
-            if (!f) return;
-            try {
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const r = new FileReader();
-                    r.onload = (ev) => resolve(ev.target.result);
-                    r.onerror = (err) => reject(err);
-                    r.readAsDataURL(f);
-                });
-                if (!globalConfig) globalConfig = {};
-                globalConfig.loadingScreen = { imageName: f.name, imageData: dataUrl };
-                nameSpan.textContent = f.name;
-                if (typeof autoSave === 'function') autoSave();
-                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist loading screen', e); }
-            } catch (err) {
-                console.error('Failed to read loading screen SCR:', err);
-            } finally {
-                try { fileInput.value = ''; } catch (e) { }
-            }
-        });
-
-        clearBtn.addEventListener('click', () => {
-            if (globalConfig && globalConfig.loadingScreen) delete globalConfig.loadingScreen;
-            nameSpan.textContent = '(ninguna)';
-            if (typeof autoSave === 'function') autoSave();
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist loading screen removal', e); }
-        });
-
-        // --- Font config UI (.bin) ---
-        const fontRow = document.createElement('div');
-        fontRow.id = 'global-font-row';
-        fontRow.className = 'config-row';
-        fontRow.style.display = 'flex';
-        fontRow.style.alignItems = 'center';
-        fontRow.style.gap = '8px';
-        fontRow.style.marginTop = '12px';
-
-        const fontLabel = document.createElement('label');
-        fontLabel.textContent = 'Fuente (.bin):';
-        fontLabel.style.minWidth = '180px';
-
-        const fontFileInput = document.createElement('input');
-        fontFileInput.type = 'file';
-        fontFileInput.accept = '.bin';
-        fontFileInput.id = 'global-font-input';
-
-        const fontNameSpan = document.createElement('span');
-        fontNameSpan.id = 'global-font-name';
-        fontNameSpan.textContent = '(ninguna)';
-        fontNameSpan.style.color = '#ddd';
-
-        const fontClearBtn = document.createElement('button');
-        fontClearBtn.type = 'button';
-        fontClearBtn.id = 'global-font-clear';
-        fontClearBtn.textContent = 'Borrar';
-
-        fontRow.appendChild(fontLabel);
-        fontRow.appendChild(fontFileInput);
-        fontRow.appendChild(fontNameSpan);
-        fontRow.appendChild(fontClearBtn);
-
-        if (row.parentElement) {
-            row.parentElement.insertBefore(fontRow, row.nextSibling);
+        if (loadingClear) {
+            loadingClear.addEventListener('click', () => {
+                if (globalConfig && globalConfig.loadingScreen) delete globalConfig.loadingScreen;
+                if (loadingName) loadingName.textContent = t('config.none_specified');
+                autoSave();
+            });
         }
 
-        fontFileInput.addEventListener('change', async (e) => {
-            const f = e.target.files[0];
-            if (!f) return;
-            try {
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const r = new FileReader();
-                    r.onload = (ev) => resolve(ev.target.result);
-                    r.onerror = (err) => reject(err);
-                    r.readAsDataURL(f);
-                });
-                if (!globalConfig) globalConfig = {};
-                globalConfig.font = { fontName: f.name, fontData: dataUrl };
-                fontNameSpan.textContent = f.name;
-                if (typeof autoSave === 'function') autoSave();
-                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist font', e); }
-            } catch (err) {
-                console.error('Failed to read font BIN:', err);
-            } finally {
-                try { fontFileInput.value = ''; } catch (e) { }
-            }
-        });
+        if (fontInput) {
+            fontInput.addEventListener('change', async (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                try {
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const r = new FileReader();
+                        r.onload = (ev) => resolve(ev.target.result);
+                        r.onerror = (err) => reject(err);
+                        r.readAsDataURL(f);
+                    });
+                    if (!globalConfig) globalConfig = {};
+                    globalConfig.font = { fontName: f.name, fontData: dataUrl };
+                    if (fontName) fontName.textContent = f.name;
+                    autoSave();
+                } catch (err) {
+                    console.error('Failed to read font BIN:', err);
+                } finally {
+                    try { fontInput.value = ''; } catch (e) { }
+                }
+            });
+        }
 
-        fontClearBtn.addEventListener('click', () => {
-            if (globalConfig && globalConfig.font) delete globalConfig.font;
-            fontNameSpan.textContent = '(ninguna)';
-            if (typeof autoSave === 'function') autoSave();
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist font removal', e); }
-        });
-
+        if (fontClear) {
+            fontClear.addEventListener('click', () => {
+                if (globalConfig && globalConfig.font) delete globalConfig.font;
+                if (fontName) fontName.textContent = t('config.none_specified');
+                autoSave();
+            });
+        }
     })();
     // Helper: Convert color name to CSS color value
     function zxColorToCSS(colorName, bright = false) {
@@ -255,10 +205,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateMatricesUI() {
         if (!globalConfig.basicGraphics) {
             globalConfig.basicGraphics = {
-                separator: Array(64).fill(false),
-                selector: Array(64).fill(false)
+                separator: [...DEFAULT_SEPARATOR_MATRIX],
+                selector: [...DEFAULT_SELECTOR_MATRIX]
             };
         }
+        if (!globalConfig.basicGraphics.separator) globalConfig.basicGraphics.separator = [...DEFAULT_SEPARATOR_MATRIX];
+        if (!globalConfig.basicGraphics.selector) globalConfig.basicGraphics.selector = [...DEFAULT_SELECTOR_MATRIX];
 
         const onMatrixDrawn = () => {
             saveGlobalConfig();
@@ -311,7 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (globalConfig && globalConfig.loadingScreen && globalConfig.loadingScreen.imageName) {
                     nameSpan.textContent = globalConfig.loadingScreen.imageName;
                 } else {
-                    nameSpan.textContent = '(ninguna)';
+                    nameSpan.textContent = t('config.none_specified');
                 }
             }
             const fontNameSpan = document.getElementById('global-font-name');
@@ -319,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (globalConfig && globalConfig.font && globalConfig.font.fontName) {
                     fontNameSpan.textContent = globalConfig.font.fontName;
                 } else {
-                    fontNameSpan.textContent = '(ninguna)';
+                    fontNameSpan.textContent = t('config.none_specified');
                 }
             }
         } catch (e) {
@@ -861,7 +813,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let projectState = {
         nodes: [],
         groups: [],
-        startNodeId: null
+        startNodeId: null,
+        camera: { x: 0, y: 0, zoom: 1 }
     };
 
     // Initialize Editor
@@ -928,7 +881,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             globalConfig: globalConfig,
             nodes: projectState.nodes,
             groups: projectState.groups,
-            startNodeId: projectState.startNodeId || null,
+            startNodeId: projectState.startNodeId,
+            camera: editor.camera,
             cydGeneralCode: document.getElementById('cyd-general-code')?.value || '',
             cydGeneralCodeEnd: document.getElementById('cyd-general-code-end')?.value || '',
             lastSaved: Date.now()
@@ -957,6 +911,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Restore global config
             if (data.globalConfig) {
                 globalConfig = data.globalConfig;
+                // Normalize globalConfig with defaults for missing fields
+                if (!globalConfig.page) globalConfig.page = { ink: 'white', paper: 'black', bright: false, flash: false };
+                if (!globalConfig.separator) globalConfig.separator = { ink: 'white', paper: 'black', bright: false, flash: false };
+                if (!globalConfig.interface) globalConfig.interface = { ink: 'white', paper: 'black', bright: false, flash: false };
+                if (globalConfig.border === undefined) globalConfig.border = 'black';
+                if (globalConfig.viewMode === undefined) globalConfig.viewMode = 'simple';
+                if (globalConfig.rulerWidth === undefined) globalConfig.rulerWidth = '32ch';
+                if (!globalConfig.basicGraphics) {
+                    globalConfig.basicGraphics = {
+                        separator: Array(64).fill(false),
+                        selector: Array(64).fill(false)
+                    };
+                }
+                
                 // if project type stored in globalConfig prefer it
                 if (globalConfig.projectType) projectType = globalConfig.projectType;
                 editorViewMode = globalConfig.viewMode || 'simple';
@@ -988,10 +956,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Restore Nodes, Groups and start node — assign directly (POJOs, no conversion needed)
-            projectState.nodes = data.nodes || [];
-            projectState.groups = data.groups || [];
+            // Restore Nodes, Groups and start node — normalize to ensure all POJO fields are present
+            projectState.nodes = (data.nodes || []).map(node => {
+                const type = node.type || '';
+                if (type.toLowerCase() === 'screen' || type === '') {
+                    node.type = 'Screen';
+                    if (node.width === undefined) node.width = ScreenNode.DEFAULT_WIDTH;
+                    if (node.outputs) {
+                        node.outputs.forEach(opt => {
+                            if (opt.eligible === undefined) opt.eligible = true;
+                            if (opt.prefix === undefined) opt.prefix = '';
+                            if (opt.suffix === undefined) opt.suffix = '';
+                        });
+                    } else {
+                        node.outputs = [{ label: 'Next', target: null, eligible: true, prefix: '', suffix: '' }];
+                    }
+                    if (node.height === undefined) {
+                        node.height = ScreenNode.BASE_HEIGHT + (node.outputs.length * ScreenNode.OPTION_HEIGHT) + ScreenNode.FOOTER_HEIGHT;
+                    }
+                    if (node.borderColor === undefined) node.borderColor = 'black';
+                } else if (type.toLowerCase() === 'reference') {
+                    node.type = 'Reference';
+                    if (node.width === undefined) node.width = NodeReference.DEFAULT_WIDTH;
+                    if (node.height === undefined) node.height = NodeReference.DEFAULT_HEIGHT;
+                    if (!node.outputs) node.outputs = [];
+                }
+                return node;
+            });
+
+            projectState.groups = (data.groups || []).map(group => {
+                if (group.width === undefined) group.width = Group.DEFAULT_WIDTH;
+                if (group.height === undefined) group.height = Group.DEFAULT_HEIGHT;
+                if (!group.nodeIds) group.nodeIds = [];
+                return group;
+            });
+
             projectState.startNodeId = data.startNodeId || null;
+            projectState.camera = data.camera || { x: 0, y: 0, zoom: 1 };
 
             editor.renderState(projectState); // Feed state to editor
             editor.onStateChange = originalOnStateChange;
@@ -1002,6 +1003,48 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error("Critical error during project restoration:", e);
             return false;
         }
+    }
+
+    function createNewProject() {
+        projectName = 'Untitled';
+        projectType = 'MuCho';
+        globalConfig = {
+            page: { ink: 'white', paper: 'black', bright: false, flash: false },
+            separator: { ink: 'white', paper: 'black', bright: false, flash: false },
+            interface: { ink: 'white', paper: 'black', bright: false, flash: false },
+            border: 'black',
+            viewMode: 'simple',
+            rulerWidth: '32ch',
+            basicGraphics: {
+                separator: [...DEFAULT_SEPARATOR_MATRIX],
+                selector: [...DEFAULT_SELECTOR_MATRIX]
+            }
+        };
+        projectState.nodes = [];
+        projectState.groups = [];
+        projectState.startNodeId = null;
+        projectState.camera = { x: 0, y: 0, zoom: 1 };
+
+        // Clear CYD general code textareas
+        const cydStart = document.getElementById('cyd-general-code');
+        const cydEnd = document.getElementById('cyd-general-code-end');
+        if (cydStart) {
+            if (cydStart._cmInstance) cydStart._cmInstance.setValue('');
+            else cydStart.value = '';
+        }
+        if (cydEnd) {
+            if (cydEnd._cmInstance) cydEnd._cmInstance.setValue('');
+            else cydEnd.value = '';
+        }
+
+        // Update UI
+        updateProjectName(projectName);
+        loadGlobalConfig();
+        updateExportButtons();
+        
+        editor.selectNode(null);
+        editor.selectGroup(null);
+        editor.renderState(projectState);
     }
 
     function autoSave() {
@@ -1037,13 +1080,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (loadProjectData(data)) {
                     console.log("Project successfully restored from localStorage");
                 } else {
-                    console.warn("Project found in localStorage but restoration failed.");
+                    console.warn("Project found in localStorage but restoration failed. Creating a new project instead.");
+                    createNewProject();
                 }
             } catch (e) {
                 console.error("Failed to parse localStorage data:", e);
+                // If saved data is corrupt, start a fresh project to ensure UI has a project
+                createNewProject();
             }
         } else {
-            console.log("No saved project found in localStorage");
+            console.log("No saved project found in localStorage. Creating a new project.");
+            createNewProject();
         }
 
         // Mark as initialized so FUTURE changes trigger auto-save
@@ -1066,17 +1113,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         editor.addReference(); // No coordinates = center of view
     });
 
-    // Fullscreen button
-    document.getElementById('fullscreen-btn').addEventListener('click', () => {
-        const app = document.getElementById('app');
-        if (!document.fullscreenElement) {
-            app.requestFullscreen().catch(err => {
-                console.error('Error attempting to enable fullscreen:', err);
-            });
-        } else {
-            document.exitFullscreen();
-        }
-    });
+    // Help button (replaces fullscreen)
+    const helpBtn = document.getElementById('help-btn');
+    if (helpBtn) {
+        helpBtn.addEventListener('click', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => {
+                    console.error('Error exiting fullscreen before opening help:', err);
+                });
+            }
+            window.open('https://github.com/rtorralba/zx-story-flow/wiki/','_blank','noopener');
+        });
+    }
 
     // Helper: validate no duplicated labels
     function hasDuplicateLabels() {
@@ -1376,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Create ScreenNode instances (positions assigned by tree layout below)
         const nodes = blocks.map((block, idx) => {
             const nodeId = 'n' + (idx + 1);
-            const node = new ScreenNode(nodeId, 0, 0);
+            const node = ScreenNode.create(nodeId, 0, 0); // Use static factory for POJO
             node.title = block.label;
             node.text = block.descLines.join('\n').replace(/^\n+|\n+$/g, '');
 
@@ -1384,13 +1432,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 node.outputs = block.options.map(opt => ({
                     label: opt.text || opt.targetLabel,
                     target: labelToId[opt.targetLabel.toLowerCase()] || null,
+                    eligible: true,
+                    prefix: '',
+                    suffix: '',
                     flag: opt.flag || ''
                 }));
             } else {
-                node.outputs = [{ label: 'Next', target: null }];
+                node.outputs = [{ label: 'Next', target: null, eligible: true, prefix: '', suffix: '' }];
             }
             // Recalculate height based on actual number of outputs
-            node.height = node.baseHeight + node.outputs.length * node.optionHeight + node.footerHeight;
+            node.height = ScreenNode.BASE_HEIGHT + node.outputs.length * ScreenNode.OPTION_HEIGHT + ScreenNode.FOOTER_HEIGHT;
             return node;
         });
 
@@ -1462,7 +1513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (tgtDepth <= srcDepth) {
                     // Back-edge: replace target with a new NodeReference
                     const refId = 'ref_import_' + (++refCounter);
-                    const ref = new NodeReference(refId, 0, 0, opt.target);
+                    const ref = NodeReference.create(refId, 0, 0, opt.target);
                     // Auto-size width: arrow area (35px) + ~7px per char + 20px right padding
                     const targetNode = nodes[idToIdx[opt.target]];
                     const titleLen = (targetNode ? targetNode.title : opt.target).length;
@@ -1557,15 +1608,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('new-btn').addEventListener('click', () => {
         if (confirm(t('messages.new_confirm'))) {
             isInitialized = false;
-            projectState.nodes = [];
-            projectState.groups = [];
-            editor.selectNode(null);
-            editor.selectGroup(null);
-            editor.renderState(projectState);
-            updateProjectName('Untitled');
-
+            createNewProject();
             isInitialized = true;
-            updateExportButtons();
             autoSave();
         }
     });
@@ -2217,7 +2261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 del.style.minWidth = "35px";
                 del.title = t('editor.delete_option');
                 del.addEventListener('click', () => {
-                    node.removeOption(idx);
+                    ScreenNode.removeOption(node, idx);
                     editor.draw();
                     renderOptions();
                     autoSave();
@@ -2306,7 +2350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             addBtn.style.width = "100%";
             addBtn.style.marginTop = "5px";
             addBtn.addEventListener('click', () => {
-                node.addOption(`Option ${node.outputs.length + 1}`);
+                ScreenNode.addOption(node, `Option ${node.outputs.length + 1}`);
                 editor.draw();
                 renderOptions();
                 autoSave();

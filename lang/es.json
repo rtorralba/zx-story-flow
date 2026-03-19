@@ -6,7 +6,8 @@
         "project": "📁 Proyecto",
         "export": "📤 Exportar",
         "config": "⚙️ Config",
-        "fullscreen": "⛶ Pantalla Completa"
+        "fullscreen": "⛶ Pantalla Completa",
+        "help": "❓ Ayuda"
     },
     "project": {
         "new": "📄 Nuevo",
@@ -67,7 +68,11 @@
         "basic_graphics": "Gráficos",
         "separator_graphic": "Gráfico Separador",
         "selector_graphic": "Gráfico Selector",
-        "border_section": "Borde"
+        "border_section": "Borde",
+        "loading_screen": "Pantalla de carga (SCR):",
+        "font_bin": "Fuente (.bin):",
+        "clear_btn": "Borrar",
+        "none_specified": "(ninguna)"
     },
     "editor": {
         "edit_node": "Editar Nodo",

@@ -58,7 +58,7 @@
                     </div>
                 </div>
 
-                <button id="fullscreen-btn" data-i18n="menu.fullscreen">⛶ Fullscreen</button>
+                <button id="help-btn" data-i18n="menu.help"></button>
 
                 <input type="file" id="load-input" style="display: none;" accept=".json">
                 <input type="file" id="import-mucho-input" style="display: none;" accept=".txt,.mucho">
@@ -351,7 +351,24 @@
                     </div>
                     <br>
                     <h3>BASIC</h3>
-                    <h3 data-i18n="config.basic_graphics" style="margin-top:20px;">Gráficos (solo para BASIC)</h3>
+                    <div id="global-loading-screen-row" class="config-row"
+                        style="display: flex; align-items: center; gap: 8px; margin-top: 12px;">
+                        <label style="min-width: 180px;" data-i18n="config.loading_screen">Pantalla de carga
+                            (SCR):</label>
+                        <input type="file" id="global-loading-screen-input" accept=".scr">
+                        <span id="global-loading-screen-name" style="color: #ddd;"
+                            data-i18n="config.none_specified">(ninguna)</span>
+                        <button type="button" id="global-loading-screen-clear"
+                            data-i18n="config.clear_btn">Borrar</button>
+                    </div>
+                    <div id="global-font-row" class="config-row"
+                        style="display: flex; align-items: center; gap: 8px; margin-top: 12px;">
+                        <label style="min-width: 180px;" data-i18n="config.font_bin">Fuente (.bin):</label>
+                        <input type="file" id="global-font-input" accept=".bin">
+                        <span id="global-font-name" style="color: #ddd;"
+                            data-i18n="config.none_specified">(ninguna)</span>
+                        <button type="button" id="global-font-clear" data-i18n="config.clear_btn">Borrar</button>
+                    </div>
                     <div class="config-options" style="flex-wrap: nowrap; gap: 32px;">
                         <div class="config-row" style="flex-direction: column; align-items: center; gap: 10px;">
                             <label data-i18n="config.separator_graphic">Gráfico Separador</label>

@@ -51,6 +51,9 @@ export class NodeEditor {
         if (!state) return;
         this.nodes = state.nodes || [];
         this.groups = state.groups || [];
+        if (state.camera) {
+            this.camera = { ...state.camera };
+        }
         if (this.selectedNode) {
             this.selectedNode = this.nodes.find(n => n.id === this.selectedNode.id) || null;
         }
@@ -586,10 +589,10 @@ export class NodeEditor {
                     if (fromNode.outputs[portIndex]) {
                         fromNode.outputs[portIndex].target = targetNode.id;
                     }
-                    if (this.onStateChange) this.onStateChange();
                 }
-            } else if (this.dragState.type !== 'pan') {
-                // node/group drag/resize commit — data already mutated in-place on the POJO
+                if (this.onStateChange) this.onStateChange();
+            } else {
+                // node/group/pan drag/resize commit — data already mutated in-place on the POJO
                 if (this.onStateChange) this.onStateChange();
             }
         }
