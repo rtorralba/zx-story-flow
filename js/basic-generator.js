@@ -364,7 +364,9 @@ function transpileMuchoBlock(basicData, muchoCode) {
         } else if (pline.type==="T") {
             if (state==='text') {
                 if (last_pline.type==="T" || last_pline.type==="P"){
-                    // Already an ongoing print. 
+                    // Already an ongoing print.
+                    // Discard ending ;
+                    if (basicData.editLine.at(-1)===';') basicData.editLine = basicData.editLine.slice(0,-1);
                     basicData.editLine += pline.text?`'"${pline.text}";`:`'`;
                 } else {
                     // Need to start a new PRINT statement.
@@ -385,6 +387,8 @@ function transpileMuchoBlock(basicData, muchoCode) {
             if (state==='text') {
                 if (last_pline.type==="T" || last_pline.type==="P"){
                     // Already an ongoing print. 
+                    // Discard ending ;
+                    if (basicData.editLine.at(-1)===';') basicData.editLine = basicData.editLine.slice(0,-1);
                     basicData.editLine += `'`;
                 } else {
                     // Need to start a new PRINT statement.
