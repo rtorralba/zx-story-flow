@@ -23,6 +23,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentLangDisplay) currentLangDisplay.textContent = i18n.currentLang.toUpperCase();
     const canvas = document.getElementById('node-canvas');
     const propertyContent = document.getElementById('properties-content');
+
+    const DEFAULT_SEPARATOR_MATRIX = [
+        false, false, false, false, false, false, false, false,
+        false, false, false, true, false, false, false, false,
+        false, false, true, true, true, false, false, false,
+        false, true, true, true, true, true, false, false,
+        true, true, true, true, true, true, true, false,
+        true, true, true, true, true, true, true, true,
+        true, true, true, true, true, true, true, true,
+        true, true, true, true, true, true, true, true
+    ];
+
+    const DEFAULT_SELECTOR_MATRIX = [
+        false, false, false, false, false, false, false, false,
+        true, false, false, false, true, false, false, false,
+        true, true, false, false, true, true, false, false,
+        true, true, true, false, true, true, true, false,
+        true, true, false, false, true, true, false, false,
+        true, false, false, false, true, false, false, false,
+        false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false
+    ];
+
     let projectName = 'Untitled';
     let projectType = 'MuCho';
 
@@ -35,8 +58,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         viewMode: 'simple',
         rulerWidth: '32ch',
         basicGraphics: {
-            separator: Array(64).fill(false), // 8x8 matrix for BASIC separator
-            selector: Array(64).fill(false)   // 8x8 matrix for BASIC selector
+            separator: [...DEFAULT_SEPARATOR_MATRIX],
+            selector: [...DEFAULT_SELECTOR_MATRIX]
         }
     };
 
@@ -255,10 +278,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateMatricesUI() {
         if (!globalConfig.basicGraphics) {
             globalConfig.basicGraphics = {
-                separator: Array(64).fill(false),
-                selector: Array(64).fill(false)
+                separator: [...DEFAULT_SEPARATOR_MATRIX],
+                selector: [...DEFAULT_SELECTOR_MATRIX]
             };
         }
+        if (!globalConfig.basicGraphics.separator) globalConfig.basicGraphics.separator = [...DEFAULT_SEPARATOR_MATRIX];
+        if (!globalConfig.basicGraphics.selector) globalConfig.basicGraphics.selector = [...DEFAULT_SELECTOR_MATRIX];
 
         const onMatrixDrawn = () => {
             saveGlobalConfig();
@@ -1053,6 +1078,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function createNewProject() {
+        projectName = 'Untitled';
+        projectType = 'MuCho';
+        globalConfig = {
+            page: { ink: 'white', paper: 'black', bright: false, flash: false },
+            separator: { ink: 'white', paper: 'black', bright: false, flash: false },
+            interface: { ink: 'white', paper: 'black', bright: false, flash: false },
+            border: 'black',
+            viewMode: 'simple',
+            rulerWidth: '32ch',
+            basicGraphics: {
+                separator: [...DEFAULT_SEPARATOR_MATRIX],
+                selector: [...DEFAULT_SELECTOR_MATRIX]
+            }
+        };
+        projectState.nodes = [];
+        projectState.groups = [];
+        projectState.startNodeId = null;
+        projectState.camera = { x: 0, y: 0, zoom: 1 };
+
+        // Clear CYD general code textareas
+        const cydStart = document.getElementById('cyd-general-code');
+        const cydEnd = document.getElementById('cyd-general-code-end');
+        if (cydStart) {
+            if (cydStart._cmInstance) cydStart._cmInstance.setValue('');
+            else cydStart.value = '';
+        }
+        if (cydEnd) {
+            if (cydEnd._cmInstance) cydEnd._cmInstance.setValue('');
+            else cydEnd.value = '';
+        }
+
+        // Update UI
+        updateProjectName(projectName);
+        loadGlobalConfig();
+        updateExportButtons();
+        
+        editor.selectNode(null);
+        editor.selectGroup(null);
+        editor.renderState(projectState);
+    }
+
     function autoSave() {
         if (!isInitialized) return;
 
@@ -1609,15 +1676,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('new-btn').addEventListener('click', () => {
         if (confirm(t('messages.new_confirm'))) {
             isInitialized = false;
-            projectState.nodes = [];
-            projectState.groups = [];
-            editor.selectNode(null);
-            editor.selectGroup(null);
-            editor.renderState(projectState);
-            updateProjectName('Untitled');
-
+            createNewProject();
             isInitialized = true;
-            updateExportButtons();
             autoSave();
         }
     });
