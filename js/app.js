@@ -2256,7 +2256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 del.style.minWidth = "35px";
                 del.title = t('editor.delete_option');
                 del.addEventListener('click', () => {
-                    node.removeOption(idx);
+                    ScreenNode.removeOption(node, idx);
                     editor.draw();
                     renderOptions();
                     autoSave();
@@ -2345,7 +2345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             addBtn.style.width = "100%";
             addBtn.style.marginTop = "5px";
             addBtn.addEventListener('click', () => {
-                node.addOption(`Option ${node.outputs.length + 1}`);
+                ScreenNode.addOption(node, `Option ${node.outputs.length + 1}`);
                 editor.draw();
                 renderOptions();
                 autoSave();
