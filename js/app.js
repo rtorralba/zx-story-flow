@@ -83,149 +83,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     const separatorMatrixEl = document.getElementById('separator-matrix');
     const selectorMatrixEl = document.getElementById('selector-matrix');
 
-    // --- Loading screen config UI (MuCho only) ---
-    (function setupLoadingScreenUI() {
-        const muchoSections = document.getElementById('mucho-sections');
-        if (!muchoSections) return;
+    // --- Asset config handlers (Loading screen & Font) ---
+    (function setupAssetHandlers() {
+        const loadingInput = document.getElementById('global-loading-screen-input');
+        const loadingName = document.getElementById('global-loading-screen-name');
+        const loadingClear = document.getElementById('global-loading-screen-clear');
+        const fontInput = document.getElementById('global-font-input');
+        const fontName = document.getElementById('global-font-name');
+        const fontClear = document.getElementById('global-font-clear');
 
-        if (document.getElementById('global-loading-screen-row')) return; // already created
-
-        const row = document.createElement('div');
-        row.id = 'global-loading-screen-row';
-        row.className = 'config-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '8px';
-        row.style.marginTop = '12px';
-
-        const label = document.createElement('label');
-        label.textContent = 'Pantalla de carga (SCR):';
-        label.style.minWidth = '180px';
-
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.scr';
-        fileInput.id = 'global-loading-screen-input';
-
-        const nameSpan = document.createElement('span');
-        nameSpan.id = 'global-loading-screen-name';
-        nameSpan.textContent = '(ninguna)';
-        nameSpan.style.color = '#ddd';
-
-        const clearBtn = document.createElement('button');
-        clearBtn.type = 'button';
-        clearBtn.id = 'global-loading-screen-clear';
-        clearBtn.textContent = 'Borrar';
-
-        row.appendChild(label);
-        row.appendChild(fileInput);
-        row.appendChild(nameSpan);
-        row.appendChild(clearBtn);
-
-        // Insert before the "Gráficos (solo para BASIC)" header if present, otherwise append
-        const graphicsHeader = muchoSections.querySelector('h3[data-i18n="config.basic_graphics"]') || muchoSections.querySelector('h3');
-        if (graphicsHeader && graphicsHeader.parentElement === muchoSections) {
-            muchoSections.insertBefore(row, graphicsHeader);
-        } else {
-            muchoSections.appendChild(row);
+        if (loadingInput) {
+            loadingInput.addEventListener('change', async (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                try {
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const r = new FileReader();
+                        r.onload = (ev) => resolve(ev.target.result);
+                        r.onerror = (err) => reject(err);
+                        r.readAsDataURL(f);
+                    });
+                    if (!globalConfig) globalConfig = {};
+                    globalConfig.loadingScreen = { imageName: f.name, imageData: dataUrl };
+                    if (loadingName) loadingName.textContent = f.name;
+                    autoSave();
+                } catch (err) {
+                    console.error('Failed to read loading screen SCR:', err);
+                } finally {
+                    try { loadingInput.value = ''; } catch (e) { }
+                }
+            });
         }
 
-        // Handlers
-        fileInput.addEventListener('change', async (e) => {
-            const f = e.target.files[0];
-            if (!f) return;
-            try {
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const r = new FileReader();
-                    r.onload = (ev) => resolve(ev.target.result);
-                    r.onerror = (err) => reject(err);
-                    r.readAsDataURL(f);
-                });
-                if (!globalConfig) globalConfig = {};
-                globalConfig.loadingScreen = { imageName: f.name, imageData: dataUrl };
-                nameSpan.textContent = f.name;
-                if (typeof autoSave === 'function') autoSave();
-                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist loading screen', e); }
-            } catch (err) {
-                console.error('Failed to read loading screen SCR:', err);
-            } finally {
-                try { fileInput.value = ''; } catch (e) { }
-            }
-        });
-
-        clearBtn.addEventListener('click', () => {
-            if (globalConfig && globalConfig.loadingScreen) delete globalConfig.loadingScreen;
-            nameSpan.textContent = '(ninguna)';
-            if (typeof autoSave === 'function') autoSave();
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist loading screen removal', e); }
-        });
-
-        // --- Font config UI (.bin) ---
-        const fontRow = document.createElement('div');
-        fontRow.id = 'global-font-row';
-        fontRow.className = 'config-row';
-        fontRow.style.display = 'flex';
-        fontRow.style.alignItems = 'center';
-        fontRow.style.gap = '8px';
-        fontRow.style.marginTop = '12px';
-
-        const fontLabel = document.createElement('label');
-        fontLabel.textContent = 'Fuente (.bin):';
-        fontLabel.style.minWidth = '180px';
-
-        const fontFileInput = document.createElement('input');
-        fontFileInput.type = 'file';
-        fontFileInput.accept = '.bin';
-        fontFileInput.id = 'global-font-input';
-
-        const fontNameSpan = document.createElement('span');
-        fontNameSpan.id = 'global-font-name';
-        fontNameSpan.textContent = '(ninguna)';
-        fontNameSpan.style.color = '#ddd';
-
-        const fontClearBtn = document.createElement('button');
-        fontClearBtn.type = 'button';
-        fontClearBtn.id = 'global-font-clear';
-        fontClearBtn.textContent = 'Borrar';
-
-        fontRow.appendChild(fontLabel);
-        fontRow.appendChild(fontFileInput);
-        fontRow.appendChild(fontNameSpan);
-        fontRow.appendChild(fontClearBtn);
-
-        if (row.parentElement) {
-            row.parentElement.insertBefore(fontRow, row.nextSibling);
+        if (loadingClear) {
+            loadingClear.addEventListener('click', () => {
+                if (globalConfig && globalConfig.loadingScreen) delete globalConfig.loadingScreen;
+                if (loadingName) loadingName.textContent = t('config.none_specified');
+                autoSave();
+            });
         }
 
-        fontFileInput.addEventListener('change', async (e) => {
-            const f = e.target.files[0];
-            if (!f) return;
-            try {
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const r = new FileReader();
-                    r.onload = (ev) => resolve(ev.target.result);
-                    r.onerror = (err) => reject(err);
-                    r.readAsDataURL(f);
-                });
-                if (!globalConfig) globalConfig = {};
-                globalConfig.font = { fontName: f.name, fontData: dataUrl };
-                fontNameSpan.textContent = f.name;
-                if (typeof autoSave === 'function') autoSave();
-                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist font', e); }
-            } catch (err) {
-                console.error('Failed to read font BIN:', err);
-            } finally {
-                try { fontFileInput.value = ''; } catch (e) { }
-            }
-        });
+        if (fontInput) {
+            fontInput.addEventListener('change', async (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                try {
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const r = new FileReader();
+                        r.onload = (ev) => resolve(ev.target.result);
+                        r.onerror = (err) => reject(err);
+                        r.readAsDataURL(f);
+                    });
+                    if (!globalConfig) globalConfig = {};
+                    globalConfig.font = { fontName: f.name, fontData: dataUrl };
+                    if (fontName) fontName.textContent = f.name;
+                    autoSave();
+                } catch (err) {
+                    console.error('Failed to read font BIN:', err);
+                } finally {
+                    try { fontInput.value = ''; } catch (e) { }
+                }
+            });
+        }
 
-        fontClearBtn.addEventListener('click', () => {
-            if (globalConfig && globalConfig.font) delete globalConfig.font;
-            fontNameSpan.textContent = '(ninguna)';
-            if (typeof autoSave === 'function') autoSave();
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getProjectData())); } catch (e) { console.warn('Could not persist font removal', e); }
-        });
-
+        if (fontClear) {
+            fontClear.addEventListener('click', () => {
+                if (globalConfig && globalConfig.font) delete globalConfig.font;
+                if (fontName) fontName.textContent = t('config.none_specified');
+                autoSave();
+            });
+        }
     })();
     // Helper: Convert color name to CSS color value
     function zxColorToCSS(colorName, bright = false) {
@@ -336,7 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (globalConfig && globalConfig.loadingScreen && globalConfig.loadingScreen.imageName) {
                     nameSpan.textContent = globalConfig.loadingScreen.imageName;
                 } else {
-                    nameSpan.textContent = '(ninguna)';
+                    nameSpan.textContent = t('config.none_specified');
                 }
             }
             const fontNameSpan = document.getElementById('global-font-name');
@@ -344,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (globalConfig && globalConfig.font && globalConfig.font.fontName) {
                     fontNameSpan.textContent = globalConfig.font.fontName;
                 } else {
-                    fontNameSpan.textContent = '(ninguna)';
+                    fontNameSpan.textContent = t('config.none_specified');
                 }
             }
         } catch (e) {
