@@ -1113,17 +1113,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         editor.addReference(); // No coordinates = center of view
     });
 
-    // Fullscreen button
-    document.getElementById('fullscreen-btn').addEventListener('click', () => {
-        const app = document.getElementById('app');
-        if (!document.fullscreenElement) {
-            app.requestFullscreen().catch(err => {
-                console.error('Error attempting to enable fullscreen:', err);
-            });
-        } else {
-            document.exitFullscreen();
-        }
-    });
+    // Help button (replaces fullscreen)
+    const helpBtn = document.getElementById('help-btn');
+    if (helpBtn) {
+        helpBtn.addEventListener('click', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => {
+                    console.error('Error exiting fullscreen before opening help:', err);
+                });
+            }
+            window.open('https://github.com/rtorralba/zx-story-flow/wiki/','_blank','noopener');
+        });
+    }
 
     // Helper: validate no duplicated labels
     function hasDuplicateLabels() {

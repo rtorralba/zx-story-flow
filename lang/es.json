@@ -6,7 +6,8 @@
         "project": "📁 Proyecto",
         "export": "📤 Exportar",
         "config": "⚙️ Config",
-        "fullscreen": "⛶ Pantalla Completa"
+        "fullscreen": "⛶ Pantalla Completa",
+        "help": "❓ Ayuda"
     },
     "project": {
         "new": "📄 Nuevo",
