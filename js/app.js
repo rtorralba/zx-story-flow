@@ -1080,13 +1080,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (loadProjectData(data)) {
                     console.log("Project successfully restored from localStorage");
                 } else {
-                    console.warn("Project found in localStorage but restoration failed.");
+                    console.warn("Project found in localStorage but restoration failed. Creating a new project instead.");
+                    createNewProject();
                 }
             } catch (e) {
                 console.error("Failed to parse localStorage data:", e);
+                // If saved data is corrupt, start a fresh project to ensure UI has a project
+                createNewProject();
             }
         } else {
-            console.log("No saved project found in localStorage");
+            console.log("No saved project found in localStorage. Creating a new project.");
+            createNewProject();
         }
 
         // Mark as initialized so FUTURE changes trigger auto-save
