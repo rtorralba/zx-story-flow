@@ -957,6 +957,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Restore global config
             if (data.globalConfig) {
                 globalConfig = data.globalConfig;
+                // Normalize globalConfig with defaults for missing fields
+                if (!globalConfig.page) globalConfig.page = { ink: 'white', paper: 'black', bright: false, flash: false };
+                if (!globalConfig.separator) globalConfig.separator = { ink: 'white', paper: 'black', bright: false, flash: false };
+                if (!globalConfig.interface) globalConfig.interface = { ink: 'white', paper: 'black', bright: false, flash: false };
+                if (globalConfig.border === undefined) globalConfig.border = 'black';
+                if (globalConfig.viewMode === undefined) globalConfig.viewMode = 'simple';
+                if (globalConfig.rulerWidth === undefined) globalConfig.rulerWidth = '32ch';
+                if (!globalConfig.basicGraphics) {
+                    globalConfig.basicGraphics = {
+                        separator: Array(64).fill(false),
+                        selector: Array(64).fill(false)
+                    };
+                }
+                
                 // if project type stored in globalConfig prefer it
                 if (globalConfig.projectType) projectType = globalConfig.projectType;
                 editorViewMode = globalConfig.viewMode || 'simple';
@@ -988,9 +1002,41 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Restore Nodes, Groups and start node — assign directly (POJOs, no conversion needed)
-            projectState.nodes = data.nodes || [];
-            projectState.groups = data.groups || [];
+            // Restore Nodes, Groups and start node — normalize to ensure all POJO fields are present
+            projectState.nodes = (data.nodes || []).map(node => {
+                const type = node.type || '';
+                if (type.toLowerCase() === 'screen' || type === '') {
+                    node.type = 'Screen';
+                    if (node.width === undefined) node.width = ScreenNode.DEFAULT_WIDTH;
+                    if (node.outputs) {
+                        node.outputs.forEach(opt => {
+                            if (opt.eligible === undefined) opt.eligible = true;
+                            if (opt.prefix === undefined) opt.prefix = '';
+                            if (opt.suffix === undefined) opt.suffix = '';
+                        });
+                    } else {
+                        node.outputs = [{ label: 'Next', target: null, eligible: true, prefix: '', suffix: '' }];
+                    }
+                    if (node.height === undefined) {
+                        node.height = ScreenNode.BASE_HEIGHT + (node.outputs.length * ScreenNode.OPTION_HEIGHT) + ScreenNode.FOOTER_HEIGHT;
+                    }
+                    if (node.borderColor === undefined) node.borderColor = 'black';
+                } else if (type.toLowerCase() === 'reference') {
+                    node.type = 'Reference';
+                    if (node.width === undefined) node.width = NodeReference.DEFAULT_WIDTH;
+                    if (node.height === undefined) node.height = NodeReference.DEFAULT_HEIGHT;
+                    if (!node.outputs) node.outputs = [];
+                }
+                return node;
+            });
+
+            projectState.groups = (data.groups || []).map(group => {
+                if (group.width === undefined) group.width = Group.DEFAULT_WIDTH;
+                if (group.height === undefined) group.height = Group.DEFAULT_HEIGHT;
+                if (!group.nodeIds) group.nodeIds = [];
+                return group;
+            });
+
             projectState.startNodeId = data.startNodeId || null;
 
             editor.renderState(projectState); // Feed state to editor
