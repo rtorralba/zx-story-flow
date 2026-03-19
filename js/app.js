@@ -1376,7 +1376,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Create ScreenNode instances (positions assigned by tree layout below)
         const nodes = blocks.map((block, idx) => {
             const nodeId = 'n' + (idx + 1);
-            const node = new ScreenNode(nodeId, 0, 0);
+            const node = ScreenNode.create(nodeId, 0, 0); // Use static factory for POJO
             node.title = block.label;
             node.text = block.descLines.join('\n').replace(/^\n+|\n+$/g, '');
 
@@ -1384,13 +1384,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 node.outputs = block.options.map(opt => ({
                     label: opt.text || opt.targetLabel,
                     target: labelToId[opt.targetLabel.toLowerCase()] || null,
+                    eligible: true,
+                    prefix: '',
+                    suffix: '',
                     flag: opt.flag || ''
                 }));
             } else {
-                node.outputs = [{ label: 'Next', target: null }];
+                node.outputs = [{ label: 'Next', target: null, eligible: true, prefix: '', suffix: '' }];
             }
             // Recalculate height based on actual number of outputs
-            node.height = node.baseHeight + node.outputs.length * node.optionHeight + node.footerHeight;
+            node.height = ScreenNode.BASE_HEIGHT + node.outputs.length * ScreenNode.OPTION_HEIGHT + ScreenNode.FOOTER_HEIGHT;
             return node;
         });
 
@@ -1462,7 +1465,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (tgtDepth <= srcDepth) {
                     // Back-edge: replace target with a new NodeReference
                     const refId = 'ref_import_' + (++refCounter);
-                    const ref = new NodeReference(refId, 0, 0, opt.target);
+                    const ref = NodeReference.create(refId, 0, 0, opt.target);
                     // Auto-size width: arrow area (35px) + ~7px per char + 20px right padding
                     const targetNode = nodes[idToIdx[opt.target]];
                     const titleLen = (targetNode ? targetNode.title : opt.target).length;
