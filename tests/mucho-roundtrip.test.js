@@ -1,12 +1,12 @@
 // Approval test: mucho_001.txt → parseMuchoToNodes → generateMucho → snapshot
-// The snapshot captures the normalized exported form after a full import/export cycle.
-// To update the snapshot after intentional changes: npx vitest run --update-snapshots
+// The approved output lives in __snapshots__/mucho-roundtrip.test.js.txt.
+// To update: edit that txt file and run: npx vitest run (snapshot picks it up automatically).
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { parseMuchoToNodes } from '../js/mucho-parser.js';
+import { parseMuchoToNodes, parseMuchoGlobalConfig } from '../js/mucho-parser.js';
 import { generateMucho } from '../js/mucho-generator.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -30,13 +30,12 @@ describe('MuCho round-trip approval (mucho_001)', () => {
     });
 
     it('re-exports the parsed nodes and the output matches the approved snapshot', () => {
-        const source = readFileSync(FIXTURE, 'utf8');
-        const nodes = parseMuchoToNodes(source);
+        const source     = readFileSync(FIXTURE, 'utf8');
+        const nodes      = parseMuchoToNodes(source);
+        const globalConfig = parseMuchoGlobalConfig(source);
 
-        const exported = generateMucho(nodes);
+        const exported = generateMucho(nodes, globalConfig);
 
-        // Snapshot approval: first run creates the approved output;
-        // subsequent runs fail if the output changes unexpectedly.
         expect(exported).toMatchSnapshot();
     });
 

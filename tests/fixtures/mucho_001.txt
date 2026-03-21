@@ -1,5 +1,3 @@
-# El Spectrumero: Javi versus Parrish
-
 $Q Presents border:0 attr:6 dattr:6 iattr:6 cls:0
 $P
 $I presents.scr
@@ -22,35 +20,25 @@ $O not:adiosparrish
 Finally, it's getting dark. It's Saturday, and you're, by some twist of fate, all alone this weekend, preparing for your YouTube livestream. Today, you're interviewing none other than Furillo Productions... what a couple of troublemakers! Everything is perfect, well, almost. You're missing something important, a drink, and then you can start the livestream...
 $O has:adiosparrish
 You still can't believe everything that happened... the remnants of Lladro's porcelain horse are still on the floor as evidence that Parrish's visit wasn't a nightmare. But there's not much time for anything else, it's almost time for the big livestream, and the Furillos are surely waiting for you... you take a big swig of Kocacola and take a deep breath. You're ready.
-
 $A End1 not:bebekocacola
 Nah, you do the livestream without anything to drink.
-
 $A VieneParrish has:bebekocacola not:adiosparrish
 Start the livestream...
-
 $A Ganar has:bebekocacola has:adiosparrish
 Start the livestream now or you won't make it...
-
 $A BeberTequila has:tequila not:datequila
 Have a little tequila to start...
-
 $A BeberKocacola not:bebekocacola has:kocacola
 Open the Kocacola before starting...
-
 $A Refri
 Check the fridge...
 
 $Q VieneParrish
-
 Knock knock... - someone knocks on the door -
-
 $A IgnoreKnockKnock
 Ignore it...
-
 $A Peephole
 Look through the peephole.
-
 $A OpenDoor
 Open the door.
 
@@ -62,25 +50,19 @@ $O attr:4
 $P
 $O attr:3
 Oh no...
-
 $A IgnoreKnockKnock
 Ignore it...
-
 $A Peephole
 Look through the peephole.
-
 $A OpenDoor
 Open the door.
 
 $Q Peephole
-
 You can barely see anything, just the top part of a big head with a huge afro.
 $P
 You fear the worst... you've seen that head before, and it belongs to a troublesome character...
-
 $A IgnoreKnockKnock
 Ignore it...
-
 $A OpenDoor
 Open the door.
 
@@ -96,10 +78,8 @@ $P
 $O attr:4
 Peter- "Buddy! I heard you're alone this weekend... come on, mate, let's go party! I just came from hanging out with the Raticulians, and they're so boring, they don't even drink at all..."
 $O attr:3
-
 $A BrushOff
 Brush him off...
-
 $A Fiestaca
 Sure, let's go, let's go! Always up for it!
 
@@ -117,10 +97,8 @@ $P
 $I presents.scr
 $P
 Oh, what a mess, you need to get rid of Parrish somehow...
-
 $A ParrishTequila has:tequila not:datequila set:datequila
 Give him a bottle of tequila.
-
 $A Refri2 not:tequila
 Check the fridge...
 
@@ -132,16 +110,12 @@ Peter- "Javi, this is awesome, I'm crashing at your place now, if only I had som
 $P
 $O attr:3
 Holy mother of God, what will you do now...?
-
 $A DirectazoParrish
 Do the livestream with Parrish.
-
 $A GivePaella has:paella not:comepaella set:comepaella
 Serve him paella.
-
 $A GiveMoney has:monopoli not:dadomonopoli set:dadomonopoli
 Give him the Monopoly money.
-
 $A HabitacionBuscas
 Search the room.
 
@@ -152,7 +126,6 @@ $P
 Parrish devours the paella with tremendous hunger... it didn't help much.
 $P
 Well, at least he looks happy. There are few friends like you!
-
 $A ParrishTequila
 Think of something else...
 
@@ -173,7 +146,6 @@ $O attr:3
 Javi- "No kisses, though... but a hug will do!"
 $P
 Impressive, you did it! With the tequila, Parrish thought the Monopoly money was real and he has left! You are free, amigo!
-
 $A Saloncito set:adiosparrish
 Return to the living room.
 
@@ -183,13 +155,10 @@ $P
 On the dining table, the Monopoly game is still open...
 $P
 In the kitchen, you see leftovers from the paella you had today...
-
 $A ParrishTequila not:paella set:paella
 Put the leftover paella on a plate.
-
 $A ParrishTequila not:monopoli set:monopoli
 Take the Monopoly money.
-
 $A ParrishTequila
 Go back to Parrish.
 
@@ -243,7 +212,6 @@ $Q BeberKocacola
 You feel the sugary drink entering your body, giving you the necessary sweetness for a four-hour livestream...
 $P
 With the boost, you feel invincible, it's time to start...
-
 $A Saloncito set:bebekocacola
 I'm ready for anything...
 
@@ -257,33 +225,24 @@ $P
 You couldn't do the livestream. Perhaps if you could go back in time, you would do things differently...
 
 $Q Refri2
-
 You look inside the refrigerator desperately to see if there's something you can give to Parrish to make him leave...
 $P
 Fortunately, there's a bottle of tequila that he would surely accept with joy...
-
 $A BrushOff set:tequila
 Grab the bottle and return to Parrish...
 
 $Q Refri
-
 $O has:tequila has:kocacola
 Well, there's no more drink left...
-
 $O not:tequila not:kocacola
 There aren't many things, we need to go shopping. However, you can have all the drinks you want...
-
 $O has:tequila not:kocacola
 There aren't many things, we need to go shopping. However, you can have all the drinks you want...
-
 $O not:tequila has:kocacola
 There aren't many things, we need to go shopping. However, you can have all the drinks you want...
-
 $A Saloncito not:tequila set:tequila
 Take out a good tequila...
-
 $A Saloncito not:kocacola set:kocacola
 Grab a fresh Kokacola...
-
 $A Saloncito
 Close the fridge...

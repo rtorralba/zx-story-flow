@@ -5,11 +5,49 @@
 
 import { ScreenNode, NodeReference } from './nodes.js';
 
+// ZX Spectrum color names indexed by color code 0-7
+const ZX_COLORS = ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'];
+
+function decodeAttrByte(byte) {
+    return {
+        ink:    ZX_COLORS[byte & 0x07],
+        paper:  ZX_COLORS[(byte >> 3) & 0x07],
+        bright: ((byte >> 6) & 0x01) === 1,
+        flash:  ((byte >> 7) & 0x01) === 1
+    };
+}
+
 /**
- * Parse a MuCho text file into an array of ScreenNode/NodeReference POJOs.
+ * Read the first $Q line of a MuCho text and decode its attr/dattr/iattr/border
+ * flags into a globalConfig object suitable for passing to generateMucho().
  * @param {string} text - Raw MuCho source text
- * @returns {Array} Array of node plain objects
+ * @returns {object} globalConfig
  */
+export function parseMuchoGlobalConfig(text) {
+    const cfg = {
+        page:      { ink: 'white', paper: 'black', bright: false, flash: false },
+        separator: { ink: 'white', paper: 'black', bright: false, flash: false },
+        interface: { ink: 'white', paper: 'black', bright: false, flash: false },
+        border:    'black'
+    };
+    for (const line of text.split(/\r?\n/)) {
+        if (line.startsWith('#')) continue;
+        if (line.startsWith('$Q ')) {
+            const rest = line.substring(3).trim();
+            const attrM   = rest.match(/\battr:(\d+)/);
+            const dattrM  = rest.match(/\bdattr:(\d+)/);
+            const iattrM  = rest.match(/\biattr:(\d+)/);
+            const borderM = rest.match(/\bborder:(\d+)/);
+            if (attrM)   cfg.page      = decodeAttrByte(parseInt(attrM[1]));
+            if (dattrM)  cfg.separator = decodeAttrByte(parseInt(dattrM[1]));
+            if (iattrM)  cfg.interface = decodeAttrByte(parseInt(iattrM[1]));
+            if (borderM) cfg.border    = ZX_COLORS[parseInt(borderM[1])];
+            break; // only the first $Q defines global defaults
+        }
+    }
+    return cfg;
+}
+
 export function parseMuchoToNodes(text) {
     const lines = text.split(/\r?\n/);
     const blocks = [];
@@ -17,6 +55,7 @@ export function parseMuchoToNodes(text) {
     let lastOptionIdx = -1;
 
     lines.forEach(line => {
+        if (line.startsWith('#')) return; // comment line — skip
         if (line.startsWith('$Q ')) {
             if (currentBlock) blocks.push(currentBlock);
             const rest = line.substring(3).trim();
@@ -38,7 +77,7 @@ export function parseMuchoToNodes(text) {
                 currentBlock.options[lastOptionIdx].text === '') {
                 currentBlock.options[lastOptionIdx].text = line.trim();
             } else if (!currentBlock.inOptions) {
-                currentBlock.descLines.push(line);
+                if (line.trim() !== '') currentBlock.descLines.push(line);
             }
         }
     });
