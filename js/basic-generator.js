@@ -54,13 +54,17 @@ function parseLine(line) {
     const tline = line.trim();
     if(tline && tline.startsWith('$')){
         pline.type = tline[1];
-        pline.text = tline.slice(2).trim().toLowerCase();
+        const text = tline.slice(2).trim().toLowerCase();
+        pline.text = cleanPredicate(text);
     } else {
         pline.type = 'T'
         pline.text = line.replace(/"/g, `""`);
     }
     return pline
 }
+
+
+
 
 /**
  * 
@@ -117,6 +121,7 @@ function transpileOptions(text,basicData) {
 
     return basicCode
 }
+
 
 
 /**
@@ -218,6 +223,24 @@ function transpileStatements(text,basicData) {
 
     return basicCode;
 
+}
+
+/**
+ * Remove spaces around operators and :
+ * This makes processing more tolerant to
+ * unnecessary spaces introduced by the user
+ * and that can be safely removed.
+ * MuCho might not accpet these spaces.
+ * 
+ * @param {*} text 
+ * @param {*} basicData 
+ * @returns 
+ */
+function cleanPredicate(text,basicData) {
+    const result = text.replace(/\s*(==|!=|<=|>=|<|>|\+|-|:)\s*/g, (match, op) => {
+        return op;
+    })
+    return result;
 }
 
 
