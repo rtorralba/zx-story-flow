@@ -73,6 +73,12 @@ function parseLine(line) {
  * IF statemet. "IF " + string + " THEN"
  */
 function transpileOptions(text,basicData) {
+    // !!!! Now the function assumes that there is no spaces between
+    // !!!! numeric operators and operands.
+    // !!!! If there are spaces, data can be missunderstood as flags.
+    // !!!! Should preprocess the text to remove all spaces before and
+    // !!!! after operators so that this situation is handled gracefully
+    // !!!! without touching the working code.
 
     var basicCode = '';
 
@@ -368,7 +374,12 @@ function transpileMuchoBlock(basicData, muchoCode) {
             //basicData.editLine += "GO SUB [[sys_cls_interface]]"
             // Additional statements.
             if (match[2]) {
-                basicData.editLine += ":"+transpileStatements(pline.text,basicData);
+                const opsCode = transpileOptions(match[2],basicData);
+                const stmCode = transpileStatements(match[2],basicData);
+                basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
+                basicData.editLine += stmCode;
+                if (opsCode) basicData.finish_line();
+                //basicData.editLine += ":"+transpileStatements(match[2],basicData);
             }
         } else if (pline.type==="O") {
             // Next text should start in a new line.
