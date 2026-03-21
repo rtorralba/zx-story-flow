@@ -74,6 +74,11 @@
         "cls_0": "Everything (0)",
         "cls_1": "Page (1)",
         "cls_2": "Interface (2)"
+        ,
+        "loading_screen": "Loading screen (SCR):",
+        "font_bin": "Font (.bin):",
+        "clear_btn": "Clear",
+        "none_specified": "(none)"
     },
     "editor": {
         "edit_node": "Edit Node",
@@ -91,7 +96,7 @@
         "eligible": "Eligible",
         "add_option": "+ Add option",
         "color_config_title": "Color Configuration",
-        "use_custom_node": "Use specific configuration for this node",
+        "use_custom_node": "Change configuration for this and next pages",
         "insert_image": "🖼️ Insert Image",
         "ruler_title": "Guide ruler (column width)",
         "ruler_off": "📏 Ruler: Off",
@@ -108,7 +113,6 @@
         "flags_has": "If flag is set.",
         "flags_not": "If flag is NOT set.",
         "flags_rnd": "Probability (128 = 50%).",
-        "flags_and": "Combine:",
         "or": "or",
         "ops_title": "Operations (Flags)",
         "ops_set": "Set a flag.",

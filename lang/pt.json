@@ -73,7 +73,11 @@
         "cls_none": "-- Nenhum --",
         "cls_0": "Tudo (0)",
         "cls_1": "Página (1)",
-        "cls_2": "Interface (2)"
+        "cls_2": "Interface (2)",
+        "loading_screen": "Tela de carregamento (SCR):",
+        "font_bin": "Fonte (.bin):",
+        "clear_btn": "Limpar",
+        "none_specified": "(nenhuma)"
     },
     "editor": {
         "edit_node": "Editar Nó",
@@ -91,7 +95,7 @@
         "eligible": "Elegível",
         "add_option": "+ Adicionar opção",
         "color_config_title": "Configuração de Cores",
-        "use_custom_node": "Usar configuração específica para este nó",
+        "use_custom_node": "Alterar configuração para esta e próximas páginas",
         "insert_image": "🖼️ Inserir Imagem",
         "ruler_title": "Régua de guia (largura da coluna)",
         "ruler_off": "📏 Régua: Desligada",
@@ -108,7 +112,6 @@
         "flags_has": "Se tiver o flag.",
         "flags_not": "Se NÃO o tiver.",
         "flags_rnd": "Probabilidade (128 = 50%).",
-        "flags_and": "Combinar:",
         "or": "ou",
         "ops_title": "Operações (Flags)",
         "ops_set": "Ativa um flag.",
