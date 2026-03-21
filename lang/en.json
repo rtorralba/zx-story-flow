@@ -6,7 +6,6 @@
         "project": "📁 Project",
         "export": "📤 Export",
         "config": "⚙️ Config",
-        "fullscreen": "⛶ Fullscreen",
         "help": "❓ Help"
     },
     "project": {
@@ -61,11 +60,9 @@
         "default_view": "Default view mode:",
         "view_simple": "Simple View",
         "view_advanced": "Advanced View",
-        "close": "Close",
         "cyd_general_title": "General Code",
         "cyd_tab_start": "Start code",
         "cyd_tab_end": "End code",
-        "basic_graphics": "Graphics",
         "separator_graphic": "Separator Graphic",
         "selector_graphic": "Selector Graphic",
         "border_section": "Border",
@@ -99,7 +96,6 @@
         "use_custom_node": "Change configuration for this and next pages",
         "insert_image": "🖼️ Insert Image",
         "ruler_title": "Guide ruler (column width)",
-        "ruler_off": "📏 Ruler: Off",
         "ruler_hidden": "Hidden",
         "ruler_placeholder": "Cols (ex: 32)",
         "cyd_commands_placeholder": "CYD Commands (header)",
@@ -138,7 +134,5 @@
         "load_failed": "Failed to load project: ",
         "import_mucho_empty": "No MuCho blocks ($Q) found in the file.",
         "import_mucho_failed": "MuCho import failed: ",
-        "duplicate_labels_title": "Cannot export. There are screens with names that result in duplicate labels:\n",
-        "duplicate_labels_desc": "\n\nPlease ensure each screen has a unique name."
     }
 }

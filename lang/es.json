@@ -6,7 +6,6 @@
         "project": "📁 Proyecto",
         "export": "📤 Exportar",
         "config": "⚙️ Config",
-        "fullscreen": "⛶ Pantalla Completa",
         "help": "❓ Ayuda"
     },
     "project": {
@@ -61,11 +60,9 @@
         "default_view": "Modo de edición:",
         "view_simple": "Vista Sencilla",
         "view_advanced": "Vista Avanzada",
-        "close": "Cerrar",
         "cyd_general_title": "Código general",
         "cyd_tab_start": "Código inicio",
         "cyd_tab_end": "Código fin",
-        "basic_graphics": "Gráficos",
         "separator_graphic": "Gráfico Separador",
         "selector_graphic": "Gráfico Selector",
         "border_section": "Borde",
@@ -98,7 +95,6 @@
         "use_custom_node": "Cambiar configuración para esta y siguientes páginas",
         "insert_image": "🖼️ Insertar Imagen",
         "ruler_title": "Regla de guía (ancho de columna)",
-        "ruler_off": "📏 Regla: Off",
         "ruler_hidden": "Oculto",
         "ruler_placeholder": "Cols (ej: 32)",
         "cyd_commands_placeholder": "Comandos CYD (cabecera)",
@@ -137,7 +133,5 @@
         "load_failed": "Error al cargar el proyecto: ",
         "import_mucho_empty": "No se encontraron bloques MuCho ($Q) en el archivo.",
         "import_mucho_failed": "Error al importar MuCho: ",
-        "duplicate_labels_title": "No se puede exportar. Hay pantallas con nombres que resultan en etiquetas duplicadas:\n",
-        "duplicate_labels_desc": "\n\nPor favor, asegúrate de que cada pantalla tenga un nombre único."
     }
 }
