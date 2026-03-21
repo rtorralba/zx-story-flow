@@ -1,0 +1,248 @@
+$Q Presents border:0 attr:6 dattr:6 iattr:6 cls:0
+$P
+$I presents.scr
+$P
+*********** FURILLO PRODUCTIONS PRESENTS ***********
+$P
+$O attr:2
+EL SPECTRUMERO: JAVI VERSUS PARRISH
+$P
+$O attr:3
+An interactive mini adventure of MuCho engine 3.0 to test the wonderful ZXVF Tool. Help Javi get rid of Peter Parrish so he can start his livestream...
+$A Saloncito
+Let's go!
+
+$Q Saloncito
+$P
+$I saloncito.scr
+$P
+$O not:adiosparrish
+Finally, it's getting dark. It's Saturday, and you're, by some twist of fate, all alone this weekend, preparing for your YouTube livestream. Today, you're interviewing none other than Furillo Productions... what a couple of troublemakers! Everything is perfect, well, almost. You're missing something important, a drink, and then you can start the livestream...
+$O has:adiosparrish
+You still can't believe everything that happened... the remnants of Lladro's porcelain horse are still on the floor as evidence that Parrish's visit wasn't a nightmare. But there's not much time for anything else, it's almost time for the big livestream, and the Furillos are surely waiting for you... you take a big swig of Kocacola and take a deep breath. You're ready.
+$A End1 not:bebekocacola
+Nah, you do the livestream without anything to drink.
+$A VieneParrish has:bebekocacola not:adiosparrish
+Start the livestream...
+$A Ganar has:bebekocacola has:adiosparrish
+Start the livestream now or you won't make it...
+$A BeberTequila has:tequila not:datequila
+Have a little tequila to start...
+$A BeberKocacola not:bebekocacola has:kocacola
+Open the Kocacola before starting...
+$A Refri
+Check the fridge...
+
+$Q VieneParrish
+Knock knock... - someone knocks on the door -
+$A IgnoreKnockKnock
+Ignore it...
+$A Peephole
+Look through the peephole.
+$A OpenDoor
+Open the door.
+
+$Q IgnoreKnockKnock
+KNOCK KNOCK KNOCK... You hear a familiar voice shouting at the top of its lungs...
+$P
+$O attr:4
+"JAVI... IT'S PETER PARRISHHHHHH..."
+$P
+$O attr:3
+Oh no...
+$A IgnoreKnockKnock
+Ignore it...
+$A Peephole
+Look through the peephole.
+$A OpenDoor
+Open the door.
+
+$Q Peephole
+You can barely see anything, just the top part of a big head with a huge afro.
+$P
+You fear the worst... you've seen that head before, and it belongs to a troublesome character...
+$A IgnoreKnockKnock
+Ignore it...
+$A OpenDoor
+Open the door.
+
+$Q OpenDoor
+$P
+$I parrish.scr
+$P
+Peter Parrish stumbles in and breaks Aunt Angelina's Lladro porcelain horse you were given. You tremble at the thought of tomorrow when your wife sees it... Looking like a mess, with his shirt untucked, he looks like he's been partying for several days straight. Who would think that such an individual is responsible for saving the world? #twice!
+$P
+$P
+$I parrish.scr
+$P
+$O attr:4
+Peter- "Buddy! I heard you're alone this weekend... come on, mate, let's go party! I just came from hanging out with the Raticulians, and they're so boring, they don't even drink at all..."
+$O attr:3
+$A BrushOff
+Brush him off...
+$A Fiestaca
+Sure, let's go, let's go! Always up for it!
+
+$Q BrushOff
+$P
+$I presents.scr
+$P
+Javi- "Sorry, Peter, I'm feeling a bit off today, I have a YouTube livestream and not much time... sorry. Not today, Peter."
+$P
+$O attr:4
+Peter- "Javi, my man, how about giving me something for the party, I'm a bit short on cash..."
+$P
+$O attr:3
+$P
+$I presents.scr
+$P
+Oh, what a mess, you need to get rid of Parrish somehow...
+$A ParrishTequila has:tequila not:datequila set:datequila
+Give him a bottle of tequila.
+$A Refri2 not:tequila
+Check the fridge...
+
+$Q ParrishTequila
+Parrish drinks the bottle as if it were water, as if there's no tomorrow, as if his life depends on it, as if he's a dried-up plant, as if... well, enough with the metaphors... the point is, he's downing it to the last drop and he's quite happy...
+$P
+$O attr:4
+Peter- "Javi, this is awesome, I'm crashing at your place now, if only I had some cash, I'd go partying while I'm in the mood..."
+$P
+$O attr:3
+Holy mother of God, what will you do now...?
+$A DirectazoParrish
+Do the livestream with Parrish.
+$A GivePaella has:paella not:comepaella set:comepaella
+Serve him paella.
+$A GiveMoney has:monopoli not:dadomonopoli set:dadomonopoli
+Give him the Monopoly money.
+$A HabitacionBuscas
+Search the room.
+
+$Q GivePaella
+$P
+$I parrish.scr
+$P
+Parrish devours the paella with tremendous hunger... it didn't help much.
+$P
+Well, at least he looks happy. There are few friends like you!
+$A ParrishTequila
+Think of something else...
+
+$Q GiveMoney
+$P
+$I parrish.scr
+$P
+Javi- "Look, Peter, here's some cash so you can have a great party tonight..."
+$P
+$O attr:4
+Peter- "Javi! But this is a lot of money! I'm going to throw a massive party in your honor... well, I'm off, buddy. Take care..."
+$P
+$P
+$P
+$I parrish.scr
+$P
+$O attr:3
+Javi- "No kisses, though... but a hug will do!"
+$P
+Impressive, you did it! With the tequila, Parrish thought the Monopoly money was real and he has left! You are free, amigo!
+$A Saloncito set:adiosparrish
+Return to the living room.
+
+$Q HabitacionBuscas
+You look around desperately... there must be something you can give this annoying guy to make him leave!
+$P
+On the dining table, the Monopoly game is still open...
+$P
+In the kitchen, you see leftovers from the paella you had today...
+$A ParrishTequila not:paella set:paella
+Put the leftover paella on a plate.
+$A ParrishTequila not:monopoli set:monopoli
+Take the Monopoly money.
+$A ParrishTequila
+Go back to Parrish.
+
+$Q DirectazoParrish
+With little time left, you decide there's no other choice but to do the livestream with Parrish by your side.
+$P
+When you least expect it, Peter jumps into the conversation and takes over the livestream.
+$P
+The livestream itself is a success, we can't deny it, but it ends abruptly and your channel gets permanently suspended when Parrish decides to do a half-naked dance of the seven veils...
+$P
+Oh, you couldn't finish the livestream successfully... let's go back to the past and try again. We have to get rid of Parrish no matter what!
+
+$Q Fiestaca
+Parrish takes you to the city's worst dives. You still can't understand why you agreed to go with him, knowing the kind of places he gets into.
+$P
+When you wake up, you're on the street next to some dumpsters. It's Sunday and you can't remember your name, and the worst part is, you're broke. Oops, there's a note in your pocket...
+$P
+$O attr:4
+"Javi, dude, what a night, it was amazing. Hey, I'm borrowing you to go to Benidorm with a girlfriend. xoxo Peter Parrish."
+$P
+$O attr:3
+All you can do is pray to the heavens. You couldn't do your livestream and you're broke. Maybe if you could go back in time, you would do things differently...?
+$P
+... PARRISHHHHHH!
+
+$Q Ganar
+Overcoming all the obstacles, you manage to start the livestream on time.
+$P
+Parrish almost made you lose time and lose your cool, but you were sharp and managed to get rid of him. That short, annoying guy drives you crazy... if only he had come with Madame Suellen, he would have been under control.
+$P
+Although, all things considered, you don't know which is worse, having the Furillo guys in front of you or going out on the town with Peter Parrish... what a bunch of characters.
+$P
+Despite the geeky guests, you always handle the situation with success and good manners, and the livestream is a hit. The Furillo guys aren't bad, a bit eccentric, they have their quirks and all, but they're nice.
+$P
+$P
+$I finalgana.scr
+The Kocacola you opened saves you from hunger during the four-hour livestream.
+$P
+Now you can rest, you have fulfilled your mission, and the Spectrum has gained another day of life. Congratulations!
+
+$Q BeberTequila
+You decide to start drinking the bottle of tequila, first one shot, then another, and another...
+$P
+This is delicious... so much so that before you realize it, you've downed the entire bottle.
+$P
+You fall fast asleep on the couch, and when you wake up, you have a massive hangover. It's Sunday morning at 10 o'clock, and your wife is standing in front of you, looking at you with displeasure...
+$P
+Oops... you didn't do the livestream. Maybe if you could go back in time, you would do things differently...
+
+$Q BeberKocacola
+You feel the sugary drink entering your body, giving you the necessary sweetness for a four-hour livestream...
+$P
+With the boost, you feel invincible, it's time to start...
+$A Saloncito set:bebekocacola
+I'm ready for anything...
+
+$Q End1
+Feeling emboldened, you decide to do a four-hour livestream without a sugary drink... big mistake!
+$P
+You experience a sudden drop in energy, worse than a power outage, and you faint during the livestream... with your head on the keyboard, you start typing randomly in the chat... AAAASHAHSHKWHWEOUD...
+$P
+Unintentionally, you create a trend among YouTubers to type random words in the chat with their heads... it's a total success! But you don't get to enjoy it because you'll be on sick leave for a good while, unable to do anything...
+$P
+You couldn't do the livestream. Perhaps if you could go back in time, you would do things differently...
+
+$Q Refri2
+You look inside the refrigerator desperately to see if there's something you can give to Parrish to make him leave...
+$P
+Fortunately, there's a bottle of tequila that he would surely accept with joy...
+$A BrushOff set:tequila
+Grab the bottle and return to Parrish...
+
+$Q Refri
+$O has:tequila has:kocacola
+Well, there's no more drink left...
+$O not:tequila not:kocacola
+There aren't many things, we need to go shopping. However, you can have all the drinks you want...
+$O has:tequila not:kocacola
+There aren't many things, we need to go shopping. However, you can have all the drinks you want...
+$O not:tequila has:kocacola
+There aren't many things, we need to go shopping. However, you can have all the drinks you want...
+$A Saloncito not:tequila set:tequila
+Take out a good tequila...
+$A Saloncito not:kocacola set:kocacola
+Grab a fresh Kokacola...
+$A Saloncito
+Close the fridge...

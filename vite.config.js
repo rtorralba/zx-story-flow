@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import javascriptObfuscator from 'vite-plugin-javascript-obfuscator';
 
 export default defineConfig({
+    test: {
+        environment: 'node',
+    },
     base: './', // Ensure relative paths in build
     build: {
         outDir: 'dist',
