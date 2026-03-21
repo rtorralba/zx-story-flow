@@ -69,6 +69,11 @@
         "separator_graphic": "Gráfico Separador",
         "selector_graphic": "Gráfico Selector",
         "border_section": "Borde",
+        "cls_label": "Limpiado:",
+        "cls_none": "-- Ninguno --",
+        "cls_0": "Todo (0)",
+        "cls_1": "Página (1)",
+        "cls_2": "Interfaz (2)"
         "loading_screen": "Pantalla de carga (SCR):",
         "font_bin": "Fuente (.bin):",
         "clear_btn": "Borrar",

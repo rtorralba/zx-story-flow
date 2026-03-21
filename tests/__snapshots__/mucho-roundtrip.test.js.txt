@@ -1,4 +1,4 @@
-$Q Presents attr:6 dattr:6 iattr:6 border:0
+$Q Presents attr:6 dattr:6 iattr:6 border:0 cls:0
 $P
 $I presents.scr
 $P

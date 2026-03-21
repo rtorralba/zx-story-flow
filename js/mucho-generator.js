@@ -86,6 +86,7 @@ export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
     let prevSepAttr = null;
     let prevIntAttr = null;
     let prevBorderVal = null;
+    let prevClsVal = null;
 
     screenNodes.forEach((node, nodeIndex) => {
         const label = labelMap[node.id];
@@ -118,6 +119,10 @@ export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
             : (globalConfig.border || 'black');
         const borderVal = colorToZX(borderColor);
 
+        // Clear screen (cls)
+        const nodeCls = node.useCustomConfig ? (node.cls !== null && node.cls !== undefined ? node.cls : null) : null;
+        const effectiveCls = nodeCls !== null ? nodeCls : (globalConfig.cls !== null && globalConfig.cls !== undefined ? globalConfig.cls : null);
+
         // Build $Q line, but only include flags that changed since the previous node.
         // Always emit all attribute flags for the first node.
         const parts = [];
@@ -131,11 +136,15 @@ export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
             parts.push(`dattr:${sepAttr}`);
             parts.push(`iattr:${intAttr}`);
             parts.push(`border:${borderVal}`);
+            if (effectiveCls !== null) parts.push(`cls:${effectiveCls}`);
         } else {
             if (prevPageAttr === null || pageAttr !== prevPageAttr) parts.push(`attr:${pageAttr}`);
             if (prevSepAttr === null || sepAttr !== prevSepAttr) parts.push(`dattr:${sepAttr}`);
             if (prevIntAttr === null || intAttr !== prevIntAttr) parts.push(`iattr:${intAttr}`);
             if (prevBorderVal === null || borderVal !== prevBorderVal) parts.push(`border:${borderVal}`);
+            if (effectiveCls !== prevClsVal) {
+                if (effectiveCls !== null) parts.push(`cls:${effectiveCls}`);
+            }
         }
 
         // Update previous values for next iteration
@@ -143,6 +152,7 @@ export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
         prevSepAttr = sepAttr;
         prevIntAttr = intAttr;
         prevBorderVal = borderVal;
+        prevClsVal = effectiveCls;
 
         muchoCode += `$Q ${parts.join(' ')}${actionsStr}\n`;
         muchoCode += description + '\n';
