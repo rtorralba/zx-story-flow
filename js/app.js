@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
         interface: { ink: 'white', paper: 'black', bright: false, flash: false },
         border: 'black',
+        cls: 0,
         viewMode: 'simple',
         rulerWidth: '32ch',
         basicGraphics: {
@@ -81,6 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const globalViewMode = document.getElementById('global-view-mode');
     const globalProjectType = document.getElementById('global-project-type');
     const globalBorderColor = document.getElementById('global-border-color');
+    const globalClsSelect = document.getElementById('global-cls');
     const separatorMatrixEl = document.getElementById('separator-matrix');
     const selectorMatrixEl = document.getElementById('selector-matrix');
 
@@ -252,6 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         globalInterfaceBright.checked = globalConfig.interface.bright;
         globalInterfaceFlash.checked = globalConfig.interface.flash;
         if (globalBorderColor) globalBorderColor.value = globalConfig.border || 'black';
+        if (globalClsSelect) globalClsSelect.value = (globalConfig.cls !== null && globalConfig.cls !== undefined) ? String(globalConfig.cls) : '';
         if (globalViewMode) globalViewMode.value = globalConfig.viewMode || 'simple';
         if (globalProjectType) globalProjectType.value = (globalConfig.projectType || projectType || 'MuCho');
 
@@ -301,6 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             flash: globalInterfaceFlash.checked
         };
         if (globalBorderColor) globalConfig.border = globalBorderColor.value;
+        if (globalClsSelect) { const v = globalClsSelect.value; globalConfig.cls = v === '' ? null : parseInt(v); }
         if (globalViewMode) globalConfig.viewMode = globalViewMode.value;
         // project type selector
         if (globalProjectType) {
@@ -373,6 +377,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     globalInterfaceBright.addEventListener('change', onGlobalConfigChange);
     globalInterfaceFlash.addEventListener('change', onGlobalConfigChange);
     if (globalBorderColor) globalBorderColor.addEventListener('change', onGlobalConfigChange);
+    if (globalClsSelect) globalClsSelect.addEventListener('change', onGlobalConfigChange);
     if (globalViewMode) globalViewMode.addEventListener('change', onGlobalConfigChange);
     if (globalProjectType) globalProjectType.addEventListener('change', onGlobalConfigChange);
     document.querySelectorAll('.lang-option').forEach(btn => {
@@ -2387,8 +2392,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             autoSave();
         });
 
+        const clsLabel = document.createElement('label');
+        clsLabel.textContent = t('config.cls_label') || 'Clear:';
+        clsLabel.style.marginLeft = '10px';
+        clsLabel.style.whiteSpace = 'nowrap';
+
+        const clsSelect = document.createElement('select');
+        clsSelect.style.flex = '1';
+        [['', t('config.cls_none') || '--'], ['0', t('config.cls_0') || 'Everything (0)'], ['1', t('config.cls_1') || 'Page (1)'], ['2', t('config.cls_2') || 'Interface (2)']].forEach(([val, lbl]) => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = lbl;
+            const currentCls = (node.cls !== null && node.cls !== undefined) ? String(node.cls) : '';
+            if (currentCls === val) opt.selected = true;
+            clsSelect.appendChild(opt);
+        });
+        clsSelect.addEventListener('change', () => {
+            const v = clsSelect.value;
+            node.cls = v === '' ? null : parseInt(v);
+            autoSave();
+        });
+
         borderRow.appendChild(borderLabel);
         borderRow.appendChild(borderSelect);
+        borderRow.appendChild(clsLabel);
+        borderRow.appendChild(clsSelect);
         borderSection.appendChild(borderRow);
         customConfigContainer.appendChild(borderSection);
 
@@ -2425,6 +2453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     flash: globalConfig.interface.flash
                 };
                 node.borderColor = globalConfig.border || 'black';
+                if (node.cls === undefined) node.cls = (globalConfig.cls !== null && globalConfig.cls !== undefined) ? globalConfig.cls : null;
 
                 // Recreate the config UI with new values
                 customConfigContainer.innerHTML = '';
@@ -2457,8 +2486,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                     newBorderSelect.appendChild(opt);
                 });
                 newBorderSelect.addEventListener('change', () => { node.borderColor = newBorderSelect.value; autoSave(); });
+
+                const newClsLabel = document.createElement('label');
+                newClsLabel.textContent = t('config.cls_label') || 'Clear:';
+                newClsLabel.style.marginLeft = '10px';
+                newClsLabel.style.whiteSpace = 'nowrap';
+                const newClsSelect = document.createElement('select');
+                newClsSelect.style.flex = '1';
+                [['', t('config.cls_none') || '--'], ['0', t('config.cls_0') || 'Everything (0)'], ['1', t('config.cls_1') || 'Page (1)'], ['2', t('config.cls_2') || 'Interface (2)']].forEach(([val, lbl]) => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = lbl;
+                    const currentCls = (node.cls !== null && node.cls !== undefined) ? String(node.cls) : '';
+                    if (currentCls === val) opt.selected = true;
+                    newClsSelect.appendChild(opt);
+                });
+                newClsSelect.addEventListener('change', () => { const v = newClsSelect.value; node.cls = v === '' ? null : parseInt(v); autoSave(); });
+
                 newBorderRow.appendChild(newBorderLabel);
                 newBorderRow.appendChild(newBorderSelect);
+                newBorderRow.appendChild(newClsLabel);
+                newBorderRow.appendChild(newClsSelect);
                 newBorderSection.appendChild(newBorderRow);
                 customConfigContainer.appendChild(newBorderSection);
 
@@ -2469,6 +2517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 delete node.pageConfig;
                 delete node.separatorConfig;
                 delete node.interfaceConfig;
+                delete node.cls;
             }
         });
 

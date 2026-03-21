@@ -68,7 +68,12 @@
         "basic_graphics": "Gráficos",
         "separator_graphic": "Gráfico Separador",
         "selector_graphic": "Gráfico Seletor",
-        "border_section": "Borda"
+        "border_section": "Borda",
+        "cls_label": "Limpar:",
+        "cls_none": "-- Nenhum --",
+        "cls_0": "Tudo (0)",
+        "cls_1": "Página (1)",
+        "cls_2": "Interface (2)"
     },
     "editor": {
         "edit_node": "Editar Nó",

@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`MuCho round-trip approval (mucho_001) > re-exports the parsed nodes and the output matches the approved snapshot 1`] = `
-"$Q Presents attr:6 dattr:6 iattr:6 border:0
+"$Q Presents attr:6 dattr:6 iattr:6 border:0 cls:0
 $P
 $I presents.scr
 $P

@@ -28,7 +28,8 @@ export function parseMuchoGlobalConfig(text) {
         page:      { ink: 'white', paper: 'black', bright: false, flash: false },
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
         interface: { ink: 'white', paper: 'black', bright: false, flash: false },
-        border:    'black'
+        border:    'black',
+        cls:       null
     };
     for (const line of text.split(/\r?\n/)) {
         if (line.startsWith('#')) continue;
@@ -38,10 +39,12 @@ export function parseMuchoGlobalConfig(text) {
             const dattrM  = rest.match(/\bdattr:(\d+)/);
             const iattrM  = rest.match(/\biattr:(\d+)/);
             const borderM = rest.match(/\bborder:(\d+)/);
+            const clsM    = rest.match(/\bcls:(\d+)/);
             if (attrM)   cfg.page      = decodeAttrByte(parseInt(attrM[1]));
             if (dattrM)  cfg.separator = decodeAttrByte(parseInt(dattrM[1]));
             if (iattrM)  cfg.interface = decodeAttrByte(parseInt(iattrM[1]));
             if (borderM) cfg.border    = ZX_COLORS[parseInt(borderM[1])];
+            if (clsM)    cfg.cls       = parseInt(clsM[1]);
             break; // only the first $Q defines global defaults
         }
     }
@@ -62,7 +65,9 @@ export function parseMuchoToNodes(text) {
             // label is the first token; rest may contain attr:N dattr:N iattr:N ...
             const firstSpace = rest.search(/\s/);
             const label = firstSpace > 0 ? rest.substring(0, firstSpace) : rest;
-            currentBlock = { label, descLines: [], options: [], inOptions: false };
+            const clsM = rest.match(/\bcls:(\d+)/);
+            const blockCls = clsM ? parseInt(clsM[1]) : null;
+            currentBlock = { label, descLines: [], options: [], inOptions: false, cls: blockCls };
             lastOptionIdx = -1;
         } else if (currentBlock) {
             if (line.startsWith('$A ')) {
@@ -98,6 +103,10 @@ export function parseMuchoToNodes(text) {
         const node = ScreenNode.create(nodeId, 0, 0); // Use static factory for POJO
         node.title = block.label;
         node.text = block.descLines.join('\n').replace(/^\n+|\n+$/g, '');
+        if (block.cls !== null) {
+            node.cls = block.cls;
+            node.useCustomConfig = true;
+        }
 
         if (block.options.length > 0) {
             node.outputs = block.options.map(opt => ({
