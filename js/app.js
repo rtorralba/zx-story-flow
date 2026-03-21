@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         separator: { ink: 'white', paper: 'black', bright: false, flash: false },
         interface: { ink: 'white', paper: 'black', bright: false, flash: false },
         border: 'black',
-        cls: null,
+        cls: 0,
         viewMode: 'simple',
         rulerWidth: '32ch',
         basicGraphics: {
