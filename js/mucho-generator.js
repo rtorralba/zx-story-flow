@@ -124,14 +124,15 @@ export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
         const effectiveCls = nodeCls !== null ? nodeCls : (globalConfig.cls !== null && globalConfig.cls !== undefined ? globalConfig.cls : null);
 
         // Build $Q line, but only include flags that changed since the previous node.
-        // Always emit all attribute flags for the first node.
+        // Always emit all attribute flags for the first node, or when useCustomConfig
+        // is active (the node may be reached via a path that skips the previous node).
         const parts = [];
         parts.push(label);
 
         const actionsStr = node.actions && node.actions.trim() ? ' ' + node.actions.trim() : '';
 
-        if (nodeIndex === 0) {
-            // First node: include all attributes
+        if (nodeIndex === 0 || node.useCustomConfig) {
+            // First node or explicit custom config: emit all attrs unconditionally
             parts.push(`attr:${pageAttr}`);
             parts.push(`dattr:${sepAttr}`);
             parts.push(`iattr:${intAttr}`);
