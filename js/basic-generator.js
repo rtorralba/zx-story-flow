@@ -54,13 +54,17 @@ function parseLine(line) {
     const tline = line.trim();
     if(tline && tline.startsWith('$')){
         pline.type = tline[1];
-        pline.text = tline.slice(2).trim().toLowerCase();
+        const text = tline.slice(2).trim().toLowerCase();
+        pline.text = cleanPredicate(text);
     } else {
         pline.type = 'T'
         pline.text = line.replace(/"/g, `""`);
     }
     return pline
 }
+
+
+
 
 /**
  * 
@@ -73,6 +77,12 @@ function parseLine(line) {
  * IF statemet. "IF " + string + " THEN"
  */
 function transpileOptions(text,basicData) {
+    // !!!! Now the function assumes that there is no spaces between
+    // !!!! numeric operators and operands.
+    // !!!! If there are spaces, data can be missunderstood as flags.
+    // !!!! Should preprocess the text to remove all spaces before and
+    // !!!! after operators so that this situation is handled gracefully
+    // !!!! without touching the working code.
 
     var basicCode = '';
 
@@ -111,6 +121,7 @@ function transpileOptions(text,basicData) {
 
     return basicCode
 }
+
 
 
 /**
@@ -214,6 +225,24 @@ function transpileStatements(text,basicData) {
 
 }
 
+/**
+ * Remove spaces around operators and :
+ * This makes processing more tolerant to
+ * unnecessary spaces introduced by the user
+ * and that can be safely removed.
+ * MuCho might not accpet these spaces.
+ * 
+ * @param {*} text 
+ * @param {*} basicData 
+ * @returns 
+ */
+function cleanPredicate(text,basicData) {
+    const result = text.replace(/\s*(==|!=|<=|>=|<|>|\+|-|:)\s*/g, (match, op) => {
+        return op;
+    })
+    return result;
+}
+
 
 
 function addBASICSystemCode(basicData, globalConfig) {
@@ -240,13 +269,15 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_choose_option_loop"] = 12;
     sysCode += `
     10 REM choose an option
-    11 LET i=1:IF NOT n THEN PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
+    11 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
     12 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
     13 IF k=10 THEN LET i=i+1-(n AND i=n)
     14 IF k=11 THEN LET i=i-1+(n AND i=1)
-    15 IF k=13 THEN GO SUB [[sys_cls_all]]:GO TO p(i)
+    15 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
     16 GO TO [[sys_choose_option_loop]]\n`;
+   
     
+
     // Load image from RAMdisk
     basicData.labels["sys_load_image"] = 20;
     sysCode += `
@@ -260,7 +291,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_cls_all"] = 30;
     sysCode += `
     30 REM New screen. CLS + option bar (no image)
-    31 RANDOMIZE:POKE 23659,2:POKE 23624,dattr:CLS
+    31 RANDOMIZE:POKE 23624,tattr:POKE 23659,2:CLS:RETURN
     `;
     
     // Routine to clean the interface (options) section.
@@ -277,9 +308,9 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_start_game"] = 50;
     sysCode += `
     50 REM = init global =
-    51 POKE 23693,7:BORDER ${globalBorder}:CLS
+    51 POKE 23693,7:OUT 254,${globalBorder}:CLS
     52 REM p() table of line pointers.
-    53 DIM p(10):LET dattr=7: LET iattr=7
+    53 DIM p(10):LET n=0:LET i=0:LET tattr=7:LET dattr=7:LET iattr=7
     54 REM Inicializa variables del juego.
     `;
 
@@ -293,6 +324,15 @@ function addBASICSystemCode(basicData, globalConfig) {
     } else {
         sysCode += `55 REM no flags nor numeric variables\n`;
     }
+    sysCode += `56 GO TO 100`;
+
+    // Add new option.
+    basicData.labels["sys_new_option"] = 60;
+    sysCode += `
+    60 REM Add new option.
+    61 IF NOT n THEN GO SUB [[sys_cls_interface]]
+    62 LET n = n + SGN PI:RETURN 
+    `
 
     return sysCode;
 }
@@ -333,8 +373,14 @@ function transpileMuchoBlock(basicData, muchoCode) {
     // 'text' -> expecting text for the screen.
     // 'option' -> expecting text line for an option.
     // '' -> Not expecting text. Will be ignored.
-    let state = ''
-    let last_pline = {} 
+    let state = '';
+    // Text printing algorithm tries to end prints with ";", so that
+    // you can use up to last line without triggering scroll.
+    // This tends to accidentally concatenate lines, without CR,
+    // This flag makes sure "'" is inserted when needed if
+    // another text line is inserted. 
+    let force_cr = false;
+    let last_pline = {}; 
 
 
     muchoCode.forEach(pline => {
@@ -348,12 +394,19 @@ function transpileMuchoBlock(basicData, muchoCode) {
             basicData.editLine += `REM ${screenName}`;
             
             basicData.start_new_line();
-            basicData.editLine += "GO SUB [[sys_cls_interface]]"
+            //basicData.editLine += "GO SUB [[sys_cls_interface]]"
             // Additional statements.
             if (match[2]) {
-                basicData.editLine += ":"+transpileStatements(pline.text,basicData);
+                const opsCode = transpileOptions(match[2],basicData);
+                const stmCode = transpileStatements(match[2],basicData);
+                basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
+                basicData.editLine += stmCode;
+                if (opsCode) basicData.finish_line();
+                //basicData.editLine += ":"+transpileStatements(match[2],basicData);
             }
         } else if (pline.type==="O") {
+            // Next text should start in a new line.
+            force_cr = true;
             // Start an optional text block.
             basicData.start_new_line();
             // Add code to the line.
@@ -371,7 +424,10 @@ function transpileMuchoBlock(basicData, muchoCode) {
                 } else {
                     // Need to start a new PRINT statement.
                     basicData.start_new_statement();
-                    basicData.editLine += pline.text?`PRINT "${pline.text}";`:`PRINT ;`;
+                    basicData.editLine += "PRINT ";
+                    if (force_cr) basicData.editLine += "'";
+                    basicData.editLine += pline.text?`"${pline.text}";`:`;`;
+                    //basicData.editLine += pline.text?`PRINT "${pline.text}";`:`PRINT ;`;
                 }
             } else if (state=='option') {
                 if (pline.text) {
@@ -425,7 +481,8 @@ function transpileMuchoBlock(basicData, muchoCode) {
 
             basicData.start_new_line();
             basicData.editLine += opsCode? `IF ${opsCode} THEN `:``;
-            basicData.editLine += `LET n = n + 1`;
+            //basicData.editLine += `LET n = n + 1`;
+            basicData.editLine += `GO SUB [[sys_new_option]]`;
             if (stmCode) {
                 // Have statements to run when selected. Need to resolve at
                 // the end of screen block.
@@ -572,338 +629,338 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     return basicData.code
 }
 
-/**
- * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
- * cursor-based option selection with p() jump table and system subroutines.
- */
-function transpileMuchoToBasic_(muchoCode, globalConfig = null) {
-    if (!muchoCode) return "10 REM Project is empty";
+// /**
+//  * Transpiles MuCho code into ZX Basic following the flow3.zx.bas pattern:
+//  * cursor-based option selection with p() jump table and system subroutines.
+//  */
+// function transpileMuchoToBasic_(muchoCode, globalConfig = null) {
+//     if (!muchoCode) return "10 REM Project is empty";
 
-    const lines = muchoCode.split(/\r?\n/);
-    const blocks = [];
-    let currentBlock = null;
+//     const lines = muchoCode.split(/\r?\n/);
+//     const blocks = [];
+//     let currentBlock = null;
 
-    // Phase 1: Split into screen blocks
-    lines.forEach(line => {
-        if (line.startsWith('$Q ')) {
-            currentBlock = { header: line, content: [], options: [] };
-            blocks.push(currentBlock);
-        } else if (currentBlock) {
-            if (line.startsWith('$A ')) {
-                currentBlock.options.push({ header: line, text: null });
-            } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
-                currentBlock.options[currentBlock.options.length - 1].text = line || "Continuar";
-            } else {
-                currentBlock.content.push(line);
-            }
-        }
-    });
+//     // Phase 1: Split into screen blocks
+//     lines.forEach(line => {
+//         if (line.startsWith('$Q ')) {
+//             currentBlock = { header: line, content: [], options: [] };
+//             blocks.push(currentBlock);
+//         } else if (currentBlock) {
+//             if (line.startsWith('$A ')) {
+//                 currentBlock.options.push({ header: line, text: null });
+//             } else if (currentBlock.options.length > 0 && currentBlock.options[currentBlock.options.length - 1].text === null) {
+//                 currentBlock.options[currentBlock.options.length - 1].text = line || "Continuar";
+//             } else {
+//                 currentBlock.content.push(line);
+//             }
+//         }
+//     });
 
-    if (blocks.length === 0) return "10 REM No screens found in MuCho code";
+//     if (blocks.length === 0) return "10 REM No screens found in MuCho code";
 
-    // Phase 2: Collect all flag names used anywhere
-    const allFlags = new Set();
-    muchoCode.match(/(?:set:|clear:|clr:|toggle:|has:|not:|!)([a-zA-Z0-9_]+)/g)?.forEach(match => {
-        const name = match.split(':')[1] || match.substring(1);
-        if (name !== 'border') allFlags.add(name); // Exclude border from normal flags
-    });
+//     // Phase 2: Collect all flag names used anywhere
+//     const allFlags = new Set();
+//     muchoCode.match(/(?:set:|clear:|clr:|toggle:|has:|not:|!)([a-zA-Z0-9_]+)/g)?.forEach(match => {
+//         const name = match.split(':')[1] || match.substring(1);
+//         if (name !== 'border') allFlags.add(name); // Exclude border from normal flags
+//     });
 
-    // Phase 3: Map labels to line numbers (1000 per block, max ~9 screens before 9988)
-    const labelLines = {};
-    blocks.forEach((block, idx) => {
-        const match = block.header.match(/^\$Q\s+([^\s]+)/);
-        const label = match ? match[1] : null;
-        if (label) {
-            labelLines[label.toLowerCase()] = 1000 + (idx * 1000);
-        }
-    });
+//     // Phase 3: Map labels to line numbers (1000 per block, max ~9 screens before 9988)
+//     const labelLines = {};
+//     blocks.forEach((block, idx) => {
+//         const match = block.header.match(/^\$Q\s+([^\s]+)/);
+//         const label = match ? match[1] : null;
+//         if (label) {
+//             labelLines[label.toLowerCase()] = 1000 + (idx * 1000);
+//         }
+//     });
 
-    // Phase 4: Extract default attributes from the first block header
-    const firstHeader = blocks[0].header;
-    const defaultTattr = parseInt(firstHeader.match(/attr:(\d+)/)?.[1] || "15");
-    const defaultDattr = parseInt(firstHeader.match(/dattr:(\d+)/)?.[1] || "11");
-    const defaultIattr = parseInt(firstHeader.match(/iattr:(\d+)/)?.[1] || "24");
+//     // Phase 4: Extract default attributes from the first block header
+//     const firstHeader = blocks[0].header;
+//     const defaultTattr = parseInt(firstHeader.match(/attr:(\d+)/)?.[1] || "15");
+//     const defaultDattr = parseInt(firstHeader.match(/dattr:(\d+)/)?.[1] || "11");
+//     const defaultIattr = parseInt(firstHeader.match(/iattr:(\d+)/)?.[1] || "24");
 
-    const firstMatch = blocks[0].header.match(/^\$Q\s+([^\s]+)/);
-    const startLabel = firstMatch ? firstMatch[1].toLowerCase() : "start";
+//     const firstMatch = blocks[0].header.match(/^\$Q\s+([^\s]+)/);
+//     const startLabel = firstMatch ? firstMatch[1].toLowerCase() : "start";
 
-    let basicCode = "";
+//     let basicCode = "";
 
-    // =========================================================
-    // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
-    // Using loader, frees memory and wait for a key.
-    // =========================================================
-    basicCode += `1 REM = one-time init =\n`;
-    basicCode += `2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367\n`;
+//     // =========================================================
+//     // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
+//     // Using loader, frees memory and wait for a key.
+//     // =========================================================
+//     basicCode += `1 REM = one-time init =\n`;
+//     basicCode += `2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367\n`;
 
-    // =========================================================
-    // GLOBAL INIT  (lines 10 – 120)
-    // =========================================================
-    basicCode += `10 REM = init global =\n`;
-    const globalBorder = colorToZX(globalConfig?.border || 'black');
-    basicCode += `20 POKE 23693,0:BORDER ${globalBorder}:CLS\n`;
-    basicCode += `30 REM p() table of line pointers.\n`;
-    basicCode += `40 DIM p(10)\n`;
-    basicCode += `50 REM Inicializa variables del juego.\n`;
+//     // =========================================================
+//     // GLOBAL INIT  (lines 10 – 120)
+//     // =========================================================
+//     basicCode += `10 REM = init global =\n`;
+//     const globalBorder = colorToZX(globalConfig?.border || 'black');
+//     basicCode += `20 POKE 23693,0:BORDER ${globalBorder}:CLS\n`;
+//     basicCode += `30 REM p() table of line pointers.\n`;
+//     basicCode += `40 DIM p(10)\n`;
+//     basicCode += `50 REM Inicializa variables del juego.\n`;
 
-    // Initialise all flags to 0 on a single line
-    if (allFlags.size > 0) {
-        basicCode += `60 LET ` + [...allFlags].map(f => `f${f}=0`).join(':LET ') + `:\n`;
-    } else {
-        basicCode += `60 REM no flags\n`;
-    }
+//     // Initialise all flags to 0 on a single line
+//     if (allFlags.size > 0) {
+//         basicCode += `60 LET ` + [...allFlags].map(f => `f${f}=0`).join(':LET ') + `:\n`;
+//     } else {
+//         basicCode += `60 REM no flags\n`;
+//     }
 
 
-    basicCode += `90 REM Va a primera pantalla\n`;
-    basicCode += `100 GO SUB 110:GO TO ${labelLines[startLabel] || 1000}\n`;
-    basicCode += `110 REM Set default attributes\n`;
-    basicCode += `120 LET tattr=${defaultTattr}:LET dattr=${defaultDattr}:LET iattr=${defaultIattr}:RETURN\n`;
+//     basicCode += `90 REM Va a primera pantalla\n`;
+//     basicCode += `100 GO SUB 110:GO TO ${labelLines[startLabel] || 1000}\n`;
+//     basicCode += `110 REM Set default attributes\n`;
+//     basicCode += `120 LET tattr=${defaultTattr}:LET dattr=${defaultDattr}:LET iattr=${defaultIattr}:RETURN\n`;
 
-    // =========================================================
-    // SCREEN BLOCKS
-    // =========================================================
-    blocks.forEach((block, idx) => {
-        const match = block.header.match(/^\$Q\s+([^\s]+)/);
-        const blockLabel = match ? match[1] : "Screen" + idx;
-        const baseLineNr = labelLines[blockLabel.toLowerCase()] || (1000 + idx * 1000);
-        const header = block.header;
+//     // =========================================================
+//     // SCREEN BLOCKS
+//     // =========================================================
+//     blocks.forEach((block, idx) => {
+//         const match = block.header.match(/^\$Q\s+([^\s]+)/);
+//         const blockLabel = match ? match[1] : "Screen" + idx;
+//         const baseLineNr = labelLines[blockLabel.toLowerCase()] || (1000 + idx * 1000);
+//         const header = block.header;
 
-        // Parse attributes for this screen
-        const tattr = parseInt(header.match(/attr:(\d+)/)?.[1] || defaultTattr);
-        const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || defaultDattr);
-        const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || defaultIattr);
-        const hasCustomAttr = (tattr !== defaultTattr || dattr !== defaultDattr || iattr !== defaultIattr);
-        const borderMatch = header.match(/border:(\d+)/);
+//         // Parse attributes for this screen
+//         const tattr = parseInt(header.match(/attr:(\d+)/)?.[1] || defaultTattr);
+//         const dattr = parseInt(header.match(/dattr:(\d+)/)?.[1] || defaultDattr);
+//         const iattr = parseInt(header.match(/iattr:(\d+)/)?.[1] || defaultIattr);
+//         const hasCustomAttr = (tattr !== defaultTattr || dattr !== defaultDattr || iattr !== defaultIattr);
+//         const borderMatch = header.match(/border:(\d+)/);
 
-        let lineNr = baseLineNr;
+//         let lineNr = baseLineNr;
 
-        // Pre-scan block content for $I image directives
-        const blockImages = [];
-        block.content.forEach(line => {
-            if (line.startsWith('$I ')) {
-                const imgName = line.substring(3).trim().replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
-                if (imgName) blockImages.push(imgName);
-            }
-        });
-        const hasBlockImages = blockImages.length > 0;
+//         // Pre-scan block content for $I image directives
+//         const blockImages = [];
+//         block.content.forEach(line => {
+//             if (line.startsWith('$I ')) {
+//                 const imgName = line.substring(3).trim().replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+//                 if (imgName) blockImages.push(imgName);
+//             }
+//         });
+//         const hasBlockImages = blockImages.length > 0;
 
-        basicCode += `${lineNr} REM-- - ${blockLabel} ---\n`;
-        lineNr += 10;
+//         basicCode += `${lineNr} REM-- - ${blockLabel} ---\n`;
+//         lineNr += 10;
 
-        if (borderMatch) {
-            basicCode += `${lineNr} BORDER ${borderMatch[1]} \n`;
-            lineNr += 10;
-        }
+//         if (borderMatch) {
+//             basicCode += `${lineNr} BORDER ${borderMatch[1]} \n`;
+//             lineNr += 10;
+//         }
 
-        // For screens with images: use 9990 (CLS only), then LOAD!/PRINT, then GO SUB 9985 (option bar).
-        // For screens without images: use 9988 (CLS + option bar in one call).
-        if (hasCustomAttr) {
-            basicCode += `${lineNr} LET tattr=${tattr}:LET dattr=${dattr}:LET iattr=${iattr}:GO SUB ${hasBlockImages ? 9990 : 9988}:\n`;
-        } else {
-            basicCode += `${lineNr} GO SUB ${hasBlockImages ? 9990 : 9988}:\n`;
-        }
-        lineNr += 10;
+//         // For screens with images: use 9990 (CLS only), then LOAD!/PRINT, then GO SUB 9985 (option bar).
+//         // For screens without images: use 9988 (CLS + option bar in one call).
+//         if (hasCustomAttr) {
+//             basicCode += `${lineNr} LET tattr=${tattr}:LET dattr=${dattr}:LET iattr=${iattr}:GO SUB ${hasBlockImages ? 9990 : 9988}:\n`;
+//         } else {
+//             basicCode += `${lineNr} GO SUB ${hasBlockImages ? 9990 : 9988}:\n`;
+//         }
+//         lineNr += 10;
 
-        // NOTE: image loads will be emitted inline where $I appears in the content
-        // (we still use hasBlockImages to decide which subroutine to call above).
+//         // NOTE: image loads will be emitted inline where $I appears in the content
+//         // (we still use hasBlockImages to decide which subroutine to call above).
 
-        // --- Content lines ---
-        // First, group lines into paragraphs for proper block handling
-        const paragraphs = [];
-        let currentPara = [];
-        let pendingCommand = null;
+//         // --- Content lines ---
+//         // First, group lines into paragraphs for proper block handling
+//         const paragraphs = [];
+//         let currentPara = [];
+//         let pendingCommand = null;
 
-        for (let i = 0; i < block.content.length; i++) {
-            const line = block.content[i];
-            const trimmed = line;
+//         for (let i = 0; i < block.content.length; i++) {
+//             const line = block.content[i];
+//             const trimmed = line;
 
-            if (trimmed === "" || trimmed === "$P") {
-                if (currentPara.length > 0) {
-                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
-                    currentPara = [];
-                    pendingCommand = null;
-                }
-                paragraphs.push({ type: 'empty' });
-            } else if (trimmed.startsWith('$I ')) {
-                // Emit an image placeholder at this position (will generate LOAD! inline)
-                const imgName = trimmed.substring(3).replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
-                if (currentPara.length > 0) {
-                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
-                    currentPara = [];
-                    pendingCommand = null;
-                }
-                paragraphs.push({ type: 'image', name: imgName });
-            } else if (trimmed.startsWith('$O ')) {
-                if (currentPara.length > 0) {
-                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
-                    currentPara = [];
-                }
-                pendingCommand = trimmed;
-            } else if (trimmed.startsWith('$')) {
-                // Other commands, flush paragraph if any
-                if (currentPara.length > 0) {
-                    paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
-                    currentPara = [];
-                    pendingCommand = null;
-                }
-            } else {
-                currentPara.push(line);
-            }
-        }
-        if (currentPara.length > 0) {
-            paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
-        }
+//             if (trimmed === "" || trimmed === "$P") {
+//                 if (currentPara.length > 0) {
+//                     paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+//                     currentPara = [];
+//                     pendingCommand = null;
+//                 }
+//                 paragraphs.push({ type: 'empty' });
+//             } else if (trimmed.startsWith('$I ')) {
+//                 // Emit an image placeholder at this position (will generate LOAD! inline)
+//                 const imgName = trimmed.substring(3).replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+//                 if (currentPara.length > 0) {
+//                     paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+//                     currentPara = [];
+//                     pendingCommand = null;
+//                 }
+//                 paragraphs.push({ type: 'image', name: imgName });
+//             } else if (trimmed.startsWith('$O ')) {
+//                 if (currentPara.length > 0) {
+//                     paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+//                     currentPara = [];
+//                 }
+//                 pendingCommand = trimmed;
+//             } else if (trimmed.startsWith('$')) {
+//                 // Other commands, flush paragraph if any
+//                 if (currentPara.length > 0) {
+//                     paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+//                     currentPara = [];
+//                     pendingCommand = null;
+//                 }
+//             } else {
+//                 currentPara.push(line);
+//             }
+//         }
+//         if (currentPara.length > 0) {
+//             paragraphs.push({ type: 'text', lines: currentPara, command: pendingCommand });
+//         }
 
-        // Now generate BASIC for each paragraph
-        const lastTextParaIdx = paragraphs.map((p, i) => p.type === 'text' ? i : -1).reduce((max, i) => Math.max(max, i), -1);
-        const lastContentIdx = paragraphs.map((p, i) => (p.type === 'text' || p.type === 'image') ? i : -1).reduce((max, i) => Math.max(max, i), -1);
+//         // Now generate BASIC for each paragraph
+//         const lastTextParaIdx = paragraphs.map((p, i) => p.type === 'text' ? i : -1).reduce((max, i) => Math.max(max, i), -1);
+//         const lastContentIdx = paragraphs.map((p, i) => (p.type === 'text' || p.type === 'image') ? i : -1).reduce((max, i) => Math.max(max, i), -1);
 
-        paragraphs.forEach((para, pIdx) => {
-            if (para.type === 'empty') {
-                // Avoid emitting trailing empty PRINTs: only print empty lines
-                // if there is content afterwards on the screen.
-                if (pIdx < lastContentIdx) {
-                    basicCode += `${lineNr} PRINT ""\n`;
-                    lineNr += 10;
-                }
-            } else if (para.type === 'image') {
-                const nm = (para.name || '').toUpperCase();
-                //basicCode += `${lineNr} LOAD! "${nm}" CODE 16384\n`;
-                basicCode += `${lineNr} LET i$="${nm}":GO SUB 9982\n`;
-                lineNr += 10;
-            } else if (para.type === 'text') {
-                const fullText = para.lines.join('\n');
-                const wrappedLines = wrapText(fullText);
+//         paragraphs.forEach((para, pIdx) => {
+//             if (para.type === 'empty') {
+//                 // Avoid emitting trailing empty PRINTs: only print empty lines
+//                 // if there is content afterwards on the screen.
+//                 if (pIdx < lastContentIdx) {
+//                     basicCode += `${lineNr} PRINT ""\n`;
+//                     lineNr += 10;
+//                 }
+//             } else if (para.type === 'image') {
+//                 const nm = (para.name || '').toUpperCase();
+//                 //basicCode += `${lineNr} LOAD! "${nm}" CODE 16384\n`;
+//                 basicCode += `${lineNr} LET i$="${nm}":GO SUB 9982\n`;
+//                 lineNr += 10;
+//             } else if (para.type === 'text') {
+//                 const fullText = para.lines.join('\n');
+//                 const wrappedLines = wrapText(fullText);
 
-                if (wrappedLines.length > 0) {
-                    const isLastPrint = (pIdx === lastTextParaIdx);
-                    const semicolon = isLastPrint ? ";" : "";
-                    // Ensure we emit all wrapped lines with a single PRINT using commas
-                    const sanitized = wrappedLines.map(s => s.replace(/"/g, "'"));
-                    // Use the BASIC carriage-return marker the project expects: single-quote '\'' between strings
-                    const combinedPrint = sanitized.map(s => `"${s}"`).join("' ");
+//                 if (wrappedLines.length > 0) {
+//                     const isLastPrint = (pIdx === lastTextParaIdx);
+//                     const semicolon = isLastPrint ? ";" : "";
+//                     // Ensure we emit all wrapped lines with a single PRINT using commas
+//                     const sanitized = wrappedLines.map(s => s.replace(/"/g, "'"));
+//                     // Use the BASIC carriage-return marker the project expects: single-quote '\'' between strings
+//                     const combinedPrint = sanitized.map(s => `"${s}"`).join("' ");
 
-                    if (para.command && para.command.startsWith('$O ')) {
-                        const condStr = para.command.substring(3);
-                        const conditions = condStr.split(' AND ').map(p => {
-                            const c = p.trim();
-                            if (c.startsWith('has:')) return `f${c.split(':')[1]}=1`;
-                            if (c.startsWith('not:') || c.startsWith('!')) {
-                                const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
-                                return `f${f}=0`;
-                            }
-                            return c;
-                        });
-                        basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT ${combinedPrint}${semicolon}\n`;
-                    } else {
-                        basicCode += `${lineNr} PRINT ${combinedPrint}${semicolon}\n`;
-                    }
-                    lineNr += 10;
-                }
-            }
-        });
+//                     if (para.command && para.command.startsWith('$O ')) {
+//                         const condStr = para.command.substring(3);
+//                         const conditions = condStr.split(' AND ').map(p => {
+//                             const c = p.trim();
+//                             if (c.startsWith('has:')) return `f${c.split(':')[1]}=1`;
+//                             if (c.startsWith('not:') || c.startsWith('!')) {
+//                                 const f = c.includes(':') ? c.split(':')[1] : c.substring(1);
+//                                 return `f${f}=0`;
+//                             }
+//                             return c;
+//                         });
+//                         basicCode += `${lineNr} IF ${conditions.join(' AND ')} THEN PRINT ${combinedPrint}${semicolon}\n`;
+//                     } else {
+//                         basicCode += `${lineNr} PRINT ${combinedPrint}${semicolon}\n`;
+//                     }
+//                     lineNr += 10;
+//                 }
+//             }
+//         });
 
-                // If this screen uses images we called CLS only (9990).
-                // After all inline LOAD!s the option bar needs to be redrawn.
-                if (hasBlockImages) {
-                    basicCode += `${lineNr} GO SUB 9985\n`;
-                    lineNr += 10;
-                }
+//                 // If this screen uses images we called CLS only (9990).
+//                 // After all inline LOAD!s the option bar needs to be redrawn.
+//                 if (hasBlockImages) {
+//                     basicCode += `${lineNr} GO SUB 9985\n`;
+//                     lineNr += 10;
+//                 }
 
-                // --- Parse options: separate conditions (has:/not:) from actions (set:/clear:/toggle:) ---
-        const effectiveOptions = block.options.length > 0
-            ? block.options
-            : [{ header: `$A ${startLabel}`, text: "Jugar de nuevo" }];
+//                 // --- Parse options: separate conditions (has:/not:) from actions (set:/clear:/toggle:) ---
+//         const effectiveOptions = block.options.length > 0
+//             ? block.options
+//             : [{ header: `$A ${startLabel}`, text: "Jugar de nuevo" }];
 
-        // Action blocks will be placed at baseLineNr + 500 onward (safe gap after content)
-        const actionBlockBase = baseLineNr + 500;
+//         // Action blocks will be placed at baseLineNr + 500 onward (safe gap after content)
+//         const actionBlockBase = baseLineNr + 500;
 
-        const parsedOptions = effectiveOptions.map((opt, optIdx) => {
-            const parts = opt.header.split(/\s+/);
-            const targetLabelRaw = parts[1] || "";
-            const targetLine = labelLines[targetLabelRaw.toLowerCase()] || baseLineNr;
-            const tokens = parts.slice(2);
+//         const parsedOptions = effectiveOptions.map((opt, optIdx) => {
+//             const parts = opt.header.split(/\s+/);
+//             const targetLabelRaw = parts[1] || "";
+//             const targetLine = labelLines[targetLabelRaw.toLowerCase()] || baseLineNr;
+//             const tokens = parts.slice(2);
 
-            const conditions = [];
-            const actions = [];
+//             const conditions = [];
+//             const actions = [];
 
-            tokens.forEach(tok => {
-                const [verb, name] = tok.split(':');
-                if (!name) return;
+//             tokens.forEach(tok => {
+//                 const [verb, name] = tok.split(':');
+//                 if (!name) return;
 
-                // Handle border action specifically
-                if (verb === 'border') {
-                    actions.push(`BORDER ${name}`);
-                    return;
-                }
+//                 // Handle border action specifically
+//                 if (verb === 'border') {
+//                     actions.push(`BORDER ${name}`);
+//                     return;
+//                 }
 
-                if (verb === 'has') conditions.push(`f${name}=1`);
-                else if (verb === 'not') conditions.push(`f${name}=0`);
-                else if (verb === 'set') actions.push(`LET f${name}=1`);
-                else if (verb === 'clear' || verb === 'clr') actions.push(`LET f${name}=0`);
-                else if (verb === 'toggle') actions.push(`LET f${name}=1-f${name}`);
-            });
+//                 if (verb === 'has') conditions.push(`f${name}=1`);
+//                 else if (verb === 'not') conditions.push(`f${name}=0`);
+//                 else if (verb === 'set') actions.push(`LET f${name}=1`);
+//                 else if (verb === 'clear' || verb === 'clr') actions.push(`LET f${name}=0`);
+//                 else if (verb === 'toggle') actions.push(`LET f${name}=1-f${name}`);
+//             });
 
-            const needsActionBlock = actions.length > 0;
-            const actionLine = needsActionBlock ? actionBlockBase + (optIdx * 20) : null;
-            const jumpTarget = needsActionBlock ? actionLine : targetLine;
+//             const needsActionBlock = actions.length > 0;
+//             const actionLine = needsActionBlock ? actionBlockBase + (optIdx * 20) : null;
+//             const jumpTarget = needsActionBlock ? actionLine : targetLine;
 
-            return {
-                targetLine, conditions, actions, needsActionBlock, actionLine,
-                jumpTarget, text: opt.text || "Continuar"
-            };
-        });
+//             return {
+//                 targetLine, conditions, actions, needsActionBlock, actionLine,
+//                 jumpTarget, text: opt.text || "Continuar"
+//             };
+//         });
 
-        // --- Option display lines (fill p() table, PRINT #1 for the menu area) ---
-        parsedOptions.forEach(opt => {
-            const safeText = (opt.text || "Continuar").replace(/"/g, "'").substring(0, 28);
-            const condPart = opt.conditions.length > 0
-                ? `IF ${opt.conditions.join(' AND ')} THEN ` : '';
-            basicCode += `${lineNr} ${condPart}LET n=n+1:LET p(n)=${opt.jumpTarget}:PRINT #1;"   ${safeText}"\n`;
-            lineNr += 10;
-        });
+//         // --- Option display lines (fill p() table, PRINT #1 for the menu area) ---
+//         parsedOptions.forEach(opt => {
+//             const safeText = (opt.text || "Continuar").replace(/"/g, "'").substring(0, 28);
+//             const condPart = opt.conditions.length > 0
+//                 ? `IF ${opt.conditions.join(' AND ')} THEN ` : '';
+//             basicCode += `${lineNr} ${condPart}LET n=n+1:LET p(n)=${opt.jumpTarget}:PRINT #1;"   ${safeText}"\n`;
+//             lineNr += 10;
+//         });
 
-        // Hand control to the cursor-selection loop
-        basicCode += `${lineNr} GO TO 9993\n`;
-        lineNr += 10;
+//         // Hand control to the cursor-selection loop
+//         basicCode += `${lineNr} GO TO 9993\n`;
+//         lineNr += 10;
 
-        // --- Action blocks: set flags then jump to target ---
-        // These live at actionBlockBase + optIdx*20 within this screen's number range
-        parsedOptions.forEach((opt, optIdx) => {
-            if (opt.needsActionBlock) {
-                const ab = opt.actionLine;
-                const safeComment = (opt.text || "option").replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 30);
-                basicCode += `${ab} REM ${safeComment}\n`;
-                basicCode += `${ab + 10} ${opt.actions.join(':')}:GO TO ${opt.targetLine}\n`;
-            }
-        });
-    });
+//         // --- Action blocks: set flags then jump to target ---
+//         // These live at actionBlockBase + optIdx*20 within this screen's number range
+//         parsedOptions.forEach((opt, optIdx) => {
+//             if (opt.needsActionBlock) {
+//                 const ab = opt.actionLine;
+//                 const safeComment = (opt.text || "option").replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 30);
+//                 basicCode += `${ab} REM ${safeComment}\n`;
+//                 basicCode += `${ab + 10} ${opt.actions.join(':')}:GO TO ${opt.targetLine}\n`;
+//             }
+//         });
+//     });
 
-    // =========================================================
-    // SYSTEM SUBROUTINES  (9988 – 9999)
-    // Identical in structure to flow3.zx.bas
-    // =========================================================
-    basicCode += `
-    9982 REM Load i$ from RAMDISK
-    9983 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
-    9984 LOAD! i$ CODE 16384:RETURN
-    `
-    basicCode += `9985 REM Option bar subroutine (also called after image load).\n`;
-    basicCode += `9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:LET i=1:RETURN\n`;
-    basicCode += `9988 REM New screen. CLS + option bar (no image).\n`;
-    basicCode += `9989 POKE 23693,tattr:POKE 23624,dattr:CLS:GO SUB 9985:RETURN\n`;
-    basicCode += `9990 REM New screen. CLS only (image will follow).\n`;
-    basicCode += `9991 POKE 23693,tattr:POKE 23624,dattr:CLS:RETURN\n`;
-    basicCode += `9993 REM choose an option\n`;
-    basicCode += `9994 IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO 0:\n`;
-    basicCode += `9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";:\n`;
-    basicCode += `9996 IF k=10 THEN LET i=i+1-(n AND i=n)\n`;
-    basicCode += `9997 IF k=11 THEN LET i=i-1+(n AND i=1)\n`;
-    basicCode += `9998 IF k=13 THEN GO SUB 110:GO TO p(i)\n`;
-    basicCode += `9999 GO TO 9993\n`;
+//     // =========================================================
+//     // SYSTEM SUBROUTINES  (9988 – 9999)
+//     // Identical in structure to flow3.zx.bas
+//     // =========================================================
+//     basicCode += `
+//     9982 REM Load i$ from RAMDISK
+//     9983 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
+//     9984 LOAD! i$ CODE 16384:RETURN
+//     `
+//     basicCode += `9985 REM Option bar subroutine (also called after image load).\n`;
+//     basicCode += `9986 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:LET i=1:RETURN\n`;
+//     basicCode += `9988 REM New screen. CLS + option bar (no image).\n`;
+//     basicCode += `9989 POKE 23693,tattr:POKE 23624,dattr:CLS:GO SUB 9985:RETURN\n`;
+//     basicCode += `9990 REM New screen. CLS only (image will follow).\n`;
+//     basicCode += `9991 POKE 23693,tattr:POKE 23624,dattr:CLS:RETURN\n`;
+//     basicCode += `9993 REM choose an option\n`;
+//     basicCode += `9994 IF NOT n THEN PRINT #1;"  FIN  -  PRESS ANY KEY":PAUSE 1:PAUSE 0:GO TO 0:\n`;
+//     basicCode += `9995 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";:\n`;
+//     basicCode += `9996 IF k=10 THEN LET i=i+1-(n AND i=n)\n`;
+//     basicCode += `9997 IF k=11 THEN LET i=i-1+(n AND i=1)\n`;
+//     basicCode += `9998 IF k=13 THEN GO SUB 110:GO TO p(i)\n`;
+//     basicCode += `9999 GO TO 9993\n`;
 
-    return basicCode;
-}
+//     return basicCode;
+// }
 
 /**
  * Renumbers BASIC lines safely starting from 10, incrementing by 10.
