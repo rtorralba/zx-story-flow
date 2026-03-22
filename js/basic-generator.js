@@ -48,15 +48,15 @@ function wrapText(text, maxWidth = 32) {
  */
 function parseLine(line) {
     const pline = {
-        type: '', // { T | Q | O | I | }
+        type: '', // { Q | O | I | P | T | A | C }
         text: '',
     }
     const tline = line.trim();
-    if(tline.startsWith('$')){
-        pline.type = tline[1];
-        const text = tline.slice(2).trim().toLowerCase();
+    if(line.startsWith('$')){
+        pline.type = line[1];
+        const text = line.slice(2).trim().toLowerCase();
         pline.text = cleanPredicate(text);
-    } else if (tline.startsWith('#')){
+    } else if (line.startsWith('#')){
         // A comment. 
         // Just discard it.
     } else {
