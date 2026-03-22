@@ -107,8 +107,14 @@ function transpileOptions(text,basicData) {
     const isNumber = (str) => str == Number.parseInt(str)
     text.matchAll(/(?:^|\s)([a-zA-Z0-9]+)(==|!=|<=|>=|<|>)([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
         const var1 = 'i'+match[1];
-        const op = match[2]==="!="?"<>":match[2];
         const var2 = isNumber(match[3])?match[3]:"i"+match[3];
+        let op = '';
+        if (match[2]==="!=") op = "<>"
+        else if (match[2]==="==") op = "="
+        else op=match[2]
+        //const op = match[2]==="!="?"<>":match[2];
+        
+        // Add variables to list of variables.
         basicData.vars.add(var1);
         !isNumber(var2)?basicData.vars.add(var2):null;
         
@@ -206,7 +212,6 @@ function transpileStatements(text,basicData) {
 
 
     // Crelar Screen.
-    // Assume this must be always the last commands.
     text.matchAll(/(?:^|\s)(?:cls):([0|1|2]+)(?=\s|$)/g)?.forEach(match=>{
 
         basicCode += basicCode?":":"";
@@ -221,6 +226,35 @@ function transpileStatements(text,basicData) {
             case "2":
                 basicCode += `GO SUB [[sys_cls_interface]]`;
                 break;
+        }
+    })
+    
+    
+    // GO / GOSUB
+    // Assume this must be always the last commands.
+    text.matchAll(/(?:^|\s)(gosub|go):([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+
+        basicCode += basicCode?":":"";
+        switch(match[1]) {
+            case "go":
+                // Jump straight away to the page.
+                // Equivalent to selecting an option pointing there.
+                // Clear screen and jump there.
+                // Aborts subroutine. 
+                // !!!! If this is not a final screen, it will leave
+                // !!!! values in the gosub stack.
+                basicCode += `GO SUB [[sys_cls_all]]:LET n = NOT PI:LET gsc = NOT PI:GO TO [[${match[2]}]]`
+                break
+            case "gosub":
+                // Jumps to the page without clearing screen.
+                // We jump with a BASIC GO SUB, so that we can return.
+                // increase gsc. Here, we allow for multiple depth levels of
+                // GOSUB, as opposed to the original MuCho.
+                // !!!! Current gosub is executed instantly. In MuCho, it
+                // !!!! Prints at the end, after printing any text the $O
+                // !!!! Block might contain.
+                basicCode += `LET gsc=gsc+1:GO SUB [[${match[2]}]]`
+                break
         }
     })
 
@@ -268,16 +302,18 @@ function addBASICSystemCode(basicData, globalConfig) {
    
     // Routine to launch interactive selecction of option
     // This is kept closest to the start to improve key scan loop the fastest.
+    //11 IF gsc THEN LET gsc=gsc-1:RETURN
     basicData.labels["sys_choose_option"] = 10;
-    basicData.labels["sys_choose_option_loop"] = 12;
+    basicData.labels["sys_choose_option_loop"] = 13;
     sysCode += `
     10 REM choose an option
-    11 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
-    12 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
-    13 IF k=10 THEN LET i=i+1-(n AND i=n)
-    14 IF k=11 THEN LET i=i-1+(n AND i=1)
-    15 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
-    16 GO TO [[sys_choose_option_loop]]\n`;
+    12 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
+    13 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
+    14 IF k=10 THEN LET i=i+1-(n AND i=n)
+    15 IF k=11 THEN LET i=i-1+(n AND i=1)
+    16 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
+    17 GO TO [[sys_choose_option_loop]]
+    `;
    
     
 
@@ -306,14 +342,22 @@ function addBASICSystemCode(basicData, globalConfig) {
 
     // =========================================================
     // START A NEW GAME.
+    // System variables:
+    // - tattr : text attribute.
+    // - dattr : divider attribute.
+    // - iattr : interface attribute.
+    // - gsc : gosub depth counter.
+    // - n : number of options in the interface.
+    // - i : aux variable. used for controllin goption selection
+    //       during user interaction.
     // =========================================================
     const globalBorder = colorToZX(globalConfig?.border || 'black');
     basicData.labels["sys_start_game"] = 50;
     sysCode += `
     50 REM = init global =
-    51 POKE 23693,7:OUT 254,${globalBorder}:CLS
+    51 POKE 23693,7:OUT 254,${globalBorder}:CLEAR
     52 REM p() table of line pointers.
-    53 DIM p(10):LET n=0:LET i=0:LET tattr=7:LET dattr=7:LET iattr=7
+    53 DIM p(10):LET n=0:LET i=0:LET tattr=7:LET dattr=7:LET iattr=7:LET gsc=0
     54 REM Inicializa variables del juego.
     `;
 
@@ -502,6 +546,12 @@ function transpileMuchoBlock(basicData, muchoCode) {
 
     // flush last line.
     basicData.finish_line();
+
+    if (!option_counter) {
+        // No options. It can be a subroutine or end.
+        basicData.add_line('IF gsc THEN LET gsc=gsc-1:RETURN');
+        basicData.finish_line();
+    }
     
     // Launch option selector.
     basicData.add_line('GO SUB [[sys_choose_option]]');
