@@ -52,10 +52,13 @@ function parseLine(line) {
         text: '',
     }
     const tline = line.trim();
-    if(tline && tline.startsWith('$')){
+    if(tline.startsWith('$')){
         pline.type = tline[1];
         const text = tline.slice(2).trim().toLowerCase();
         pline.text = cleanPredicate(text);
+    } else if (tline.startsWith('#')){
+        // A comment. 
+        // Just discard it.
     } else {
         pline.type = 'T'
         pline.text = line.replace(/"/g, `""`);
