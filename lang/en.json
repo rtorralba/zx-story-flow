@@ -133,6 +133,6 @@
         "save_failed": "Save failed: ",
         "load_failed": "Failed to load project: ",
         "import_mucho_empty": "No MuCho blocks ($Q) found in the file.",
-        "import_mucho_failed": "MuCho import failed: ",
+        "import_mucho_failed": "MuCho import failed: "
     }
 }
