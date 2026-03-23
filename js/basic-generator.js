@@ -541,6 +541,10 @@ function transpileMuchoBlock(basicData, muchoCode) {
                 // No statements associated to option. Can resolve in a single line.
                 basicData.editLine += `:LET p(n) = [[${destScreen}]]` ;
             }
+        } else {
+            // Don't know what to do.
+            // at the moment. Just ignore.
+            return;
         };
         last_pline = pline;
     });
