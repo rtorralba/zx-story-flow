@@ -6,7 +6,6 @@
         "project": "📁 Project",
         "export": "📤 Export",
         "config": "⚙️ Config",
-        "fullscreen": "⛶ Fullscreen",
         "help": "❓ Help"
     },
     "project": {
@@ -61,11 +60,9 @@
         "default_view": "Default view mode:",
         "view_simple": "Simple View",
         "view_advanced": "Advanced View",
-        "close": "Close",
         "cyd_general_title": "General Code",
         "cyd_tab_start": "Start code",
         "cyd_tab_end": "End code",
-        "basic_graphics": "Graphics",
         "separator_graphic": "Separator Graphic",
         "selector_graphic": "Selector Graphic",
         "border_section": "Border",
@@ -74,6 +71,11 @@
         "cls_0": "Everything (0)",
         "cls_1": "Page (1)",
         "cls_2": "Interface (2)"
+        ,
+        "loading_screen": "Loading screen (SCR):",
+        "font_bin": "Font (.bin):",
+        "clear_btn": "Clear",
+        "none_specified": "(none)"
     },
     "editor": {
         "edit_node": "Edit Node",
@@ -91,10 +93,9 @@
         "eligible": "Eligible",
         "add_option": "+ Add option",
         "color_config_title": "Color Configuration",
-        "use_custom_node": "Use specific configuration for this node",
+        "use_custom_node": "Change configuration for this and next pages",
         "insert_image": "🖼️ Insert Image",
         "ruler_title": "Guide ruler (column width)",
-        "ruler_off": "📏 Ruler: Off",
         "ruler_hidden": "Hidden",
         "ruler_placeholder": "Cols (ex: 32)",
         "cyd_commands_placeholder": "CYD Commands (header)",
@@ -108,7 +109,6 @@
         "flags_has": "If flag is set.",
         "flags_not": "If flag is NOT set.",
         "flags_rnd": "Probability (128 = 50%).",
-        "flags_and": "Combine:",
         "or": "or",
         "ops_title": "Operations (Flags)",
         "ops_set": "Set a flag.",
@@ -133,8 +133,6 @@
         "save_failed": "Save failed: ",
         "load_failed": "Failed to load project: ",
         "import_mucho_empty": "No MuCho blocks ($Q) found in the file.",
-        "import_mucho_failed": "MuCho import failed: ",
-        "duplicate_labels_title": "Cannot export. There are screens with names that result in duplicate labels:\n",
-        "duplicate_labels_desc": "\n\nPlease ensure each screen has a unique name."
+        "import_mucho_failed": "MuCho import failed: "
     }
 }

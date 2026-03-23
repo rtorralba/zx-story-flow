@@ -6,7 +6,6 @@
         "project": "📁 Projeto",
         "export": "📤 Exportar",
         "config": "⚙️ Config",
-        "fullscreen": "⛶ Tela Cheia",
         "help": "❓ Ajuda"
     },
     "project": {
@@ -61,11 +60,9 @@
         "default_view": "Modo de edição:",
         "view_simple": "Vista Simples",
         "view_advanced": "Vista Avançada",
-        "close": "Fechar",
         "cyd_general_title": "Código geral",
         "cyd_tab_start": "Código início",
         "cyd_tab_end": "Código fim",
-        "basic_graphics": "Gráficos",
         "separator_graphic": "Gráfico Separador",
         "selector_graphic": "Gráfico Seletor",
         "border_section": "Borda",
@@ -73,7 +70,11 @@
         "cls_none": "-- Nenhum --",
         "cls_0": "Tudo (0)",
         "cls_1": "Página (1)",
-        "cls_2": "Interface (2)"
+        "cls_2": "Interface (2)",
+        "loading_screen": "Tela de carregamento (SCR):",
+        "font_bin": "Fonte (.bin):",
+        "clear_btn": "Limpar",
+        "none_specified": "(nenhuma)"
     },
     "editor": {
         "edit_node": "Editar Nó",
@@ -91,10 +92,9 @@
         "eligible": "Elegível",
         "add_option": "+ Adicionar opção",
         "color_config_title": "Configuração de Cores",
-        "use_custom_node": "Usar configuração específica para este nó",
+        "use_custom_node": "Alterar configuração para esta e próximas páginas",
         "insert_image": "🖼️ Inserir Imagem",
         "ruler_title": "Régua de guia (largura da coluna)",
-        "ruler_off": "📏 Régua: Desligada",
         "ruler_hidden": "Oculto",
         "ruler_placeholder": "Cols (ex: 32)",
         "cyd_commands_placeholder": "Comandos CYD (cabeçalho)",
@@ -108,7 +108,6 @@
         "flags_has": "Se tiver o flag.",
         "flags_not": "Se NÃO o tiver.",
         "flags_rnd": "Probabilidade (128 = 50%).",
-        "flags_and": "Combinar:",
         "or": "ou",
         "ops_title": "Operações (Flags)",
         "ops_set": "Ativa um flag.",
@@ -133,8 +132,6 @@
         "save_failed": "Falha ao salvar: ",
         "load_failed": "Falha ao carregar o projeto: ",
         "import_mucho_empty": "Nenhum bloco MuCho ($Q) encontrado no arquivo.",
-        "import_mucho_failed": "Falha ao importar MuCho: ",
-        "duplicate_labels_title": "Não é possível exportar. Existem telas com nomes que resultam em rótulos duplicados:\n",
-        "duplicate_labels_desc": "\n\nPor favor, certifique-se de que cada tela tenha um nome único."
+        "import_mucho_failed": "Falha ao importar MuCho: "
     }
 }

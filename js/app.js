@@ -1921,7 +1921,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <li><code>has:name</code> (${t('help.or')} <code>name</code>) ${t('help.flags_has')}</li>
                         <li><code>not:name</code> (${t('help.or')} <code>!name</code>) ${t('help.flags_not')}</li>
                         <li><code>rnd:128</code> ${t('help.flags_rnd')}</li>
-                        <li><code>AND</code> ${t('help.flags_and')} <code>has:A AND has:B</code>.</li>
                     </ul>
                 </div>
 
