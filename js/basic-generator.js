@@ -59,6 +59,7 @@ function parseLine(line) {
     } else if (line.startsWith('#')){
         // A comment. 
         // Just discard it.
+        return null
     } else {
         pline.type = 'T'
         pline.text = line.replace(/"/g, `""`);
@@ -638,10 +639,11 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     const lines = muchoCode.trim().split(/\r?\n/);
     
     // pre-parse all lines.
-    var plines = []
-    lines.forEach(line => {
-        plines.push(parseLine(line));
-    });
+    const plines = lines.flatMap(line => {
+        const p = parseLine(line);
+        if (p) return [p];
+        return [];
+    })
 
     // Process mucho code by Q blocks.
     const blocks = splitIntoScreenBlocks(plines);
