@@ -360,5 +360,4 @@ export function generateTapFromBasic(basicCode, filename = "PROGRAM", screenImag
     blocks.push(...basicTap)
 
     return blocks
-
 }
