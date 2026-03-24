@@ -239,12 +239,13 @@ function transpileStatements(text,basicData) {
         switch(match[1]) {
             case "go":
                 // Jump straight away to the page.
-                // Equivalent to selecting an option pointing there.
-                // Clear screen and jump there.
-                // Aborts subroutine. 
-                // !!!! If this is not a final screen, it will leave
-                // !!!! values in the gosub stack.
-                basicCode += `GO SUB [[sys_cls_all]]:LET n = NOT PI:LET gsc = NOT PI:GO TO [[${match[2]}]]`
+                // Equivalent to selecting an option pointing there: Clear screen and jump there.
+                // Aborts all subroutines, at any depth, by clearing the stack
+                // and GO TO line stored at i. (GO TO inside sys routine)
+                basicCode += `GO SUB [[sys_cls_all]]:LET n = NOT PI:LET i=[[${match[2]}]]:GO SUB [[sys_clear_stack]]`
+                // // In this simpler alternative, If this is not a final screen, 
+                // // it will leave values in the gosub stack.
+                // basicCode += `GO SUB [[sys_cls_all]]:LET n = NOT PI:LET gsc = NOT PI:GO TO [[${match[2]}]]`
                 break
             case "gosub":
                 // Jumps to the page without clearing screen.
@@ -374,12 +375,27 @@ function addBASICSystemCode(basicData, globalConfig) {
     }
     sysCode += `56 GO TO 100`;
 
-    // Add new option.
+    // Add new option making sure that when the
+    // first option is added, divider is drawn and interface colors configured.
     basicData.labels["sys_new_option"] = 60;
     sysCode += `
     60 REM Add new option.
     61 IF NOT n THEN GO SUB [[sys_cls_interface]]
     62 LET n = n + SGN PI:RETURN 
+    `
+
+    // Clear GO SUB stack and jump to line contained at "i"
+    // Notice can't return because stack was cleared.
+    // Store some data temporarily at TVDATA and SEED
+    basicData.labels["sys_clear_stack"] = 70;
+    sysCode += `
+    70 REM Clear GOSUB stack.
+    71 RANDOMIZE PEEK 23641 + 256*PEEK 23642 - 1 
+    72 POKE 23566,PEEK 23627: POKE 23567,PEEK 23628
+    73 POKE 23627,PEEK 23670: POKE 23628,PEEK 23671
+    74 CLEAR
+    75 POKE 23627,PEEK 23566: POKE 23628,PEEK 23567
+    76 LET gsc=0: GO TO i
     `
 
     return sysCode;
