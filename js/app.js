@@ -1820,10 +1820,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cmToolbar = editorContainer.querySelector('.zxsf-node-editor-toolbar');
         if (cmToolbar) {
             // Style buttons to match toolbar (use simple button)
-            const imgBtnToolbar = document.createElement('button');
-            imgBtnToolbar.innerHTML = t('editor.insert_image');
-            imgBtnToolbar.title = t('editor.insert_image');
-            imgBtnToolbar.addEventListener('click', () => hiddenFileInput.click());
+            let imgBtnToolbar = null;
+            if (projectType !== 'CYD') {
+                imgBtnToolbar = document.createElement('button');
+                imgBtnToolbar.innerHTML = t('editor.insert_image');
+                imgBtnToolbar.title = t('editor.insert_image');
+                imgBtnToolbar.addEventListener('click', () => hiddenFileInput.click());
+            }
 
             // Wrap ruler input in a small container to avoid stretching
             const rulerWrapper = document.createElement('div');
@@ -1834,9 +1837,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Insert at the start so they appear left of the fullscreen button
             cmToolbar.insertBefore(rulerWrapper, cmToolbar.firstChild);
-            cmToolbar.insertBefore(imgBtnToolbar, cmToolbar.firstChild);
-            // Hidden file input can stay in DOM (append to container)
-            editorContainer.appendChild(hiddenFileInput);
+            if (imgBtnToolbar) cmToolbar.insertBefore(imgBtnToolbar, cmToolbar.firstChild);
+            // Hidden file input appended only if image button exists
+            if (imgBtnToolbar) editorContainer.appendChild(hiddenFileInput);
         } else {
             // Fallback: append to main column if toolbar not found
             mainColumn.insertBefore(editorToolbar, mainColumn.firstChild);
