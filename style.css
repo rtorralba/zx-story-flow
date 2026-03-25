@@ -286,7 +286,9 @@ canvas {
     background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: center; /* center modal; internal scroll will handle overflow */
+    padding: 0;
+    overflow: hidden; /* disable overlay scrolling; modal will scroll internally */
     z-index: 10000;
 }
 
@@ -296,14 +298,15 @@ canvas {
     border-radius: 8px;
     width: 95vw;
     max-width: 1400px;
-    height: 90vh;
-    max-height: 90vh;
+    height: auto;
+    max-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--node-border);
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow-y: auto; /* internal scrollbar */
     position: relative;
 }
 
@@ -682,14 +685,15 @@ input:checked+.slider:before {
     gap: 10px;
     justify-content: flex-end;
 }
-
-.modal-buttons button {
-    padding: 8px 16px;
-    cursor: pointer;
-    font-family: inherit;
-    background-color: var(--node-bg);
-    color: var(--text-color);
+    height: auto;
+    max-height: calc(100vh - 40px); /* keep some gap from viewport edges */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--node-border);
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow-y: auto; /* internal scrolling inside modal */
 }
 
 .modal-buttons button:hover {
