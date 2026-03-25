@@ -67,22 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Referencias a la configuración global
     const globalConfigModal = document.getElementById('global-config-modal');
-    const globalPageInk = document.getElementById('global-page-ink');
-    const globalPagePaper = document.getElementById('global-page-paper');
-    const globalPageBright = document.getElementById('global-page-bright');
-    const globalPageFlash = document.getElementById('global-page-flash');
-    const globalSeparatorInk = document.getElementById('global-separator-ink');
-    const globalSeparatorPaper = document.getElementById('global-separator-paper');
-    const globalSeparatorBright = document.getElementById('global-separator-bright');
-    const globalSeparatorFlash = document.getElementById('global-separator-flash');
-    const globalInterfaceInk = document.getElementById('global-interface-ink');
-    const globalInterfacePaper = document.getElementById('global-interface-paper');
-    const globalInterfaceBright = document.getElementById('global-interface-bright');
-    const globalInterfaceFlash = document.getElementById('global-interface-flash');
     const globalViewMode = document.getElementById('global-view-mode');
     const globalProjectType = document.getElementById('global-project-type');
-    const globalBorderColor = document.getElementById('global-border-color');
-    const globalClsSelect = document.getElementById('global-cls');
     const separatorMatrixEl = document.getElementById('separator-matrix');
     const selectorMatrixEl = document.getElementById('selector-matrix');
 
@@ -241,20 +227,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Cargar configuración global en los controles
     function loadGlobalConfig() {
-        globalPageInk.value = globalConfig.page.ink;
-        globalPagePaper.value = globalConfig.page.paper;
-        globalPageBright.checked = globalConfig.page.bright;
-        globalPageFlash.checked = globalConfig.page.flash;
-        globalSeparatorInk.value = globalConfig.separator.ink;
-        globalSeparatorPaper.value = globalConfig.separator.paper;
-        globalSeparatorBright.checked = globalConfig.separator.bright;
-        globalSeparatorFlash.checked = globalConfig.separator.flash;
-        globalInterfaceInk.value = globalConfig.interface.ink;
-        globalInterfacePaper.value = globalConfig.interface.paper;
-        globalInterfaceBright.checked = globalConfig.interface.bright;
-        globalInterfaceFlash.checked = globalConfig.interface.flash;
-        if (globalBorderColor) globalBorderColor.value = globalConfig.border || 'black';
-        if (globalClsSelect) globalClsSelect.value = (globalConfig.cls !== null && globalConfig.cls !== undefined) ? String(globalConfig.cls) : '';
         if (globalViewMode) globalViewMode.value = globalConfig.viewMode || 'simple';
         if (globalProjectType) globalProjectType.value = (globalConfig.projectType || projectType || 'MuCho');
 
@@ -285,26 +257,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Guardar configuración global desde los controles
     function saveGlobalConfig() {
-        globalConfig.page = {
-            ink: globalPageInk.value,
-            paper: globalPagePaper.value,
-            bright: globalPageBright.checked,
-            flash: globalPageFlash.checked
-        };
-        globalConfig.separator = {
-            ink: globalSeparatorInk.value,
-            paper: globalSeparatorPaper.value,
-            bright: globalSeparatorBright.checked,
-            flash: globalSeparatorFlash.checked
-        };
-        globalConfig.interface = {
-            ink: globalInterfaceInk.value,
-            paper: globalInterfacePaper.value,
-            bright: globalInterfaceBright.checked,
-            flash: globalInterfaceFlash.checked
-        };
-        if (globalBorderColor) globalConfig.border = globalBorderColor.value;
-        if (globalClsSelect) { const v = globalClsSelect.value; globalConfig.cls = v === '' ? null : parseInt(v); }
         if (globalViewMode) globalConfig.viewMode = globalViewMode.value;
         // project type selector
         if (globalProjectType) {
@@ -364,20 +316,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateMatricesUI();
     };
 
-    globalPageInk.addEventListener('change', onGlobalConfigChange);
-    globalPagePaper.addEventListener('change', onGlobalConfigChange);
-    globalPageBright.addEventListener('change', onGlobalConfigChange);
-    globalPageFlash.addEventListener('change', onGlobalConfigChange);
-    globalSeparatorInk.addEventListener('change', onGlobalConfigChange);
-    globalSeparatorPaper.addEventListener('change', onGlobalConfigChange);
-    globalSeparatorBright.addEventListener('change', onGlobalConfigChange);
-    globalSeparatorFlash.addEventListener('change', onGlobalConfigChange);
-    globalInterfaceInk.addEventListener('change', onGlobalConfigChange);
-    globalInterfacePaper.addEventListener('change', onGlobalConfigChange);
-    globalInterfaceBright.addEventListener('change', onGlobalConfigChange);
-    globalInterfaceFlash.addEventListener('change', onGlobalConfigChange);
-    if (globalBorderColor) globalBorderColor.addEventListener('change', onGlobalConfigChange);
-    if (globalClsSelect) globalClsSelect.addEventListener('change', onGlobalConfigChange);
     if (globalViewMode) globalViewMode.addEventListener('change', onGlobalConfigChange);
     if (globalProjectType) globalProjectType.addEventListener('change', onGlobalConfigChange);
     document.querySelectorAll('.lang-option').forEach(btn => {
