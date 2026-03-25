@@ -1796,9 +1796,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         rulerContainer.appendChild(rulerInput);
-        editorToolbar.appendChild(rulerContainer);
-
-        mainColumn.appendChild(editorToolbar);
 
         const editorContainer = document.createElement('div');
         // Aplicar estado inicial de la regla
@@ -1816,6 +1813,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Apply ruler to the newly created CodeMirror instance (use stored global config)
         updateRuler(globalConfig.rulerWidth || '32ch');
+
+        // Move toolbar controls into the CodeMirror toolbar (if present)
+        const cmToolbar = editorContainer.querySelector('.zxsf-node-editor-toolbar');
+        if (cmToolbar) {
+            // Style buttons to match toolbar (use simple button)
+            const imgBtnToolbar = document.createElement('button');
+            imgBtnToolbar.innerHTML = t('editor.insert_image');
+            imgBtnToolbar.title = t('editor.insert_image');
+            imgBtnToolbar.addEventListener('click', () => hiddenFileInput.click());
+
+            // Wrap ruler input in a small container to avoid stretching
+            const rulerWrapper = document.createElement('div');
+            rulerWrapper.style.display = 'flex';
+            rulerWrapper.style.alignItems = 'center';
+            rulerWrapper.style.gap = '6px';
+            rulerWrapper.appendChild(rulerInput);
+
+            // Insert at the start so they appear left of the fullscreen button
+            cmToolbar.insertBefore(rulerWrapper, cmToolbar.firstChild);
+            cmToolbar.insertBefore(imgBtnToolbar, cmToolbar.firstChild);
+            // Hidden file input can stay in DOM (append to container)
+            editorContainer.appendChild(hiddenFileInput);
+        } else {
+            // Fallback: append to main column if toolbar not found
+            mainColumn.insertBefore(editorToolbar, mainColumn.firstChild);
+        }
 
         hiddenFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -2020,7 +2043,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             node.outputs.forEach((opt, idx) => {
                 const row = document.createElement('div');
                 row.style.marginBottom = '10px';
-                row.style.padding = '10px';
                 row.style.backgroundColor = '#1a1a1a';
                 row.style.borderRadius = '4px';
 
