@@ -101,6 +101,8 @@
         "cyd_before_placeholder": "Prefijo",
         "cyd_after_placeholder": "Sufijo",
         "cyd_commands_title": "Comandos CYD para este nó"
+        ,
+        "page_notes_label": "Observações da página"
     },
     "help": {
         "title": "AJUDA SINTAXE MUCHO",

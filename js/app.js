@@ -962,6 +962,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
+            // No project-level notes: notes are stored per-page (`node.pageNotes`)
+
             // Restore Nodes, Groups and start node — normalize to ensure all POJO fields are present
             projectState.nodes = (data.nodes || []).map(node => {
                 const type = node.type || '';
@@ -1796,9 +1798,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         rulerContainer.appendChild(rulerInput);
-        editorToolbar.appendChild(rulerContainer);
-
-        mainColumn.appendChild(editorToolbar);
 
         const editorContainer = document.createElement('div');
         // Aplicar estado inicial de la regla
@@ -1816,6 +1815,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Apply ruler to the newly created CodeMirror instance (use stored global config)
         updateRuler(globalConfig.rulerWidth || '32ch');
+
+        // Move toolbar controls into the CodeMirror toolbar (if present)
+        const cmToolbar = editorContainer.querySelector('.zxsf-node-editor-toolbar');
+        if (cmToolbar) {
+            // Style buttons to match toolbar (use simple button)
+            let imgBtnToolbar = null;
+            if (projectType !== 'CYD') {
+                imgBtnToolbar = document.createElement('button');
+                imgBtnToolbar.innerHTML = t('editor.insert_image');
+                imgBtnToolbar.title = t('editor.insert_image');
+                imgBtnToolbar.addEventListener('click', () => hiddenFileInput.click());
+            }
+
+            // Wrap ruler input in a small container to avoid stretching
+            const rulerWrapper = document.createElement('div');
+            rulerWrapper.style.display = 'flex';
+            rulerWrapper.style.alignItems = 'center';
+            rulerWrapper.style.gap = '6px';
+            rulerWrapper.appendChild(rulerInput);
+
+            // Insert at the start so they appear left of the fullscreen button
+            cmToolbar.insertBefore(rulerWrapper, cmToolbar.firstChild);
+            if (imgBtnToolbar) cmToolbar.insertBefore(imgBtnToolbar, cmToolbar.firstChild);
+            // Hidden file input appended only if image button exists
+            if (imgBtnToolbar) editorContainer.appendChild(hiddenFileInput);
+        } else {
+            // Fallback: append to main column if toolbar not found
+            mainColumn.insertBefore(editorToolbar, mainColumn.firstChild);
+        }
 
         hiddenFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -1992,6 +2020,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         sidebarColumn.appendChild(helpPanel);
 
+        // Make help panel stretch to match editor height and add project-level observations textarea below
+        sidebarColumn.style.display = 'flex';
+        sidebarColumn.style.flexDirection = 'column';
+        sidebarColumn.style.gap = '8px';
+        helpPanel.style.flex = '1';
+        helpPanel.style.overflow = 'auto';
+
+        // Observaciones de la página (page-level notes, stored in `node.pageNotes`)
+        const notesContainer = document.createElement('div');
+        notesContainer.className = 'project-notes';
+        notesContainer.style.marginTop = '20px';
+
+        const notesLabel = document.createElement('label');
+        notesLabel.setAttribute('data-i18n', 'editor.page_notes_label');
+        notesLabel.textContent = t('editor.page_notes_label');
+        notesLabel.style.display = 'block';
+        notesLabel.style.fontSize = '12px';
+        notesLabel.style.marginBottom = '6px';
+        notesLabel.style.color = '#ccc';
+
+        const notesTextarea = document.createElement('textarea');
+        notesTextarea.rows = 6;
+        notesTextarea.style.width = '100%';
+        notesTextarea.style.boxSizing = 'border-box';
+        notesTextarea.style.background = '#111';
+        notesTextarea.style.color = '#eee';
+        notesTextarea.style.border = '1px solid #333';
+        notesTextarea.style.padding = '6px';
+        notesTextarea.style.fontFamily = 'Courier New, monospace';
+        notesTextarea.value = node.pageNotes || '';
+        notesTextarea.addEventListener('input', (e) => {
+            node.pageNotes = e.target.value;
+            if (typeof autoSave === 'function') autoSave();
+        });
+
+        notesContainer.appendChild(notesLabel);
+        notesContainer.appendChild(notesTextarea);
+        sidebarColumn.appendChild(notesContainer);
+
         editorLayout.appendChild(mainColumn);
         editorLayout.appendChild(sidebarColumn);
         targetContainer.appendChild(editorLayout);
@@ -2020,7 +2087,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             node.outputs.forEach((opt, idx) => {
                 const row = document.createElement('div');
                 row.style.marginBottom = '10px';
-                row.style.padding = '10px';
                 row.style.backgroundColor = '#1a1a1a';
                 row.style.borderRadius = '4px';
 

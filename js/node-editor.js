@@ -1265,7 +1265,12 @@ export class NodeEditor {
             // Draw Node Content
             tempCtx.font = "12px Courier New";
             tempCtx.fillStyle = "#ccc";
-            let content = node.text || "Empty screen text";
+            let content;
+            if (node.type === 'Reference' || node.type === 'reference') {
+                content = NodeReference.getDisplayTitle(node, this.nodes);
+            } else {
+                content = node.text || "Empty screen text";
+            }
             if (content.length > 20) content = content.substring(0, 17) + "...";
             tempCtx.fillText(content, node.x + 10, node.y + 45);
 

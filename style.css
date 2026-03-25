@@ -131,12 +131,37 @@ header h1 {
     border-bottom: none;
 }
 
+#node-edit-modal .mucho-help-panel {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding-right: 6px;
+    /* arrange help sections in two columns to use width */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+    height: 500px;
+}
+
+#node-edit-modal .mucho-help-panel .mucho-help-section {
+    margin-bottom: 0; /* grid gap handles spacing */
+}
+
+#node-edit-modal .mucho-help-panel h5 {
+    grid-column: 1 / -1; /* make header span both columns */
+    margin-bottom: 8px;
+}
+
+#node-edit-modal .project-notes textarea {
+    min-height: 80px;
+    max-height: 220px;
+}
+
 /* Nested submenu: shown to the right when hovering the item */
 .submenu-item .submenu-nested {
     display: none;
     position: absolute;
-    top: 0;
-    left: 100%;
+    top: 0;    left: 100%;
     z-index: 1001;
     min-width: 150px;
     background-color: var(--panel-bg);
@@ -286,7 +311,9 @@ canvas {
     background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: center; /* center modal; internal scroll will handle overflow */
+    padding: 0;
+    overflow: hidden; /* disable overlay scrolling; modal will scroll internally */
     z-index: 10000;
 }
 
@@ -296,14 +323,15 @@ canvas {
     border-radius: 8px;
     width: 95vw;
     max-width: 1400px;
-    height: 90vh;
-    max-height: 90vh;
+    height: auto;
+    max-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--node-border);
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow-y: auto; /* internal scrollbar */
     position: relative;
 }
 
@@ -682,14 +710,15 @@ input:checked+.slider:before {
     gap: 10px;
     justify-content: flex-end;
 }
-
-.modal-buttons button {
-    padding: 8px 16px;
-    cursor: pointer;
-    font-family: inherit;
-    background-color: var(--node-bg);
-    color: var(--text-color);
+    height: auto;
+    max-height: calc(100vh - 40px); /* keep some gap from viewport edges */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--node-border);
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow-y: auto; /* internal scrolling inside modal */
 }
 
 .modal-buttons button:hover {
@@ -1125,6 +1154,7 @@ input:checked+.slider:before {
     font-size: 13px;
     color: #ccc;
     border-left: 3px solid #4a9eff;
+    height: 300px
 }
 
 .mucho-help-panel h5 {
