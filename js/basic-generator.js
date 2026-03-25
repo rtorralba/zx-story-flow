@@ -530,7 +530,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
             basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
             // Assumes images are the first element of screen.
             // Makes sure attributes of image are the current ones configured for text.
-            basicData.editLine += `PRINT AT 0,0,,,,,,,,,,,,,,,,:LET i$="${imgName}":GO SUB [[sys_load_image]]:`;
+            basicData.editLine += `PRINT OVER 1;AT 0,0,,,,,,,,,,,,,,,,:LET i$="${imgName}":GO SUB [[sys_load_image]]:`;
             basicData.editLine += stmCode?`:${stmCode}`:``;
             basicData.finish_line();
         } else if (pline.type==="A") {
