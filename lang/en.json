@@ -102,6 +102,8 @@
         "cyd_before_placeholder": "Prefix",
         "cyd_after_placeholder": "Suffix",
         "cyd_commands_title": "CYD Commands for this node"
+        ,
+        "page_notes_label": "Page notes"
     },
     "help": {
         "title": "MUCHO SYNTAX HELP",

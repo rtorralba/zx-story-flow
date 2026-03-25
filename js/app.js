@@ -962,6 +962,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
+            // No project-level notes: notes are stored per-page (`node.pageNotes`)
+
             // Restore Nodes, Groups and start node — normalize to ensure all POJO fields are present
             projectState.nodes = (data.nodes || []).map(node => {
                 const type = node.type || '';
@@ -2014,6 +2016,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         sidebarColumn.appendChild(helpPanel);
+
+        // Make help panel stretch to match editor height and add project-level observations textarea below
+        sidebarColumn.style.display = 'flex';
+        sidebarColumn.style.flexDirection = 'column';
+        sidebarColumn.style.gap = '8px';
+        helpPanel.style.flex = '1';
+        helpPanel.style.overflow = 'auto';
+
+        // Observaciones de la página (page-level notes, stored in `node.pageNotes`)
+        const notesContainer = document.createElement('div');
+        notesContainer.className = 'project-notes';
+        notesContainer.style.marginTop = '20px';
+
+        const notesLabel = document.createElement('label');
+        notesLabel.setAttribute('data-i18n', 'editor.page_notes_label');
+        notesLabel.textContent = t('editor.page_notes_label');
+        notesLabel.style.display = 'block';
+        notesLabel.style.fontSize = '12px';
+        notesLabel.style.marginBottom = '6px';
+        notesLabel.style.color = '#ccc';
+
+        const notesTextarea = document.createElement('textarea');
+        notesTextarea.rows = 6;
+        notesTextarea.style.width = '100%';
+        notesTextarea.style.boxSizing = 'border-box';
+        notesTextarea.style.background = '#111';
+        notesTextarea.style.color = '#eee';
+        notesTextarea.style.border = '1px solid #333';
+        notesTextarea.style.padding = '6px';
+        notesTextarea.style.fontFamily = 'Courier New, monospace';
+        notesTextarea.value = node.pageNotes || '';
+        notesTextarea.addEventListener('input', (e) => {
+            node.pageNotes = e.target.value;
+            if (typeof autoSave === 'function') autoSave();
+        });
+
+        notesContainer.appendChild(notesLabel);
+        notesContainer.appendChild(notesTextarea);
+        sidebarColumn.appendChild(notesContainer);
 
         editorLayout.appendChild(mainColumn);
         editorLayout.appendChild(sidebarColumn);
