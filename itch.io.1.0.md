@@ -1,4 +1,4 @@
-# 🏆 Versión 1.0 "Gold" — La Gran Actualización Final 🇪🇸
+# Versión 1.0 "Gold" — La Gran Actualización Final 🇪🇸
 
 ¡Llegamos a la versión 1.0! Tras semanas de desarrollo y feedback de la comunidad, ZX Story Flow sale de su fase inicial para convertirse en una herramienta robusta, profesional y definitiva para la creación de aventuras en el ZX Spectrum.
 
@@ -19,7 +19,9 @@ Hemos simplificado la configuración de los proyectos MuCho.
 - **Regla de Escritura Personalizable**: Ajusta el ancho de la columna de guía (ej: 32 o 64 cols) para adaptarte a diferentes modos de pantalla o motores.
 
 ### 📼 Motor BASIC "Pro"
-El exportador de BASIC ha sido potenciado para ofrecer capacidades de motores de aventuras comerciales:
+El exportador de BASIC ha sido potenciado para ofrecer capacidades avanzadas:
+- **Fuente Personalizable**: Cambia la fuente de los textos de tu aventura para darle un estilo visual único.
+- **Scroll Automático**: Si el texto de una pantalla no cabe en la pantalla, el motor hace scroll automáticamente para que el jugador pueda leerlo todo.
 - **Párrafos Condicionales ($O)**: Ahora puedes mostrar u ocultar bloques de texto enteros según el estado de los flags. Ideal para descripciones que cambian según lo que el jugador ha hecho.
 - **Variables Dinámicas**: Inserta el valor de cualquier variable numérica directamente en tus textos usando la sintaxis `<<variable>>`.
 - **Sistema de Subrutinas Avanzado**: Soporte para comandos `gosub` y `go`, permitiendo reutilizar textos y crear lógicas complejas de forma modular.
@@ -36,7 +38,7 @@ Hemos añadido herramientas para desarrolladores que aseguran la máxima estabil
 
 ---
 
-# 🏆 Version 1.0 "Gold" — The definitive update 🇬🇧
+# Version 1.0 "Gold" — The definitive update 🇬🇧
 
 We have reached Version 1.0! After weeks of development and community feedback, ZX Story Flow has evolved into a robust, professional, and definitive tool for creating ZX Spectrum adventures.
 
@@ -57,7 +59,9 @@ We've streamlined MuCho project configuration.
 - **Customizable Writing Ruler**: Adjust the column guide width (e.g., 32 or 64 columns) to fit different screen modes or engines.
 
 ### 📼 "Pro" BASIC Engine
-The BASIC exporter has been empowered with features found in commercial adventure engines:
+The BASIC exporter has been empowered with advanced capabilities:
+- **Custom Font**: Change the font used in your adventure's text to give it a unique visual style.
+- **Automatic Scroll**: If a screen's text doesn't fit on the display, the engine scrolls automatically so the player can read it all.
 - **Conditional Paragraphs ($O)**: You can now show or hide entire blocks of text based on flag states. Perfect for descriptions that evolve based on player actions.
 - **Dynamic Variables**: Insert the value of any numeric variable directly into your text using `<<variable>>` syntax.
 - **Advanced Subroutine System**: Support for `gosub` and `go` commands, allowing for modular logic and reusable text blocks.
@@ -74,7 +78,7 @@ We've added developer tools to ensure maximum project stability:
 
 ---
 
-# 🏆 Versão 1.0 "Gold" — A Grande Atualização Final 🇵🇹
+# Versão 1.0 "Gold" — A Grande Atualização Final 🇵🇹
 
 Chegamos à versão 1.0! Após semanas de desenvolvimento e feedback da comunidade, o ZX Story Flow deixa a sua fase inicial para se tornar uma ferramenta robusta, profissional e definitiva para a criação de aventuras no ZX Spectrum.
 
@@ -95,7 +99,9 @@ Simplificamos a configuração dos projetos MuCho.
 - **Régua de Escrita Personalizável**: Ajuste a largura da coluna de guia (ex: 32 ou 64 cols) para se adaptar a diferentes modos de ecrã ou motores.
 
 ### 📼 Motor BASIC "Pro"
-O exportador de BASIC foi potenciado para oferecer capacidades de motores de aventuras comerciais:
+O exportador de BASIC foi potenciado para oferecer capacidades avançadas:
+- **Fonte Personalizável**: Altere a fonte dos textos da sua aventura para lhe dar um estilo visual único.
+- **Scroll Automático**: Se o texto de um ecrã não couber no ecrã, o motor faz scroll automaticamente para que o jogador possa ler tudo.
 - **Parágrafos Condicionais ($O)**: Agora pode mostrar ou ocultar blocos de texto inteiros de acordo com o estado das flags.
 - **Variáveis Dinâmicas**: Insira o valor de qualquer variável numérica diretamente nos seus textos usando a sintaxe `<<variável>>`.
 - **Sistema de Sub-rotinas Avançado**: Suporte para comandos `gosub` e `go`, permitindo lógicas complexas e modulares.
