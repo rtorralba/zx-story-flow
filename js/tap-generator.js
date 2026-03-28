@@ -251,18 +251,70 @@ export function img2tap(img, filename = "SCREEN") {
 }
 
 
+/**
+ * Parse control codes in bas2tap format and substitute
+ * by corresponde byte values.
+ * 
+ * Format recognised.
+ * 
+ * {INK val}
+ * {PAPER val}
+ * {FLASH val}
+ * {BRIGHT val}
+ * {INVERSE val}
+ * {OVER val}
+ * {AT row,col}
+ * {TAB n}
+ * {(C)}
+ * 
+ * @param {string} basicCode input basic code.
+ * @return {string} basic code with substituted characters. 
+ */
+function parseControlCodes(basicCode) {
+
+    const cmd_ink = /^ink +(\d{1,2})$/;
+    const cmd_at = /^at +(\d{1,2}),(\d{1,2})$/;
+    const cmd_copyright = /^\(c\)$/;
+   
+    // For every {*}
+    const code = basicCode.replace(/\{([a-zA-Z0-9, \(\)]+)\}/g, (match, code) => {
+        let m;
+        // if(m = code.match(cmd_ink)) {
+        //     const [,ink] = m;
+        //     return match
+        // }else if(m = code.match(cmd_at)) {
+        //     const [,row,col] = m;
+        //     const s = String.fromCharCode(0x16, Number(row), Number(col));
+        //     return s;
+        // }else if (m = code.match(cmd_copyright)) {
+        //     return "\x7F";
+        // }
+        if (m = code.match(cmd_copyright)) {
+            return "\x7F";
+        }
+        return match;
+    });
+
+    return code
+
+}
+
 // Generate TAP data from an Image.
 export function bas2tap(basicCode, filename = "SCREEN") {
     // basicCode: string with the code
     // filename: block name.
 
-    const lines = basicCode.split('\n').filter(l => l.trim().length > 0);
+    const code = parseControlCodes(basicCode);
+
+    //const lines = code.split('\n').filter(l => l.trim().length > 0);
+    // Split only by unquoted new lines.
+    const lines = code.split(/\n(?=(?:[^"]*"[^"]*")*[^"]*$)/).filter(l => l.trim().length > 0);
     const plainData = [];
 
     lines.forEach(line => {
         // Split line number and content.
         const l = line.replace(/^\s+/, '');
-        const match = l.match(/^(\d+)\s+(.*)$/);
+        const match = l.match(/^(\d+)\s+(.*)$/s); // need /s as .* can be also newlines when embedding control characters.
         if (!match) return;  
         const lineNum = parseInt(match[1]);
         const content = match[2].trim();

@@ -671,6 +671,9 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     basicData.code =  sysCode + basicData.code;
 
 
+    // Fix some characters.
+    basicData.code = basicData.code.replaceAll("©","{(c)}");
+
     // Resolve variables.
     const codeFixedLabels = basicData.code.replace(/<<(.*?)>>/g, (match, key) => {
         const variable = "i"+key;
