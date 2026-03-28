@@ -710,16 +710,6 @@ input:checked+.slider:before {
     gap: 10px;
     justify-content: flex-end;
 }
-    height: auto;
-    max-height: calc(100vh - 40px); /* keep some gap from viewport edges */
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--node-border);
-    align-items: stretch;
-    justify-content: flex-start;
-    overflow-y: auto; /* internal scrolling inside modal */
-}
 
 .modal-buttons button:hover {
     background-color: #555;

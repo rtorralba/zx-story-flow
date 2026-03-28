@@ -1,114 +1,113 @@
 <div class="itch-description">
-    <h1>ZX Story Flow: Visual Choice Adventure Builder</h1>
-
+    <h3>Supporters/Backers</h3><p><strong><a target="_blank" href="https://singletonjohn.itch.io/">SingletonJohn</a></strong>, <strong><a target="_blank" href="https://charlyitv.itch.io/">CarlosITV</a></strong></p>
+<hr>
+<h1>ZX Story Flow: Visual Choice Adventure Builder</h1>
     <p><strong>Crea tus propias aventuras conversacionales para el mítico ZX Spectrum de forma visual y sin picar
             código.</strong></p>
-
     <p><strong>ZX Story Flow</strong> (también conocido cariñosamente como <em>Choice-Lee-Plot</em>) es una herramienta
         web diseñada para autores de ficción interactiva y amantes de lo retro. Olvídate de pelearte con el código
         BASIC; diseña tu historia mediante nodos, conecta las decisiones visualmente y exporta tu juego listo para ser
         jugado.</p>
-
     <h2>🚀 Características Principales</h2>
     <ul>
+        <li><strong>📼 Motor BASIC "Pro"</strong>: El exportador BASIC más potente para aventuras ZX Spectrum:
+            <ul>
+                <li><strong>Fuente Personalizable</strong>: Cambia la fuente de los textos para un estilo visual único.</li>
+                <li><strong>Scroll Automático</strong>: Si el texto no cabe en pantalla, el motor hace scroll automáticamente.</li>
+                <li><strong>Párrafos Condicionales ($O)</strong>: Muestra u oculta bloques de texto según el estado de los flags.</li>
+                <li><strong>Variables Dinámicas</strong>: Inserta variables en tus textos con la sintaxis <code>&lt;&lt;variable&gt;&gt;</code>.</li>
+                <li><strong>Sistema de Subrutinas Avanzado</strong>: Soporte para <code>gosub</code> y <code>go</code> para lógicas modulares.</li>
+                <li><strong>Optimización de Memoria</strong>: Renumerado inteligente y compactación de código.</li>
+                <li><strong>Loader 128K</strong>: Compatible con modelos 128K / +2 / +2A / +3.</li>
+            </ul>
+        </li>
         <li><strong>Editor Visual de Nodos</strong>: Crea pantallas y conecta opciones arrastrando cables. Visualiza el
             flujo de tu aventura de un vistazo.
             <ul>
-                <li><strong>Redimensionado de Nodos</strong>: Ajusta el tamaño de cada pantalla y grupo manualmente.
-                </li>
-                <li><strong>Localizador de Descendientes</strong>: Haz clic derecho en cualquier nodo para resaltar
-                    instantáneamente todo su flujo de decisiones.</li>
-                <li><strong>IDs Únicos</strong>: Sistema anti-colisión para asignar nombres únicos automáticos a cada
-                    pantalla.</li>
+                <li><strong>Redimensionado de Nodos</strong>: Ajusta el tamaño de cada pantalla y grupo manualmente.</li>
+                <li><strong>Resaltado de Flujo Inteligente</strong>: Selecciona un nodo para iluminar sus padres e hijos inmediatos.</li>
+                <li><strong>IDs Únicos</strong>: Sistema anti-colisión para nombres automáticos de pantalla.</li>
+                <li><strong>Persistencia de Zoom</strong>: El nivel de zoom se guarda junto con tu proyecto.</li>
             </ul>
         </li>
-        <li><strong>Importación desde MuCho</strong>: Convierte automáticamente tus aventuras escritas en formato texto
-            de MuCho en un mapa visual de nodos.</li>
-        <li><strong>Sistema de Grupos y Referencias</strong>: Organiza tus nodos en grupos coloreados y utiliza nodos de
-            referencia para conectar partes distantes sin cruzar cables.</li>
-        <li><strong>Modo Avanzado vs Simple</strong>: Alterna entre una interfaz limpia para centrarte en la historia o
-            una vista avanzada con controles técnicos detallados.</li>
+        <li><strong>Importación desde MuCho</strong>: Convierte automáticamente tus aventuras MuCho en un mapa visual de nodos.</li>
+        <li><strong>Sistema de Grupos y Referencias</strong>: Organiza nodos en grupos coloreados y usa referencias para conectar zonas distantes.</li>
+        <li><strong>Modo Avanzado vs Simple</strong>: Alterna entre interfaz limpia para escribir o vista técnica detallada.</li>
         <li><strong>Configuración de Colores ZX Spectrum</strong>:
             <ul>
-                <li><strong>Gestión Global</strong>: Define colores y bordes por defecto para toda la aventura.</li>
-                <li><strong>Control por Página</strong>: Personaliza INK, PAPER, BRIGHT y FLASH para cada zona: Página,
-                    Separador y Opciones.</li>
+                <li><strong>Control por Pantalla (MuCho 2.0)</strong>: Cada pantalla tiene su propia combinación de colores y bordes, sin estilos globales rígidos.</li>
+                <li><strong>Control por Zona</strong>: Personaliza INK, PAPER, BRIGHT y FLASH para Página, Separador y Opciones.</li>
             </ul>
         </li>
         <li><strong>Exportación Multi-formato</strong>:
             <ul>
-                <li><strong>Cassette .TAP</strong>: Genera un archivo ejecutable directo para emuladores o hardware
-                    real.</li>
-                <li><strong>BASIC Inteligente (V2)</strong>: Motor mejorado con gestión de etiquetas (labels), saltos
-                    <code>GO TO</code> optimizados y compactación automática.
-                </li>
+                <li><strong>Cassette .TAP</strong>: Archivo ejecutable para emuladores o hardware real.</li>
                 <li><strong>MuCho Engine</strong>: Exportación nativa con soporte completo de atributos y colores.</li>
-                <li><strong>CYD (Choose Your Destiny)</strong>: Integración con el motor narrativo web, incluyendo
-                    gestión de cabeceras/pies de código y elegibilidad de opciones.</li>
+                <li><strong>CYD (Choose Your Destiny)</strong>: Motor narrativo web con gestión de cabeceras y elegibilidad de opciones.</li>
             </ul>
         </li>
         <li><strong>Herramientas Pro</strong>:
             <ul>
                 <li>Editor a pantalla completa con simulación CRT.</li>
-                <li><strong>Regla de 32 caracteres</strong>: Guía visual para visualización exacta en el Spectrum.</li>
+                <li><strong>Regla de Escritura Personalizable</strong>: Ajusta la guía a 32 o 64 columnas según el modo de pantalla.</li>
+                <li><strong>Nombre de Proyecto Interactivo</strong>: Cambia el nombre de tu aventura directamente desde la cabecera.</li>
                 <li><strong>Panel de Ayuda Contextual</strong>: Referencia rápida de sintaxis MuCho/CYD integrada.</li>
             </ul>
         </li>
         <li><strong>Personalización Gráfica</strong>: Diseña tus propios caracteres (UDGs) para el separador y el
             selector mediante una matriz de píxeles integrada.</li>
-        <li><strong>Tres Idiomas</strong>: Interfaz y exportación totalmente traducidas al <strong>Español</strong>,
+        <li><strong>Tres Idiomas</strong>: Interfaz y exportación en <strong>Español</strong>,
             <strong>Inglés</strong> y <strong>Portugués</strong>.
         </li>
     </ul>
-
     <hr>
-
     <h1>ZX Story Flow: Visual Choice Adventure Builder (English)</h1>
-
     <p><strong>Create your own text adventures for the legendary ZX Spectrum visually, no coding required.</strong></p>
-
     <p><strong>ZX Story Flow</strong> is a web-based tool for interactive fiction authors and retro enthusiasts. Stop
         fighting with BASIC syntax; design your story using nodes, connect decisions visually, and export your game
         ready to play.</p>
-
     <h2>🚀 Key Features</h2>
     <ul>
+        <li><strong>📼 "Pro" BASIC Engine</strong>: The most powerful BASIC exporter for ZX Spectrum adventures:
+            <ul>
+                <li><strong>Custom Font</strong>: Change the font used in your adventure's text for a unique visual style.</li>
+                <li><strong>Automatic Scroll</strong>: If the text doesn't fit on screen, the engine scrolls automatically.</li>
+                <li><strong>Conditional Paragraphs ($O)</strong>: Show or hide entire text blocks based on flag states.</li>
+                <li><strong>Dynamic Variables</strong>: Insert variables into your text using <code>&lt;&lt;variable&gt;&gt;</code> syntax.</li>
+                <li><strong>Advanced Subroutine System</strong>: Support for <code>gosub</code> and <code>go</code> commands for modular logic.</li>
+                <li><strong>Memory Optimization</strong>: Smart renumbering and code compaction.</li>
+                <li><strong>128K Loader</strong>: Compatible with 128K / +2 / +2A / +3 models.</li>
+            </ul>
+        </li>
         <li><strong>Visual Node Editor</strong>: Create screens and connect options by dragging lines.
             <ul>
                 <li><strong>Node Resizing</strong>: Manually adjust the size of any screen or group.</li>
-                <li><strong>Highlight Descendants</strong>: Right-click any node to instantly see all downstream logic
-                    flows.</li>
+                <li><strong>Smart Flow Highlighting</strong>: Select a node to illuminate its immediate parents and children.</li>
                 <li><strong>Unique IDs</strong>: Anti-collision system for automatic screen naming.</li>
+                <li><strong>Zoom Persistence</strong>: The zoom level is saved along with your project.</li>
             </ul>
         </li>
-        <li><strong>MuCho Import</strong>: Automatically convert your text-based MuCho adventures into a visual node
-            map.</li>
-        <li><strong>Group & Reference System</strong>: Organize nodes in colored groups and use references to jump
-            between distant areas.</li>
-        <li><strong>Advanced vs Simple Mode</strong>: Toggle between a clean writing interface and an advanced technical
-            view.</li>
+        <li><strong>MuCho Import</strong>: Automatically convert your text-based MuCho adventures into a visual node map.</li>
+        <li><strong>Group & Reference System</strong>: Organize nodes in colored groups and use references to jump between distant areas.</li>
+        <li><strong>Advanced vs Simple Mode</strong>: Toggle between a clean writing interface and an advanced technical view.</li>
         <li><strong>ZX Spectrum Color System</strong>:
             <ul>
-                <li><strong>Global Config</strong>: Set default colors and borders for your entire project.</li>
-                <li><strong>Per-Page customization</strong>: Individual INK, PAPER, BRIGHT, and FLASH for Page text,
-                    Separators, and Options.</li>
+                <li><strong>Per-Screen Control (MuCho 2.0)</strong>: Each screen has its own color and border combination — no more rigid global styles.</li>
+                <li><strong>Per-Zone Customization</strong>: Individual INK, PAPER, BRIGHT, and FLASH for Page text, Separators, and Options.</li>
             </ul>
         </li>
         <li><strong>Multi-format Export</strong>:
             <ul>
                 <li><strong>Cassette .TAP</strong>: Executable file for emulators or real hardware.</li>
-                <li><strong>Smart BASIC (V2)</strong>: Improved engine with label management, optimized
-                    <code>GO TO</code> jumps, and automatic code compaction.
-                </li>
                 <li><strong>MuCho Engine</strong>: Native support with full attribute and color compatibility.</li>
-                <li><strong>CYD (Choose Your Destiny)</strong>: Integration with the web narrative engine, including
-                    global code management and option eligibility.</li>
+                <li><strong>CYD (Choose Your Destiny)</strong>: Integration with the web narrative engine, including global code management and option eligibility.</li>
             </ul>
         </li>
         <li><strong>Professional Tools</strong>:
             <ul>
                 <li>Full-screen editor with CRT display simulation.</li>
-                <li><strong>32-character Ruler</strong>: Visual guide for perfect Spectrum alignment.</li>
+                <li><strong>Customizable Writing Ruler</strong>: Adjust the column guide to 32 or 64 columns for different screen modes.</li>
+                <li><strong>Interactive Project Name</strong>: Rename your adventure directly from the header.</li>
                 <li><strong>Contextual Help Panel</strong>: Embedded syntax reference for MuCho and CYD.</li>
             </ul>
         </li>
@@ -118,89 +117,87 @@
             <strong>Spanish</strong>, and <strong>Portuguese</strong>.
         </li>
     </ul>
-
     <hr>
-
     <h1>ZX Story Flow: Visual Choice Adventure Builder (Português)</h1>
-
     <p><strong>Crie suas próprias aventuras de texto para o lendário ZX Spectrum visualmente, sem programar.</strong>
     </p>
-
     <p><strong>ZX Story Flow</strong> é uma ferramenta web para autores de ficção interativa e amantes do retro. Desenhe
         sua história com nodos, conecte decisões visualmente e exporte seu jogo pronto para jogar.</p>
-
     <h2>🚀 Principais Características</h2>
     <ul>
-        <li><strong>Editor Visual de Nodos</strong>: Crie telas e conecte opções arrastrando linhas.
+        <li><strong>📼 Motor BASIC "Pro"</strong>: O exportador BASIC mais poderoso para aventuras ZX Spectrum:
             <ul>
-                <li><strong>Redimensionamento de Nodos</strong>: Ajuste manualmente o tamanho de cada tela ou grupo.
-                </li>
-                <li><strong>Destacar Descendentes</strong>: Clique com o botão direito em um nodo para ver todos os
-                    caminhos derivados.</li>
-                <li><strong>IDs Únicos</strong>: Sistema automático de nomes sem colisões para cada tela.</li>
+                <li><strong>Fonte Personalizável</strong>: Altere a fonte dos textos para um estilo visual único.</li>
+                <li><strong>Scroll Automático</strong>: Se o texto não couber no ecrã, o motor faz scroll automaticamente.</li>
+                <li><strong>Parágrafos Condicionais ($O)</strong>: Mostre ou oculte blocos de texto conforme o estado das flags.</li>
+                <li><strong>Variáveis Dinâmicas</strong>: Insira variáveis nos textos com a sintaxe <code>&lt;&lt;variável&gt;&gt;</code>.</li>
+                <li><strong>Sistema de Sub-rotinas Avançado</strong>: Suporte para <code>gosub</code> e <code>go</code> para lógicas modulares.</li>
+                <li><strong>Otimização de Memória</strong>: Renumeração inteligente e compactação de código.</li>
+                <li><strong>Loader 128K</strong>: Compatível com modelos 128K / +2 / +2A / +3.</li>
             </ul>
         </li>
-        <li><strong>Importação do MuCho</strong>: Converta automaticamente suas aventuras escritas em formato de texto
-            MuCho em um mapa visual de nodos.</li>
-        <li><strong>Sistema de Grupos e Referências</strong>: Organize nodos em grupos coloridos e use referências para
-            conectar áreas distantes.</li>
-        <li><strong>Modo Avançado vs Simples</strong>: Alterne entre uma interface de escrita limpa ou uma visão técnica
-            avançada.</li>
+        <li><strong>Editor Visual de Nodos</strong>: Crie telas e conecte opções arrastrando linhas.
+            <ul>
+                <li><strong>Redimensionamento de Nodos</strong>: Ajuste manualmente o tamanho de cada tela ou grupo.</li>
+                <li><strong>Destaque de Fluxo Inteligente</strong>: Selecione um nodo para iluminar seus pais e filhos imediatos.</li>
+                <li><strong>IDs Únicos</strong>: Sistema automático de nomes sem colisões para cada tela.</li>
+                <li><strong>Persistência de Zoom</strong>: O nível de zoom é guardado com o seu projeto.</li>
+            </ul>
+        </li>
+        <li><strong>Importação do MuCho</strong>: Converta automaticamente suas aventuras MuCho em um mapa visual de nodos.</li>
+        <li><strong>Sistema de Grupos e Referências</strong>: Organize nodos em grupos coloridos e use referências para conectar áreas distantes.</li>
+        <li><strong>Modo Avançado vs Simples</strong>: Alterne entre interface de escrita limpa ou visão técnica avançada.</li>
         <li><strong>Sistema de Cores ZX Spectrum</strong>:
             <ul>
-                <li><strong>Configuração Global</strong>: Defina as cores e bordas padrão para todo o projeto.</li>
-                <li><strong>Personalização por Página</strong>: Ajuste INK, PAPER, BRIGHT e FLASH para o texto,
-                    separador e opções.</li>
+                <li><strong>Controlo por Ecrã (MuCho 2.0)</strong>: Cada ecrã tem a sua própria combinação de cores e bordas, sem estilos globais rígidos.</li>
+                <li><strong>Personalização por Zona</strong>: Ajuste INK, PAPER, BRIGHT e FLASH para texto, separador e opções.</li>
             </ul>
         </li>
         <li><strong>Exportação Multi-formato</strong>:
             <ul>
-                <li><strong>Cassete .TAP</strong>: Arquivo executável pronto para emuladores ou hardware real.</li>
-                <li><strong>BASIC Inteligente (V2)</strong>: Motor aprimorado com gestão de rótulos (labels), saltos
-                    <code>GO TO</code> otimizados e compactação automática.
-                </li>
+                <li><strong>Cassete .TAP</strong>: Arquivo executável para emuladores ou hardware real.</li>
                 <li><strong>MuCho Engine</strong>: Suporte nativo com compatibilidade total de cores.</li>
-                <li><strong>CYD (Choose Your Destiny)</strong>: Integração com o motor narrativo web, incluindo gestão
-                    de código global e elegibilidade de opções.</li>
+                <li><strong>CYD (Choose Your Destiny)</strong>: Integração com o motor narrativo web, incluindo gestão de código global e elegibilidade de opções.</li>
             </ul>
         </li>
-        <li><strong>Ferramentas Profissionais</strong>: Régua de 32 caracteres, simulação de tela CRT e painel de ajuda
-            de sintaxe integrado.</li>
+        <li><strong>Ferramentas Profissionais</strong>:
+            <ul>
+                <li>Editor em ecrã completo com simulação CRT.</li>
+                <li><strong>Régua de Escrita Personalizável</strong>: Ajuste a guia para 32 ou 64 colunas conforme o modo de ecrã.</li>
+                <li><strong>Nome de Projeto Interativo</strong>: Altere o nome da aventura diretamente no cabeçalho.</li>
+                <li><strong>Painel de Ajuda Contextual</strong>: Referência rápida de sintaxe MuCho/CYD integrada.</li>
+            </ul>
+        </li>
         <li><strong>Suporte Trilingue</strong>: Interface e exportação para <strong>Português</strong>,
             <strong>Espanhol</strong> e <strong>Inglês</strong>.
         </li>
     </ul>
-
     <hr>
-
     <h2>🙏 Agradecimientos / Acknowledgments / Agradecimentos</h2>
-
     <p><strong>Este proyecto no habría sido posible sin el apoyo de la comunidad retro:</strong></p>
     <ul>
-        <li><strong>Remy Sharp</strong> (<a href="https://github.com/remy/txt2bas" target="_blank">txt2bas</a>) -
+        <li><strong>Remy Sharp</strong> (<a target="_blank" href="https://github.com/remy/txt2bas">txt2bas</a>) -
             Referencia técnica para tokenización BASIC y formato TAP</li>
-        <li><strong>David</strong> (<a href="https://github.com/Iadvd" target="_blank">Furillo Productions</a>) - Por
+        <li><strong>David</strong> (<a target="_blank" href="https://github.com/Iadvd">Furillo Productions</a>) - Por
             animarme a mejorar el proyecto y la idea de exportar a MuCho</li>
-        <li><strong>Darkside29</strong> (<a href="https://darkside29.itch.io/" target="_blank">itch.io</a>) - Por
+        <li><strong>Darkside29</strong> (<a target="_blank" href="https://darkside29.itch.io/">itch.io</a>) - Por
             sugerir la integración con MuCho y feedback constante</li>
-        <li><strong>MuCho Engine</strong> (<a href="https://solhsa.com/mucho/mucho.html" target="_blank">solhsa.com</a>)
+        <li><strong>MuCho Engine</strong> (<a target="_blank" href="https://solhsa.com/mucho/mucho.html">solhsa.com</a>)
             - Motor de aventuras que inspiró un formato de exportación</li>
-        <li><strong>CarlosITV</strong> (<a href="https://charlyitv.itch.io/" target="_blank">itch.io</a>) - Testing
+        <li><strong>CarlosITV</strong> (<a target="_blank" href="https://charlyitv.itch.io/">itch.io</a>) - Testing
             exhaustivo y reporte de bugs</li>
-        <li><strong>SingletonJohn</strong> (<a href="https://singletonjohn.itch.io/" target="_blank">itch.io</a>) -
+        <li><strong>SingletonJohn</strong> (<a target="_blank" href="https://singletonjohn.itch.io/">itch.io</a>) -
             Testing y verificación de funcionalidades</li>
-        <li><strong>ZXMoe</strong> (<a href="https://zxmoe.itch.io/" target="_blank">itch.io</a>) - Valiosos consejos
+        <li><strong>ZXMoe</strong> (<a target="_blank" href="https://zxmoe.itch.io/">itch.io</a>) - Valiosos consejos
             sobre BASIC del ZX Spectrum</li>
-        <li><strong>Cronomantic</strong> (<a href="https://cronomantic.itch.io/" target="_blank">itch.io</a>) - Por el
+        <li><strong>Cronomantic</strong> (<a target="_blank" href="https://cronomantic.itch.io/">itch.io</a>) - Por el
             desarrollo del motor CYD y soporte técnico</li>
-        <li><strong>CYD Engine</strong> (<a href="https://github.com/cronomantic/ChooseYourDestiny"
-                target="_blank">GitHub</a>) - Motor narrativo que expande las posibilidades de exportación</li>
-        <li><strong>Nextric</strong> (<a href="https://radicalcomputerscompany.itch.io/" target="_blank">Radical
+        <li><strong>CYD Engine</strong> (<a target="_blank" href="https://github.com/cronomantic/ChooseYourDestiny">ChooseYourDestiny</a>) - Motor narrativo que expande las posibilidades de exportación</li>
+        <li><strong>Nextric</strong> (<a target="_blank" href="https://radicalcomputerscompany.itch.io/">Radical
                 Computers</a>) - Feedback y apoyo de la comunidad</li>
-        <li><strong>Ximokom</strong> (<a href="https://ximokom.itch.io/" target="_blank">itch.io</a>) - Testing y
+        <li><strong>Ximokom</strong> (<a target="_blank" href="https://ximokom.itch.io/">itch.io</a>) - Testing y
             reporte de bugs</li>
     </ul>
-
     <hr>
     <p><em>Desarrollado para la comunidad retro. ¡Vuelve a los 80 con un toque moderno!</em></p>
     <p><em>Developed for the retro community. Back to the 80s with a modern twist!</em></p>
