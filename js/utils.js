@@ -37,3 +37,25 @@ export function transliterate(text) {
 
     return result;
 }
+
+
+
+/**
+ * Normalize a file name.
+ * 
+ * Filenames inside tap files have some limitations. This functions
+ * normalize the names to make sure they comply with the limitations.
+ * 
+ * All filenames must be normalized with this function before 
+ * being further processed in BASIC or by tap generation.
+ * 
+ * Note that this function does not pad with spaces. Normally you
+ * don't want that except in tap header.
+ * 
+ * @param {string} fname 
+ * @returns {string}
+ */
+export function normalizeFileName(fname) {
+    const name = fname.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '').toLowerCase();
+    return name.slice(0,10);
+}

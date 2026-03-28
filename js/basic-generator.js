@@ -1,3 +1,4 @@
+import { normalizeFileName } from './utils.js';
 import { generateMucho } from './mucho-generator.js';
 
 // Helper: Convert color name to ZX Spectrum color code (0-7)
@@ -511,12 +512,13 @@ function transpileMuchoBlock(basicData, muchoCode) {
                 }
             }
         } else if (pline.type=="I") {
-            const match = pline.text.match(/([a-zA-Z0-9]+)(.*)?$/);
+            const match = pline.text.match(/^([^ ]+)\s*(.*)$/);
             const imgFile = match[1];
             const ops =  match[2]?match[2]:"";
 
 
-            const imgName = imgFile.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+            //const imgName = imgFile.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+            const imgName = normalizeFileName(imgFile);
             
             basicData.start_new_line();
             const opsCode = transpileOptions(ops,basicData);
@@ -1095,14 +1097,16 @@ function renumberBasic(basicCode) {
 }
 
 
+
 export function collectImageNamesFromMucho(muchoText) {
     // Collect unique image set of used Image Names
     // from $I directives in the generated MuCho text
+    // Imagenames are collected in lowercase.
    
     const imageNameSet = new Set();
     
     (muchoText.match(/\$I\s+([^\s\n]+)/g) || []).forEach(m => {
-        const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '').toUpperCase();
+        const nm = normalizeFileName(m.split(/\s+/)[1]);
         if (nm) imageNameSet.add(nm);
     });
     const imageNames = [...imageNameSet];
@@ -1121,7 +1125,8 @@ export function generateLoaderFromMucho(muchoText, screenImages, globalConfig = 
     const nodeImageNames = []
     screenImages.forEach(img => {
         // !!!! Probably no need to remove extension.
-        let screenName = img.name.toUpperCase().replace(/\.SCR$/i, '');
+        //let screenName = img.name.toLowerCase().replace(/\.scr$/i, '');
+        let screenName = normalizeFileName(img.name);
         // Check in mucho Images.
         if (muchoImageNames.find(name => name === screenName)) {
             nodeImageNames.push(screenName);
@@ -1231,15 +1236,15 @@ export function generateBasicLoader(globalConfig, imageNames){
         // Code for 128k/+2
         initLine += `200 IF PEEK(23312) <> 1 THEN`;
         imageNames.forEach(name => {
-            const nm = (name || '').toUpperCase();
-            initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm.toLowerCase()}" CODE 58456,2048`; 
+            const nm = (name || '');
+            initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm}" CODE 58456,2048`; 
         });
         initLine += `\n`;
         // Code for +2a/+3
         initLine += `210 IF PEEK(23312)=1 THEN`;
         imageNames.forEach(name => {
-            const nm = (name || '').toUpperCase();
-            initLine += `:LOAD "${nm}" CODE 58456:SAVE "M:${nm.toLowerCase()}" CODE 58456,2048`; 
+            const nm = (name || '');
+            initLine += `:LOAD "${nm}" CODE 58456:SAVE "M:${nm}" CODE 58456,2048`; 
         });
         initLine += `\n`;
         basicCode += initLine;
@@ -1255,7 +1260,7 @@ export function generateBasicLoader(globalConfig, imageNames){
     }
 
     // Load game code. 
-    basicCode += `300 LOAD "ADVENTURE"\n`;
+    basicCode += `300 LOAD "adventure"\n`;
 
     // Soubroutine to define UDGs.
     const udgs = getDefaultUDGs(globalConfig)

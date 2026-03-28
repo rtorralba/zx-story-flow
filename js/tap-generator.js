@@ -9,6 +9,8 @@
 // Special thanks to Remy Sharp's txt2bas (https://github.com/remy/txt2bas)
 // which helped identify and fix some edge cases in the tokenization process.
 
+import { normalizeFileName } from "./utils.js";
+
 // ZX Spectrum BASIC tokens
 const KEYWORDS = {
     'RND': 0xA5, 'INKEY$': 0xA6, 'PI': 0xA7, 'FN': 0xA8, 'POINT': 0xA9,
@@ -201,7 +203,7 @@ export function font2tap(font, fileName = "font") {
 
 
 // Generate TAP data from an Image.
-export function img2tap(img, filename = "SCREEN") {
+export function img2tap(img, filename = "screen") {
     // img: string with image data in base64
     // filename: block name.
 
@@ -226,9 +228,7 @@ export function img2tap(img, filename = "SCREEN") {
     }
 
     // Tap file name padded with spaces, max 10 char.
-    // !!!! Probably no need to remove extension.
-    let screenName = filename.toUpperCase().replace(/\.SCR$/i, '');
-    screenName = (screenName + '          ').substr(0, 10);
+    const screenName = (filename + '          ').slice(0, 10);
 
     // Build header.
     const screenHeader = new Uint8Array(17);
@@ -300,7 +300,7 @@ function parseControlCodes(basicCode) {
 }
 
 // Generate TAP data from an Image.
-export function bas2tap(basicCode, filename = "SCREEN") {
+export function bas2tap(basicCode, filename = "program") {
     // basicCode: string with the code
     // filename: block name.
 
@@ -334,8 +334,7 @@ export function bas2tap(basicCode, filename = "SCREEN") {
     // Header Data Payload (17 bytes)
     const headerData = new Uint8Array(17);
     headerData[0] = 0x00; // Type Program
-    let fname = (filename || 'PROGRAM').toUpperCase() + '          ';
-    fname = fname.substr(0, 10);
+    let fname = (filename + '          ').slice(0,10);
     for (let i = 0; i < 10; i++) headerData[i + 1] = fname.charCodeAt(i);
     const len = dataUint.length;
     headerData[11] = len & 0xFF;
@@ -382,7 +381,7 @@ export function generateTapFromImages(screenImages) {
     // Images first (CODE blocks)
     screenImages.forEach(img => {
         try {
-            const tapImg = img2tap(img.data, img.name)
+            const tapImg = img2tap(img.data, normalizeFileName(img.name))
             blocks.push(...tapImg);
         } catch (e) {
             console.error(`Error adding image ${img.name}:`, e);

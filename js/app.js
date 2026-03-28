@@ -1189,10 +1189,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tapFont = globalConfig.font
                 ? font2tap(globalConfig.font.fontData, "font")
                 : []
-            
+           
             const tapImages = generateTapFromImages(screenImages);
             //const tapGame = generateTapFromBasic(basicCode, "ADVENTURE");
-            const tapGame = bas2tap(basicCode, "ADVENTURE");
+            const tapGame = bas2tap(basicCode, "adventure");
 
             const tapBlocks = []
             tapBlocks.push(...tapLoader)
