@@ -1,11 +1,6 @@
 ¡Llegamos a la versión 1.0! Tras semanas de desarrollo y feedback de la comunidad, ZX Story Flow sale de su fase inicial para convertirse en una herramienta robusta, profesional y definitiva para la creación de aventuras en el ZX Spectrum.
 
-Esta versión 1.0 introduce un cambio de paradigma interno: la **Arquitectura Reactiva**, que garantiza que tu proyecto sea siempre coherente, rápido y fácil de exportar.
-
 ## 🌟 Lo más destacado de la 1.0
-
-### ⚡ Nueva Arquitectura Reactiva
-Hemos reconstruido el motor interno desde cero. Ahora el proyecto se gestiona como un único objeto JSON "vivo". Cualquier cambio en el editor se refleja instantáneamente en el estado del proyecto, eliminando errores de sincronización y haciendo que las exportaciones sean más rápidas que nunca.
 
 ### 🎭 MuCho 2.0: Flexibilidad Total
 Hemos simplificado la configuración de los proyectos MuCho.
@@ -28,7 +23,6 @@ El exportador de BASIC ha sido potenciado para ofrecer capacidades avanzadas:
 
 ### 🧪 Calidad y Herramientas "Pro"
 Hemos añadido herramientas para desarrolladores que aseguran la máxima estabilidad del proyecto:
-- **Tests Automatizados (Vitest)**: Hemos implementado una suite de tests con Vitest y Snapshot testing para garantizar que las importaciones y exportaciones de MuCho sean siempre 100% precisas.
 - **Persistencia de Zoom**: El nivel de zoom ahora se guarda junto con tu proyecto; vuelve exactamente a la misma vista donde lo dejaste.
 - **Resaltado de Flujo Inteligente**: El efecto de selección ahora ilumina no solo el nodo, sino también sus padres e hijos inmediatos, facilitando la navegación en mapas complejos.
 - **Importador Optimizado**: Algoritmos de creación de proyectos mejorados al importar archivos MuCho externos.
@@ -40,12 +34,7 @@ Hemos añadido herramientas para desarrolladores que aseguran la máxima estabil
 
 We have reached Version 1.0! After weeks of development and community feedback, ZX Story Flow has evolved into a robust, professional, and definitive tool for creating ZX Spectrum adventures.
 
-This milestone introduces a core paradigm shift: **Reactive Architecture**, ensuring your project is always consistent, fast, and easy to export.
-
 ## 🌟 Version 1.0 Highlights
-
-### ⚡ New Reactive Architecture
-We've rebuilt the internal engine from the ground up. Projects are now managed as a single, "live" JSON object. Any change in the editor is instantly reflected in the project state, eliminating sync errors and making exports faster than ever.
 
 ### 🎭 MuCho 2.0: Total Flexibility
 We've streamlined MuCho project configuration.
@@ -68,7 +57,6 @@ The BASIC exporter has been empowered with advanced capabilities:
 
 ### 🧪 "Pro" Quality and Tools
 We've added developer tools to ensure maximum project stability:
-- **Automated Tests (Vitest)**: We've implemented a test suite with Vitest and Snapshot testing to ensure MuCho imports and exports are always 100% accurate.
 - **Zoom Persistence**: The zoom level is now saved along with your project; return exactly to the same view where you left off.
 - **Smart Flow Highlighting**: The selection effect now illuminates not only the node but also its immediate parents and children, making navigation in complex maps much easier.
 - **Optimized Importer**: Faster and more robust project creation algorithms when importing external MuCho files.
@@ -80,12 +68,7 @@ We've added developer tools to ensure maximum project stability:
 
 Chegamos à versão 1.0! Após semanas de desenvolvimento e feedback da comunidade, o ZX Story Flow deixa a sua fase inicial para se tornar uma ferramenta robusta, profissional e definitiva para a criação de aventuras no ZX Spectrum.
 
-Esta versão 1.0 introduz uma mudança de paradigma interno: a **Arquitetura Reativa**, que garante que o seu projeto seja sempre coerente, rápido e fácil de exportar.
-
 ## 🌟 Destaques da Versão 1.0
-
-### ⚡ Nova Arquitetura Reativa
-Reconstruímos o motor interno do zero. Agora o projeto é gerido como um único objeto JSON "vivo". Qualquer alteração no editor é refletida instantaneamente no estado do projeto, eliminando erros de sincronização e tornando as exportações mais rápidas do que nunca.
 
 ### 🎭 MuCho 2.0: Flexibilidade Total
 Simplificamos a configuração dos projetos MuCho.
@@ -108,7 +91,6 @@ O exportador de BASIC foi potenciado para oferecer capacidades avançadas:
 
 ### 🧪 Qualidade e Ferramentas "Pro"
 Adicionamos ferramentas para desenvolvedores que garantem a máxima estabilidade:
-- **Testes Automatizados (Vitest)**: Implementamos uma suite de testes com Vitest e Snapshot testing para garantir 100% de fidelidade nas importações.
 - **Persistência de Zoom**: O nível de zoom é guardado automaticamente com o seu projeto.
 - **Destaque de Fluxo Inteligente**: O efeito de seleção ilumina nodos pais e filhos para facilitar a navegação em mapas complexos.
 - **Importador Otimizado**: Algoritmos de criação de projetos melhorados ao importar ficheiros MuCho externos.
