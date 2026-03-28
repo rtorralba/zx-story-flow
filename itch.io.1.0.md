@@ -1,5 +1,3 @@
-# Versión 1.0 "Gold" — La Gran Actualización Final 🇪🇸
-
 ¡Llegamos a la versión 1.0! Tras semanas de desarrollo y feedback de la comunidad, ZX Story Flow sale de su fase inicial para convertirse en una herramienta robusta, profesional y definitiva para la creación de aventuras en el ZX Spectrum.
 
 Esta versión 1.0 introduce un cambio de paradigma interno: la **Arquitectura Reactiva**, que garantiza que tu proyecto sea siempre coherente, rápido y fácil de exportar.
@@ -38,7 +36,7 @@ Hemos añadido herramientas para desarrolladores que aseguran la máxima estabil
 
 ---
 
-# Version 1.0 "Gold" — The definitive update 🇬🇧
+# Version 1.0 "Gold"
 
 We have reached Version 1.0! After weeks of development and community feedback, ZX Story Flow has evolved into a robust, professional, and definitive tool for creating ZX Spectrum adventures.
 
@@ -78,7 +76,7 @@ We've added developer tools to ensure maximum project stability:
 
 ---
 
-# Versão 1.0 "Gold" — A Grande Atualização Final 🇵🇹
+# Versão 1.0 "Gold"
 
 Chegamos à versão 1.0! Após semanas de desenvolvimento e feedback da comunidade, o ZX Story Flow deixa a sua fase inicial para se tornar uma ferramenta robusta, profissional e definitiva para a criação de aventuras no ZX Spectrum.
 
