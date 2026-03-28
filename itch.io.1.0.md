@@ -1,0 +1,114 @@
+# 🏆 Versión 1.0 "Gold" — La Gran Actualización Final 🇪🇸
+
+¡Llegamos a la versión 1.0! Tras semanas de desarrollo y feedback de la comunidad, ZX Story Flow sale de su fase inicial para convertirse en una herramienta robusta, profesional y definitiva para la creación de aventuras en el ZX Spectrum.
+
+Esta versión 1.0 introduce un cambio de paradigma interno: la **Arquitectura Reactiva**, que garantiza que tu proyecto sea siempre coherente, rápido y fácil de exportar.
+
+## 🌟 Lo más destacado de la 1.0
+
+### ⚡ Nueva Arquitectura Reactiva
+Hemos reconstruido el motor interno desde cero. Ahora el proyecto se gestiona como un único objeto JSON "vivo". Cualquier cambio en el editor se refleja instantáneamente en el estado del proyecto, eliminando errores de sincronización y haciendo que las exportaciones sean más rápidas que nunca.
+
+### 🎭 MuCho 2.0: Flexibilidad Total
+Hemos simplificado la configuración de los proyectos MuCho.
+- **Adiós a los estilos globales rígidos**: Ahora, cada pantalla puede tener su propia combinación de colores y bordes sin necesidad de configuraciones globales complejas.
+- **Control granular**: Tú decides qué pantallas rompen el estilo y cuáles siguen la norma, directamente desde el editor de cada nodo.
+
+### ✨ Pulido de Interfaz y UX
+- **Nombre de Proyecto Interactivo**: Ahora puedes cambiar el nombre de tu aventura directamente haciendo clic en el título de la cabecera.
+- **Regla de Escritura Personalizable**: Ajusta el ancho de la columna de guía (ej: 32 o 64 cols) para adaptarte a diferentes modos de pantalla o motores.
+
+### 📼 Motor BASIC "Pro"
+El exportador de BASIC ha sido potenciado para ofrecer capacidades de motores de aventuras comerciales:
+- **Párrafos Condicionales ($O)**: Ahora puedes mostrar u ocultar bloques de texto enteros según el estado de los flags. Ideal para descripciones que cambian según lo que el jugador ha hecho.
+- **Variables Dinámicas**: Inserta el valor de cualquier variable numérica directamente en tus textos usando la sintaxis `<<variable>>`.
+- **Sistema de Subrutinas Avanzado**: Soporte para comandos `gosub` y `go`, permitiendo reutilizar textos y crear lógicas complejas de forma modular.
+- **Optimización de Memoria**: Renumerado inteligente y compactación de código para aprovechar cada byte del Spectrum.
+- **Carga Rápida y Limpia**: Nuevo loader compatible con 128K que optimiza la gestión de memoria y pantallas de carga.
+
+### 🧪 Calidad y Herramientas "Pro"
+Hemos añadido herramientas para desarrolladores que aseguran la máxima estabilidad del proyecto:
+- **Tests Automatizados (Vitest)**: Hemos implementado una suite de tests con Vitest y Snapshot testing para garantizar que las importaciones y exportaciones de MuCho sean siempre 100% precisas.
+- **Persistencia de Zoom**: El nivel de zoom ahora se guarda junto con tu proyecto; vuelve exactamente a la misma vista donde lo dejaste.
+- **Resaltado de Flujo Inteligente**: El efecto de selección ahora ilumina no solo el nodo, sino también sus padres e hijos inmediatos, facilitando la navegación en mapas complejos.
+- **Importador Optimizado**: Algoritmos de creación de proyectos mejorados al importar archivos MuCho externos.
+- **Correcciones Críticas**: Mejoras en el parseo de comentarios y limpieza de archivos al iniciar nuevos proyectos.
+
+---
+
+# 🏆 Version 1.0 "Gold" — The definitive update 🇬🇧
+
+We have reached Version 1.0! After weeks of development and community feedback, ZX Story Flow has evolved into a robust, professional, and definitive tool for creating ZX Spectrum adventures.
+
+This milestone introduces a core paradigm shift: **Reactive Architecture**, ensuring your project is always consistent, fast, and easy to export.
+
+## 🌟 Version 1.0 Highlights
+
+### ⚡ New Reactive Architecture
+We've rebuilt the internal engine from the ground up. Projects are now managed as a single, "live" JSON object. Any change in the editor is instantly reflected in the project state, eliminating sync errors and making exports faster than ever.
+
+### 🎭 MuCho 2.0: Total Flexibility
+We've streamlined MuCho project configuration.
+- **Goodbye to rigid global styles**: Each screen can now have its own unique color and border combination without relying on complex global settings.
+- **Granular Control**: You decide which screens stand out and which follow the standard, directly within each node's editor.
+
+### ✨ UX Polish
+- **Interactive Project Name**: Change your adventure's name directly by clicking on the header title.
+- **Customizable Writing Ruler**: Adjust the column guide width (e.g., 32 or 64 columns) to fit different screen modes or engines.
+
+### 📼 "Pro" BASIC Engine
+The BASIC exporter has been empowered with features found in commercial adventure engines:
+- **Conditional Paragraphs ($O)**: You can now show or hide entire blocks of text based on flag states. Perfect for descriptions that evolve based on player actions.
+- **Dynamic Variables**: Insert the value of any numeric variable directly into your text using `<<variable>>` syntax.
+- **Advanced Subroutine System**: Support for `gosub` and `go` commands, allowing for modular logic and reusable text blocks.
+- **Memory Optimization**: Smart renumbering and code compaction to squeeze every byte out of the Spectrum.
+- **Fast & Clean Loading**: New 128K-compatible loader that optimizes memory management and loading screens. Supports 128K / +2 / +2A / +3 models.
+
+### 🧪 "Pro" Quality and Tools
+We've added developer tools to ensure maximum project stability:
+- **Automated Tests (Vitest)**: We've implemented a test suite with Vitest and Snapshot testing to ensure MuCho imports and exports are always 100% accurate.
+- **Zoom Persistence**: The zoom level is now saved along with your project; return exactly to the same view where you left off.
+- **Smart Flow Highlighting**: The selection effect now illuminates not only the node but also its immediate parents and children, making navigation in complex maps much easier.
+- **Optimized Importer**: Faster and more robust project creation algorithms when importing external MuCho files.
+- **Critical Fixes**: Improvements in comment parsing and automatic session cleanup for new projects.
+
+---
+
+# 🏆 Versão 1.0 "Gold" — A Grande Atualização Final 🇵🇹
+
+Chegamos à versão 1.0! Após semanas de desenvolvimento e feedback da comunidade, o ZX Story Flow deixa a sua fase inicial para se tornar uma ferramenta robusta, profissional e definitiva para a criação de aventuras no ZX Spectrum.
+
+Esta versão 1.0 introduz uma mudança de paradigma interno: a **Arquitetura Reativa**, que garante que o seu projeto seja sempre coerente, rápido e fácil de exportar.
+
+## 🌟 Destaques da Versão 1.0
+
+### ⚡ Nova Arquitetura Reativa
+Reconstruímos o motor interno do zero. Agora o projeto é gerido como um único objeto JSON "vivo". Qualquer alteração no editor é refletida instantaneamente no estado do projeto, eliminando erros de sincronização e tornando as exportações mais rápidas do que nunca.
+
+### 🎭 MuCho 2.0: Flexibilidade Total
+Simplificamos a configuração dos projetos MuCho.
+- **Adeus aos estilos globais rígidos**: Agora, cada ecrã pode ter a sua própria combinação de cores e bordas sem necessidade de configurações globais complexas.
+- **Controlo granular**: Você decide quais ecrãs quebram o estilo e quais seguem a norma, diretamente no editor de cada nodo.
+
+### ✨ Polimento de Interface e UX
+- **Nome de Projeto Interativo**: Altere o nome da sua aventura clicando diretamente no título do cabeçalho.
+- **Régua de Escrita Personalizável**: Ajuste a largura da coluna de guia (ex: 32 ou 64 cols) para se adaptar a diferentes modos de ecrã ou motores.
+
+### 📼 Motor BASIC "Pro"
+O exportador de BASIC foi potenciado para oferecer capacidades de motores de aventuras comerciais:
+- **Parágrafos Condicionais ($O)**: Agora pode mostrar ou ocultar blocos de texto inteiros de acordo com o estado das flags.
+- **Variáveis Dinâmicas**: Insira o valor de qualquer variável numérica diretamente nos seus textos usando a sintaxe `<<variável>>`.
+- **Sistema de Sub-rotinas Avançado**: Suporte para comandos `gosub` e `go`, permitindo lógicas complexas e modulares.
+- **Otimização de Memória**: Renumeração inteligente e compactação de código para aproveitar cada byte do Spectrum.
+- **Carga Rápida e Limpa**: Novo loader compatível com 128K que otimiza a gestão de memória e ecrãs de carregamento. Suporta modelos 128K / +2 / +2A / +3.
+
+### 🧪 Qualidade e Ferramentas "Pro"
+Adicionamos ferramentas para desenvolvedores que garantem a máxima estabilidade:
+- **Testes Automatizados (Vitest)**: Implementamos uma suite de testes com Vitest e Snapshot testing para garantir 100% de fidelidade nas importações.
+- **Persistência de Zoom**: O nível de zoom é guardado automaticamente com o seu projeto.
+- **Destaque de Fluxo Inteligente**: O efeito de seleção ilumina nodos pais e filhos para facilitar a navegação em mapas complexos.
+- **Importador Otimizado**: Algoritmos de criação de projetos melhorados ao importar ficheiros MuCho externos.
+- **Correções Críticas**: Melhorias no parser de comentários e limpeza de sessões ao iniciar novos projetos.
+
+---
+*¡Vuelve a la era dorada del software! / Back to the golden age of software! / De volta à era de ouro do software!*
