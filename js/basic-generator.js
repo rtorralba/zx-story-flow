@@ -1099,7 +1099,7 @@ export function collectImageNamesFromMucho(muchoText) {
     const imageNameSet = new Set();
     
     (muchoText.match(/\$I\s+([^\s\n]+)/g) || []).forEach(m => {
-        const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+        const nm = m.split(/\s+/)[1].replace(/\.scr$/i, '').replace(/\.[^.]+$/, '').toUpperCase();
         if (nm) imageNameSet.add(nm);
     });
     const imageNames = [...imageNameSet];
