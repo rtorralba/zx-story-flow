@@ -81,12 +81,6 @@ function parseLine(line) {
  * IF statemet. "IF " + string + " THEN"
  */
 function transpileOptions(text,basicData) {
-    // !!!! Now the function assumes that there is no spaces between
-    // !!!! numeric operators and operands.
-    // !!!! If there are spaces, data can be missunderstood as flags.
-    // !!!! Should preprocess the text to remove all spaces before and
-    // !!!! after operators so that this situation is handled gracefully
-    // !!!! without touching the working code.
 
     var basicCode = '';
 
@@ -1114,20 +1108,37 @@ export function collectImageNamesFromMucho(muchoText) {
 }
 
 
-// !!!! Fix me: should get mucho code as input, not nodes.
-export function generateLoaderFromMucho(muchoText, globalConfig = null) {
+export function generateLoaderFromMucho(muchoText, screenImages, globalConfig = null) {
    
-    // Get list of images.
-    const imageNames = collectImageNamesFromMucho(muchoText);
+    // Get list of images from Mucho.
+    const muchoImageNames = collectImageNamesFromMucho(muchoText);
+
+
+    // Get list of images from nodes that are in mucho Images.
+    const nodeImageNames = []
+    screenImages.forEach(img => {
+        // !!!! Probably no need to remove extension.
+        let screenName = img.name.toUpperCase().replace(/\.SCR$/i, '');
+        // Check in mucho Images.
+        if (muchoImageNames.find(name => name === screenName)) {
+            nodeImageNames.push(screenName);
+        }
+    })
+
+    // Check that all mucho images are in nodeImageNames.
+    muchoImageNames.forEach(name => {
+        if (!nodeImageNames.find(nodename => nodename === name)) {
+            throw new Error(`Missin image ${name}`); 
+        }
+    })
 
     // Generate a loader
-    const loaderBasic = generateBasicLoader(globalConfig, imageNames);
+    const loaderBasic = generateBasicLoader(globalConfig, nodeImageNames);
 
     return loaderBasic
 }
 
 
-// !!!! Fix me: should get mucho code as input, not nodes.
 export function generateBasicFromMucho(muchoText, globalConfig = null) {
 
     // Transpile MuCho to ZX Basic (image names drive the one-time init preamble)

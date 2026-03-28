@@ -1106,22 +1106,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('export-tap-btn').addEventListener('click', async () => {
         if (hasDuplicateLabels()) return;
         try {
-            const cydGeneralCode = document.getElementById('cyd-general-code')?.value || '';
-            const cydGeneralCodeEnd = document.getElementById('cyd-general-code-end')?.value || '';
-            const { loaderCode, basicCode } = (() => {
-                if (projectType === 'CYD') {
-                    return {
-                        loaderCode: "",
-                        basicCode: generateBasicFromCYD(projectState.nodes, globalConfig, cydGeneralCode, cydGeneralCodeEnd, projectState.startNodeId)
-                    };
-                } else {
-                    const muchoText = generateMucho(projectState.nodes, globalConfig, projectState.startNodeId);
-                    return {
-                        loaderCode: generateLoaderFromMucho(muchoText, globalConfig),
-                        basicCode: generateBasicFromMucho(muchoText, globalConfig)
-                    }
-                }
-            })();
+
+            // Only mucho -> BASIC -> tap
+            if (projectType === 'CYD') {
+                throw new Error("Can only generate BASIC TAP from MuCho")
+            }
 
             // Collect all images from nodes
             const screenImages = [];
@@ -1142,26 +1131,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
 
-            // Try to include SCR files from known locations if not present in nodes
-            const tryAddScr = async (url, name) => {
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) return false;
-                    const blob = await res.arrayBuffer();
-                    if (blob.byteLength !== 6912) return false;
-                    if (!screenImages.find(img => img.name === name)) {
-                        const b = new Uint8Array(blob);
-                        let binary = '';
-                        for (let i = 0; i < b.length; i++) binary += String.fromCharCode(b[i]);
-                        const base64 = btoa(binary);
-                        screenImages.push({ name, data: 'data:application/octet-stream;base64,' + base64 });
-                        return true;
-                    }
-                } catch (e) {
-                    return false;
-                }
-                return false;
-            };
+            // !!!! (ZX-Moe este código parece que ya no se usa...)
+            // !!!!
+            // // Try to include SCR files from known locations if not present in nodes
+            // const tryAddScr = async (url, name) => {
+            //     try {
+            //         const res = await fetch(url);
+            //         if (!res.ok) return false;
+            //         const blob = await res.arrayBuffer();
+            //         if (blob.byteLength !== 6912) return false;
+            //         if (!screenImages.find(img => img.name === name)) {
+            //             const b = new Uint8Array(blob);
+            //             let binary = '';
+            //             for (let i = 0; i < b.length; i++) binary += String.fromCharCode(b[i]);
+            //             const base64 = btoa(binary);
+            //             screenImages.push({ name, data: 'data:application/octet-stream;base64,' + base64 });
+            //             return true;
+            //         }
+            //     } catch (e) {
+            //         return false;
+            //     }
+            //     return false;
+            // };
 
             // Attempt common locations (root and examples/) -- handled per referenced image below
 
@@ -1177,6 +1168,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 console.log('BASIC preview:\n' + basicCode.split('\n').slice(0, 20).join('\n'));
             } catch (e) { console.warn('Debug logging failed', e); }
+
+
+            // Need to solve imgs stuff before, as I need the list of images
+            // when generating the basic code.
+            // !!!! Refactor to have unique image list for loader and tap generation.
+            const muchoText = generateMucho(projectState.nodes, globalConfig, projectState.startNodeId);
+            const loaderCode = generateLoaderFromMucho(muchoText, screenImages, globalConfig);
+            const basicCode = generateBasicFromMucho(muchoText, globalConfig);
+
 
             // Usar el nombre del proyecto, reemplazando espacios por _
             const exportName = (projectName || 'adventure').replace(/\s+/g, '_');
