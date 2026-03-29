@@ -282,8 +282,8 @@ export function img2tap(img, filename = "screen") {
  */
 function parseControlCodes(basicCode) {
 
-    const cmd_ink = /^ink +([0-7])$/;
-    const cmd_paper = /^paper +([0-7])$/;
+    const cmd_ink = /^ink +([0-9])$/;
+    const cmd_paper = /^paper +([0-9])$/;
     const cmd_flash = /^flash +(0|1)$/;
     const cmd_bright = /^bright +(0|1)$/;
     const cmd_inverse = /^inverse +(0|1)$/;
