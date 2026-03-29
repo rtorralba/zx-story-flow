@@ -282,6 +282,7 @@ export function img2tap(img, filename = "screen") {
  */
 function parseControlCodes(basicCode) {
 
+    // Control codes.
     const cmd_ink = /^ink +([0-9])$/;
     const cmd_paper = /^paper +([0-9])$/;
     const cmd_flash = /^flash +(0|1)$/;
@@ -290,6 +291,9 @@ function parseControlCodes(basicCode) {
     const cmd_over = /^over +(0|1)$/;
     const cmd_at = /^at +(\d{1,2}),(\d{1,2})$/;
     const cmd_tab = /^tab +(\d{1,2})$/;
+
+    // Other.
+    const cmd_graphics = /^([+-])([1-8])$/;
     const cmd_copyright = /^\(c\)$/;
   
     const ctrlcodes = {
@@ -305,7 +309,7 @@ function parseControlCodes(basicCode) {
     
 
     // For every {*}
-    const code = basicCode.replace(/\{([a-zA-Z0-9, \(\)]+)\}/g, (match, code) => {
+    const code = basicCode.replace(/\{([a-zA-Z0-9, \(\)+-]+)\}/g, (match, code) => {
         let m;
         if (m = code.match(cmd_copyright)) {
             return "\x7F";
@@ -343,7 +347,15 @@ function parseControlCodes(basicCode) {
                 const s = String.fromCharCode(ctrlcodes.at, row, col);
                 return s;
             }
-        } else if(m = code.match(cmd_tab)) {
+        } else if (m = code.match(cmd_graphics)) {
+            if (m[1] === '-') {
+                return String.fromCharCode(Number(m[2])+0x80-1);
+            } else if (m[1] === '+') {
+                return String.fromCharCode(Number(m[2])+0x88-1);
+            } else {
+                throw new Error(`Invalid graphics code ${m}`);
+            }
+        } else if (m = code.match(cmd_tab)) {
             const [,val] = m;
             const tab = Number(val)%32;
             if (tab==13) {
