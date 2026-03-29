@@ -68,6 +68,36 @@ function parseLine(line) {
     return pline
 }
 
+/**
+ * Split a list of preparsed mucho lines into Q$ blocks. 
+ */
+function splitIntoScreenBlocks(muchoLines) {
+   
+    let currentBlock = []
+    let blocks = []
+
+    muchoLines.forEach(line => {
+        if (line.type==='Q') {
+            currentBlock = [];
+            blocks.push(currentBlock);
+        };
+        currentBlock.push(line)
+    });
+
+    // !!!! Discard last black space of each block, as this is
+    // !!!! due to mucho Generator adding spaces that now has
+    // !!!! a different meaning in BASIC
+    blocks.forEach(block => {
+        if (block.at(-1).type==='T' && block.at(-1).text==="") {
+            block.pop()
+        }
+    })
+
+    return blocks;
+
+}
+
+
 
 
 
@@ -398,27 +428,6 @@ function addBASICSystemCode(basicData, globalConfig) {
     `
 
     return sysCode;
-}
-
-
-/**
- * Split a list of preparsed mucho lines into Q$ blocks. 
- */
-function splitIntoScreenBlocks(muchoLines) {
-   
-    let currentBlock = []
-    let blocks = []
-
-    muchoLines.forEach(line => {
-        if (line.type==='Q') {
-            currentBlock = [];
-            blocks.push(currentBlock);
-        };
-        currentBlock.push(line)
-    });
-
-    return blocks;
-
 }
 
 
