@@ -228,7 +228,7 @@ function transpileStatements(text,basicData) {
     
     // GO / GOSUB
     // Assume this must be always the last commands.
-    text.matchAll(/(?:^|\s)(gosub|go):([a-zA-Z0-9]+)(?=\s|$)/g)?.forEach(match=>{
+    text.matchAll(/(?:^|\s)(gosub|go):([a-zA-Z0-9_-]+)(?=\s|$)/g)?.forEach(match=>{
 
         basicCode += basicCode?":":"";
         switch(match[1]) {
