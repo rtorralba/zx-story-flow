@@ -297,8 +297,10 @@ function addBASICSystemCode(basicData, globalConfig) {
     2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]
     `;
    
-    // Routine to launch interactive selecction of option
+    // Code to launch interactive selecction of option
     // This is kept closest to the start to improve key scan loop the fastest.
+    // IMPORTANT! This is not a subroutine. Execution must be diverted here
+    // with a goto, as we will jump to the select screen with a goto.
     //11 IF gsc THEN LET gsc=gsc-1:RETURN
     basicData.labels["sys_choose_option"] = 10;
     basicData.labels["sys_choose_option_loop"] = 13;
@@ -571,7 +573,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
     }
     
     // Launch option selector.
-    basicData.add_line('GO SUB [[sys_choose_option]]');
+    basicData.add_line('GO TO [[sys_choose_option]]');
 
     // Process the delayed statements for options.
     delayed_options.forEach(({label,code,dest}) => {
