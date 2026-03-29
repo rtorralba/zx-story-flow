@@ -303,15 +303,17 @@ function addBASICSystemCode(basicData, globalConfig) {
     // with a goto, as we will jump to the select screen with a goto.
     //11 IF gsc THEN LET gsc=gsc-1:RETURN
     basicData.labels["sys_choose_option"] = 10;
-    basicData.labels["sys_choose_option_loop"] = 13;
+    basicData.labels["sys_choose_option_loop"] = 14;
     sysCode += `
     10 REM choose an option
-    12 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
-    13 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
-    14 IF k=10 THEN LET i=i+1-(n AND i=n)
-    15 IF k=11 THEN LET i=i-1+(n AND i=1)
-    16 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
-    17 GO TO [[sys_choose_option_loop]]
+    11 IF gsc AND n THEN PRINT "THIS SCR IS NOT SUBROUTINE!":STOP
+    12 IF gsc THEN LET gsc=gsc-1:RETURN
+    13 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
+    14 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
+    15 IF k=10 THEN LET i=i+1-(n AND i=n)
+    16 IF k=11 THEN LET i=i-1+(n AND i=1)
+    17 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
+    18 GO TO [[sys_choose_option_loop]]
     `;
    
     
@@ -566,11 +568,11 @@ function transpileMuchoBlock(basicData, muchoCode) {
     // flush last line.
     basicData.finish_line();
 
-    if (!option_counter) {
-        // No options. It can be a subroutine or end.
-        basicData.add_line('IF gsc THEN LET gsc=gsc-1:RETURN');
-        basicData.finish_line();
-    }
+    // if (!option_counter) {
+    //     // No options. It can be a subroutine or end.
+    //     basicData.add_line('IF gsc THEN LET gsc=gsc-1:RETURN');
+    //     basicData.finish_line();
+    // }
     
     // Launch option selector.
     basicData.add_line('GO TO [[sys_choose_option]]');
