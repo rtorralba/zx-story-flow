@@ -255,6 +255,12 @@ export function img2tap(img, filename = "screen") {
  * Parse control codes in bas2tap format and substitute
  * by corresponde byte values.
  * 
+ * Also parse dome additional codes that can't be
+ * introduced as normal text:
+ * - Graphics blocks.
+ * - UDGs
+ * - Copyright symbol
+ * 
  * Format recognised.
  * 
  * {INK val}
@@ -265,6 +271,10 @@ export function img2tap(img, filename = "screen") {
  * {OVER val}
  * {AT row,col}
  * {TAB n}
+ * 
+ * {A,B...} UDG
+ * {+n}{-n} Graphics block.
+ * {XX} // Hexadecimal value.
  * {(C)}
  * 
  * @param {string} basicCode input basic code.
@@ -272,27 +282,78 @@ export function img2tap(img, filename = "screen") {
  */
 function parseControlCodes(basicCode) {
 
-    const cmd_ink = /^ink +(\d{1,2})$/;
+    const cmd_ink = /^ink +([0-7])$/;
+    const cmd_paper = /^paper +([0-7])$/;
+    const cmd_flash = /^flash +(0|1)$/;
+    const cmd_bright = /^bright +(0|1)$/;
+    const cmd_inverse = /^inverse +(0|1)$/;
+    const cmd_over = /^over +(0|1)$/;
     const cmd_at = /^at +(\d{1,2}),(\d{1,2})$/;
+    const cmd_tab = /^tab +(\d{1,2})$/;
     const cmd_copyright = /^\(c\)$/;
-   
+  
+    const ctrlcodes = {
+        ink: 0x10,
+        paper: 0x11,
+        flash: 0x12,
+        bright: 0x13,
+        inverse: 0x14,
+        over: 0x15,
+        at: 0x16,
+        tab: 0x17
+    }
+    
+
     // For every {*}
     const code = basicCode.replace(/\{([a-zA-Z0-9, \(\)]+)\}/g, (match, code) => {
         let m;
-        // if(m = code.match(cmd_ink)) {
-        //     const [,ink] = m;
-        //     return match
-        // }else if(m = code.match(cmd_at)) {
-        //     const [,row,col] = m;
-        //     const s = String.fromCharCode(0x16, Number(row), Number(col));
-        //     return s;
-        // }else if (m = code.match(cmd_copyright)) {
-        //     return "\x7F";
-        // }
         if (m = code.match(cmd_copyright)) {
             return "\x7F";
+        } else if(m = code.match(cmd_ink)) {
+            const [,ink] = m;
+            const s = String.fromCharCode(ctrlcodes.ink, Number(ink));
+            return s
+        } else if(m = code.match(cmd_paper)) {
+            const [,paper] = m;
+            const s = String.fromCharCode(ctrlcodes.paper, Number(paper));
+            return s
+        } else if(m = code.match(cmd_flash)) {
+            const [,flag] = m;
+            const s = String.fromCharCode(ctrlcodes.flash, Number(flag));
+            return s
+        } else if(m = code.match(cmd_bright)) {
+            const [,flag] = m;
+            const s = String.fromCharCode(ctrlcodes.bright, Number(flag));
+            return s
+        } else if(m = code.match(cmd_inverse)) {
+            const [,flag] = m;
+            const s = String.fromCharCode(ctrlcodes.inverse, Number(flag));
+            return s
+        } else if(m = code.match(cmd_over)) {
+            const [,flag] = m;
+            const s = String.fromCharCode(ctrlcodes.over, Number(flag));
+            return s
+        } else if(m = code.match(cmd_at)) {
+            const [,val1,val2] = m;
+            const row = Number(val1);
+            const col = Number(val2);
+            if (row==13 || col==13) {
+                return `";AT ${row},${col};"`;
+            } else {
+                const s = String.fromCharCode(ctrlcodes.at, row, col);
+                return s;
+            }
+        } else if(m = code.match(cmd_tab)) {
+            const [,val] = m;
+            const tab = Number(val)%32;
+            if (tab==13) {
+                return `";TAB ${tab};"`;
+            } else {            
+                return String.fromCharCode(ctrlcodes.tab, tab, 0);
+            }
+        } else { 
+            return match;
         }
-        return match;
     });
 
     return code
@@ -314,7 +375,7 @@ export function bas2tap(basicCode, filename = "program") {
     lines.forEach(line => {
         // Split line number and content.
         const l = line.replace(/^\s+/, '');
-        const match = l.match(/^(\d+)\s+(.*)$/s); // need /s as .* can be also newlines when embedding control characters.
+        const match = l.match(/^(\d+)\s+(.*)$/s); // need //s as .* can be also have newlines when embedding control characters.
         if (!match) return;  
         const lineNum = parseInt(match[1]);
         const content = match[2].trim();
