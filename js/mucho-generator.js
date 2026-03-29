@@ -146,7 +146,10 @@ export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
             }
         });
 
-        muchoCode += "\n";
+        // Separate screens with a comment line, not an empty line.
+        // An empty line can create problems when processign subroutines
+        // as it can be confused as empty space inside the screen.
+        muchoCode += "#\n";
     });
 
     return muchoCode;
