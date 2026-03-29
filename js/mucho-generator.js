@@ -149,5 +149,8 @@ export function generateMucho(nodes, globalConfig = null, startNodeId = null) {
         muchoCode += "\n";
     });
 
+    // Ensure we don't end up with an extra blank line at the very end
+    muchoCode = muchoCode.replace(/\n+$/,'\n');
+
     return muchoCode;
 }
