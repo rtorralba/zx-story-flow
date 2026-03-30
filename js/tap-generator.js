@@ -296,6 +296,7 @@ function parseControlCodes(basicCode) {
 
     // Other.
     const cmd_graphics = /^([+-])([1-8])$/;
+    const cmd_graphics2 = /^([:.' ]{2})$/;
     const cmd_copyright = /^\(c\)$/;
     const cmd_byte = /^([0-9a-fA-F]{2})$/;
     const cmd_udg = /^([a-uA-U])$/;
@@ -310,10 +311,28 @@ function parseControlCodes(basicCode) {
         at: 0x16,
         tab: 0x17
     }
+    const graphiccodes = {
+        "  " : 0x80,
+        " '" : 0x81,
+        "' " : 0x82,
+        "''" : 0x83,
+        " ." : 0x84,
+        " :" : 0x85,
+        "'." : 0x86,
+        "':" : 0x87,
+        ". " : 0x88,
+        ".'" : 0x89,
+        ": " : 0x8a,
+        ":'" : 0x8b,
+        ".." : 0x8c,
+        ".:" : 0x8d,
+        ":." : 0x8e,
+        "::" : 0x8f,
+    }
     
 
     // For every {*}
-    const code = basicCode.replace(/\{([a-zA-Z0-9, \(\)+-]+)\}/g, (match, code) => {
+    const code = basicCode.replace(/\{([a-zA-Z0-9, :.'\(\)+-]+)\}/g, (match, code) => {
         let m;
         if (m = code.match(cmd_copyright)) {
             return "\x7F";
@@ -367,6 +386,9 @@ function parseControlCodes(basicCode) {
             } else {
                 throw new Error(`Invalid graphics code ${m}`);
             }
+        } else if (m = code.match(cmd_graphics2)) {
+            const code = graphiccodes[m[1]];
+            return String.fromCharCode(code);
         } else if (m = code.match(cmd_byte)) {
             const val = parseInt(m[1],16);
             return String.fromCharCode(val);
