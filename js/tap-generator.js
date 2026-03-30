@@ -72,15 +72,17 @@ function tokenizeLine(line) {
             res.push(line.charCodeAt(i));
             i++;
             while (i < line.length && line[i] !== '"') {
-                if (line[i] === '{' && i + 2 < line.length && line[i + 2] === '}') {
-                    const udg = line[i + 1];
-                    const code = udg.charCodeAt(0);
-                    if (code >= 65 && code <= 85) {
-                        res.push(144 + code - 65);
-                        i += 3;
-                        continue;
-                    }
-                }
+                // !!!! UDGs are now processed elsewhere together with control chars.
+                // !!!! May be move here and process by-line.
+                // if (line[i] === '{' && i + 2 < line.length && line[i + 2] === '}') {
+                //     const udg = line[i + 1];
+                //     const code = udg.charCodeAt(0);
+                //     if (code >= 65 && code <= 85) {
+                //         res.push(144 + code - 65);
+                //         i += 3;
+                //         continue;
+                //     }
+                // }
                 if (line[i] === '\\' && i + 1 < line.length) {
                     const udg = line[i + 1];
                     const code = udg.charCodeAt(0);
@@ -295,7 +297,9 @@ function parseControlCodes(basicCode) {
     // Other.
     const cmd_graphics = /^([+-])([1-8])$/;
     const cmd_copyright = /^\(c\)$/;
-  
+    const cmd_byte = /^([0-9a-fA-F]{2})$/;
+    const cmd_udg = /^([a-uA-U])$/;
+    
     const ctrlcodes = {
         ink: 0x10,
         paper: 0x11,
@@ -347,14 +351,6 @@ function parseControlCodes(basicCode) {
                 const s = String.fromCharCode(ctrlcodes.at, row, col);
                 return s;
             }
-        } else if (m = code.match(cmd_graphics)) {
-            if (m[1] === '-') {
-                return String.fromCharCode(Number(m[2])+0x80-1);
-            } else if (m[1] === '+') {
-                return String.fromCharCode(Number(m[2])+0x88-1);
-            } else {
-                throw new Error(`Invalid graphics code ${m}`);
-            }
         } else if (m = code.match(cmd_tab)) {
             const [,val] = m;
             const tab = Number(val)%32;
@@ -363,6 +359,21 @@ function parseControlCodes(basicCode) {
             } else {            
                 return String.fromCharCode(ctrlcodes.tab, tab, 0);
             }
+        } else if (m = code.match(cmd_graphics)) {
+            if (m[1] === '-') {
+                return String.fromCharCode(Number(m[2])+0x80-1);
+            } else if (m[1] === '+') {
+                return String.fromCharCode(Number(m[2])+0x88-1);
+            } else {
+                throw new Error(`Invalid graphics code ${m}`);
+            }
+        } else if (m = code.match(cmd_byte)) {
+            const val = parseInt(m[1],16);
+            return String.fromCharCode(val);
+        } else if (m = code.match(cmd_udg)) {
+            const char = m[1].toLowerCase()
+            const code = char.charCodeAt(0)-0x61+0x90;
+            return String.fromCharCode(code);
         } else { 
             return match;
         }
