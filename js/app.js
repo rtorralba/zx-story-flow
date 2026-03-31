@@ -1124,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 screenImages.push({
                                     name: pi.imageName,
                                     data: pi.imageData,
-                                    scr: Screen.fromBase64(pi.imageData), 
+                                    scr: Screen.fromBase64(pi.imageData).deinterlace().transpose(), 
                                 });
                             }
                         }

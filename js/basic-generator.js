@@ -409,16 +409,38 @@ function transpileMuchoBlock(basicData, muchoCode) {
 
             //const imgName = imgFile.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
             const imgName = normalizeFileName(imgFile);
+           
             
+            if (last_pline.type==="T" || last_pline.type==="P"){
+                // Already an ongoing print. Discard ending ; and start new line.
+                if (basicData.editLine.at(-1)===';') basicData.editLine = basicData.editLine.slice(0,-1);
+                basicData.editLine += `'`;
+            }
             basicData.start_new_line();
             const opsCode = transpileOptions(ops,basicData);
             const stmCode = transpileStatements(ops,basicData);
             basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
-            // Assumes images are the first element of screen.
-            // Makes sure attributes of image are the current ones configured for text.
-            basicData.editLine += `PRINT OVER 1;AT 0,0,,,,,,,,,,,,,,,,:LET i$="${imgName}":GO SUB [[sys_load_image]]:`;
+            basicData.editLine += `LET i$="${imgName}":LET i=8:GO SUB [[sys_print_image]]:`;
             basicData.editLine += stmCode?`:${stmCode}`:``;
             basicData.finish_line();
+        // } else if (pline.type=="I") {
+        //     const match = pline.text.match(/^([^ ]+)\s*(.*)$/);
+        //     const imgFile = match[1];
+        //     const ops =  match[2]?match[2]:"";
+
+
+        //     //const imgName = imgFile.replace(/\.scr$/i, '').replace(/\.[^.]+$/, '');
+        //     const imgName = normalizeFileName(imgFile);
+            
+        //     basicData.start_new_line();
+        //     const opsCode = transpileOptions(ops,basicData);
+        //     const stmCode = transpileStatements(ops,basicData);
+        //     basicData.editLine += opsCode?"IF " + opsCode + " THEN ":"";
+        //     // Assumes images are the first element of screen.
+        //     // Makes sure attributes of image are the current ones configured for text.
+        //     basicData.editLine += `PRINT OVER 1;AT 0,0,,,,,,,,,,,,,,,,:LET i$="${imgName}":GO SUB [[sys_load_image]]:`;
+        //     basicData.editLine += stmCode?`:${stmCode}`:``;
+        //     basicData.finish_line();
         } else if (pline.type==="A") {
             state = 'option';
             option_counter++;
@@ -895,14 +917,16 @@ function addBASICSystemCode(basicData, globalConfig) {
     // i$ : Contain the image filename.
     // i :
     basicData.labels["sys_print_image"] = 20;
-    basicData.labels["sys_print_image_loop"] = 24;
+    basicData.labels["sys_print_image_loop"] = 25;
+    //25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
     sysCode += `
     20 REM Draw image-dx.
-    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,72:POKE 23607,227:IF n THEN PRINT "ERR. Image after options": STOP
-    22 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:RETURN
-    23 LOAD! i$ CODE 58456:RETURN
-    24 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1 + PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
-    25 POKE 23606,PEEK 23670:POKE 23607,PEEK 23671:RETURN
+    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,216:POKE 23607,226
+    22 IF n THEN PRINT "ERR. Image after options": STOP
+    23 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:GO TO [[sys_print_image_loop]]
+    24 LOAD! i$ CODE 58456
+    25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i THEN GO TO [[sys_print_image_loop]]
+    26 POKE 23606,PEEK 23670:POKE 23607,PEEK 23671:RETURN
     `
 
     

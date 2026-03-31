@@ -86,7 +86,7 @@ export class Screen {
      */
     deinterlace() {
         // New array.
-        data = this.bytes.slice()
+        const data = this.bytes.slice()
 
         // Retorder rows.
         for (let i=0; i<192; i++) {
@@ -113,7 +113,7 @@ export class Screen {
      * linearlized image.
      */
     transpose() {
-        bytes = this.bytes.slice()
+        const bytes = this.bytes.slice()
         let i = 0;
         let j = 0;
         for (let r=0; r<24; r++) {
