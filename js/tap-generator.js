@@ -206,15 +206,15 @@ export function font2tap(font, fileName = "font") {
 
 
 // Generate TAP data from an Image.
-export function img2tap(img, filename = "screen") {
+export function img2tap(imageBytes, filename = "screen") {
     // img: string with image data in base64
     // filename: block name.
 
-    // Image from base64 to bytes.
-    const base64Data = (img || '').split(',')[1] || '';
-    const binaryString = typeof atob === 'function' ? atob(base64Data) : Buffer.from(base64Data, 'base64').toString('binary');
-    const imageBytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) imageBytes[i] = binaryString.charCodeAt(i);
+    // // Image from base64 to bytes.
+    // const base64Data = (img || '').split(',')[1] || '';
+    // const binaryString = typeof atob === 'function' ? atob(base64Data) : Buffer.from(base64Data, 'base64').toString('binary');
+    // const imageBytes = new Uint8Array(binaryString.length);
+    // for (let i = 0; i < binaryString.length; i++) imageBytes[i] = binaryString.charCodeAt(i);
     
     // Accept either: 
     // full SCREEN$ with attributes (6912 bytes) 
@@ -337,7 +337,8 @@ export function generateTapFromImages(screenImages) {
     // Images first (CODE blocks)
     screenImages.forEach(img => {
         try {
-            const tapImg = img2tap(img.data, normalizeFileName(img.name))
+            // const tapImg = img2tap(img.data, normalizeFileName(img.name))
+            const tapImg = img2tap(img.scr.bytes, normalizeFileName(img.name))
             blocks.push(...tapImg);
         } catch (e) {
             console.error(`Error adding image ${img.name}:`, e);

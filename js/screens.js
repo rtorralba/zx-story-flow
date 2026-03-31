@@ -24,7 +24,7 @@ export class Screen {
      * @param {Uint8Array} buffer 
      */
     constructor(bytes) {
-        if (bytes.length !== 6192) {
+        if (bytes.length !== 6912) {
             throw new Error("Not corrent screen size.")
         } 
         this.bytes = bytes;
@@ -43,7 +43,7 @@ export class Screen {
         const imageBytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) imageBytes[i] = binaryString.charCodeAt(i);
         
-        return new Image(imageBytes)
+        return new Screen(imageBytes)
     }
 
     /**
@@ -67,7 +67,7 @@ export class Screen {
      * not used. Does not check actual pixels.
      */
     getEffectiveHeight() {
-        attr = this.getAttrBytes();
+        const attr = this.getAttrBytes();
         for (var r=23; r>=0; r--) {
             for (var c=0; c<32; c++) {
                 if (attr[r*32+c]) {

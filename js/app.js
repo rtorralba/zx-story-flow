@@ -5,6 +5,7 @@
 
 import { NodeEditor } from './node-editor.js';
 import { ScreenNode, Group, NodeReference } from './nodes.js';
+import { Screen } from './screens.js';
 import { generateBasicFromMucho, generateLoaderFromMucho } from './basic-generator.js';
 import { generateBasicFromCYD } from './cyd-basic-generator.js';
 import { generateMucho } from './mucho-generator.js';
@@ -1122,7 +1123,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (!screenImages.find(img => img.name === pi.imageName)) {
                                 screenImages.push({
                                     name: pi.imageName,
-                                    data: pi.imageData
+                                    data: pi.imageData,
+                                    scr: Screen.fromBase64(pi.imageData), 
                                 });
                             }
                         }
