@@ -307,127 +307,6 @@ function cleanPredicate(text,basicData) {
 
 
 
-function addBASICSystemCode(basicData, globalConfig) {
-
-    let sysCode = "";
-    
-    // Initialization code.
-    // =========================================================
-    // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
-    // Using loader, frees memory and wait for a key.
-    // =========================================================
-    // sysCode += `
-    // 1 REM = one-time init =
-    // 2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367: GO TO [[sys_start_game]]
-    // `;
-    sysCode += `
-    1 REM = one-time init =
-    2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]
-    `;
-   
-    // Code to launch interactive selecction of option
-    // This is kept closest to the start to improve key scan loop the fastest.
-    // IMPORTANT! This is not a subroutine. Execution must be diverted here
-    // with a goto, as we will jump to the select screen with a goto.
-    //11 IF gsc THEN LET gsc=gsc-1:RETURN
-    basicData.labels["sys_choose_option"] = 10;
-    basicData.labels["sys_choose_option_loop"] = 14;
-    sysCode += `
-    10 REM choose an option
-    11 IF gsc AND n THEN PRINT "THIS SCR IS NOT SUBROUTINE!":STOP
-    12 IF gsc THEN LET gsc=gsc-1:RETURN
-    13 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
-    14 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
-    15 IF k=10 THEN LET i=i+1-(n AND i=n)
-    16 IF k=11 THEN LET i=i-1+(n AND i=1)
-    17 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
-    18 GO TO [[sys_choose_option_loop]]
-    `;
-   
-    
-
-    // Load image from RAMdisk
-    basicData.labels["sys_load_image"] = 20;
-    sysCode += `
-    20 REM Load i$ from RAMDISK
-    21 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
-    22 LOAD! i$ CODE 16384:RETURN
-    `
-    
-    // Routine to clean all.
-    // Notice it continues to sys_cls_interface.
-    basicData.labels["sys_cls_all"] = 30;
-    sysCode += `
-    30 REM New screen. CLS + option bar (no image)
-    31 RANDOMIZE:POKE 23624,tattr:POKE 23659,2:CLS:RETURN
-    `;
-    
-    // Routine to clean the interface (options) section.
-    basicData.labels["sys_cls_interface"] = 40;
-    sysCode += `
-    40 REM Option bar subroutine (also called after image load)
-    41 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
-    `
-
-    // =========================================================
-    // START A NEW GAME.
-    // System variables:
-    // - tattr : text attribute.
-    // - dattr : divider attribute.
-    // - iattr : interface attribute.
-    // - gsc : gosub depth counter.
-    // - n : number of options in the interface.
-    // - i : aux variable. used for controllin goption selection
-    //       during user interaction.
-    // =========================================================
-    const globalBorder = colorToZX(globalConfig?.border || 'black');
-    basicData.labels["sys_start_game"] = 50;
-    sysCode += `
-    50 REM = init global =
-    51 POKE 23693,7:OUT 254,${globalBorder}:CLEAR
-    52 REM p() table of line pointers.
-    53 DIM p(10):LET n=0:LET i=0:LET tattr=7:LET dattr=7:LET iattr=7:LET gsc=0
-    54 REM Inicializa variables del juego.
-    `;
-
-    // Initialise all flags and variables to 0 on a single line
-    if (basicData.flags.size || basicData.vars.size) {
-        sysCode += `55 LET ` 
-        sysCode += [...basicData.flags].map(f => `${f}=0`).join(':LET ');
-        sysCode += basicData.flags.size && basicData.vars.size?":LET ":"";
-        sysCode += [...basicData.vars].map(f => `${f}=0`).join(':LET ');
-        sysCode += "\n";
-    } else {
-        sysCode += `55 REM no flags nor numeric variables\n`;
-    }
-    sysCode += `56 GO TO 100`;
-
-    // Add new option making sure that when the
-    // first option is added, divider is drawn and interface colors configured.
-    basicData.labels["sys_new_option"] = 60;
-    sysCode += `
-    60 REM Add new option.
-    61 IF NOT n THEN GO SUB [[sys_cls_interface]]
-    62 LET n = n + SGN PI:RETURN 
-    `
-
-    // Clear GO SUB stack and jump to line contained at "i"
-    // Notice can't return because stack was cleared.
-    // Store some data temporarily at TVDATA and SEED
-    basicData.labels["sys_clear_stack"] = 70;
-    sysCode += `
-    70 REM Clear GOSUB stack.
-    71 RANDOMIZE PEEK 23641 + 256*PEEK 23642 - 1 
-    72 POKE 23566,PEEK 23627: POKE 23567,PEEK 23628
-    73 POKE 23627,PEEK 23670: POKE 23628,PEEK 23671
-    74 CLEAR
-    75 POKE 23627,PEEK 23566: POKE 23628,PEEK 23567
-    76 LET gsc=0: GO TO i
-    `
-
-    return sysCode;
-}
-
 
 /**
  * Transpiles MuCho code into ZX Basic
@@ -959,4 +838,153 @@ export function generateBasicLoader(globalConfig, imageNames){
 
     return basicCode
 
+}
+
+/**
+ * Return BASIC system code to be inserted
+ * at the beginning of game tap.
+ * 
+ * @param {*} basicData 
+ * @param {*} globalConfig 
+ * @returns 
+ */
+function addBASICSystemCode(basicData, globalConfig) {
+
+    let sysCode = "";
+    
+    // Initialization code.
+    // =========================================================
+    // ONE-TIME IMAGE INIT (lines 1-2, renumbered to 10-20)
+    // Using loader, frees memory and wait for a key.
+    // =========================================================
+    // sysCode += `
+    // 1 REM = one-time init =
+    // 2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:CLEAR 65367: GO TO [[sys_start_game]]
+    // `;
+    sysCode += `
+    1 REM = one-time init =
+    2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]
+    `;
+   
+    // Code to launch interactive selecction of option
+    // This is kept closest to the start to improve key scan loop the fastest.
+    // IMPORTANT! This is not a subroutine. Execution must be diverted here
+    // with a goto, as we will jump to the select screen with a goto.
+    //11 IF gsc THEN LET gsc=gsc-1:RETURN
+    basicData.labels["sys_choose_option"] = 10;
+    basicData.labels["sys_choose_option_loop"] = 14;
+    sysCode += `
+    10 REM choose an option
+    11 IF gsc AND n THEN PRINT "THIS SCR IS NOT SUBROUTINE!":STOP
+    12 IF gsc THEN LET gsc=gsc-1:RETURN
+    13 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
+    14 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
+    15 IF k=10 THEN LET i=i+1-(n AND i=n)
+    16 IF k=11 THEN LET i=i-1+(n AND i=1)
+    17 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
+    18 GO TO [[sys_choose_option_loop]]
+    `;
+   
+   
+    // Load BW image from RAMdisk and print to screen.
+    // Image of variable size, print in line with text.
+    // Can reuse i and n variables, as images are shown
+    // always before options start to be added.
+    //
+    // Parameters:
+    // i$ : Contain the image filename.
+    // i :
+    basicData.labels["sys_print_image"] = 20;
+    basicData.labels["sys_print_image_loop"] = 24;
+    sysCode += `
+    20 REM Draw image-dx.
+    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,72:POKE 23607,227:IF n THEN PRINT "ERR. Image after options": STOP
+    22 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:RETURN
+    23 LOAD! i$ CODE 58456:RETURN
+    24 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1 + PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
+    25 POKE 23606,PEEK 23670:POKE 23607,PEEK 23671:RETURN
+    `
+
+    
+    // Routine to clean all.
+    // Notice it continues to sys_cls_interface.
+    basicData.labels["sys_cls_all"] = 30;
+    sysCode += `
+    30 REM New screen. CLS + option bar (no image)
+    31 RANDOMIZE:POKE 23624,tattr:POKE 23659,2:CLS:RETURN
+    `;
+    
+    // Routine to clean the interface (options) section.
+    basicData.labels["sys_cls_interface"] = 40;
+    sysCode += `
+    40 REM Option bar subroutine (also called after image load)
+    41 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
+    `
+
+    // =========================================================
+    // START A NEW GAME.
+    // System variables:
+    // - tattr : text attribute.
+    // - dattr : divider attribute.
+    // - iattr : interface attribute.
+    // - gsc : gosub depth counter.
+    // - n : number of options in the interface.
+    // - i : aux variable. used for controllin goption selection
+    //       during user interaction.
+    // =========================================================
+    const globalBorder = colorToZX(globalConfig?.border || 'black');
+    basicData.labels["sys_start_game"] = 50;
+    sysCode += `
+    50 REM = init global =
+    51 POKE 23693,7:OUT 254,${globalBorder}:CLEAR
+    52 REM p() table of line pointers.
+    53 DIM p(10):LET n=0:LET i=0:LET tattr=7:LET dattr=7:LET iattr=7:LET gsc=0
+    54 REM Inicializa variables del juego.
+    `;
+
+    // Initialise all flags and variables to 0 on a single line
+    if (basicData.flags.size || basicData.vars.size) {
+        sysCode += `55 LET ` 
+        sysCode += [...basicData.flags].map(f => `${f}=0`).join(':LET ');
+        sysCode += basicData.flags.size && basicData.vars.size?":LET ":"";
+        sysCode += [...basicData.vars].map(f => `${f}=0`).join(':LET ');
+        sysCode += "\n";
+    } else {
+        sysCode += `55 REM no flags nor numeric variables\n`;
+    }
+    sysCode += `56 GO TO 100`;
+
+    // Add new option making sure that when the
+    // first option is added, divider is drawn and interface colors configured.
+    basicData.labels["sys_new_option"] = 60;
+    sysCode += `
+    60 REM Add new option.
+    61 IF NOT n THEN GO SUB [[sys_cls_interface]]
+    62 LET n = n + SGN PI:RETURN 
+    `
+
+    // Clear GO SUB stack and jump to line contained at "i"
+    // Notice can't return because stack was cleared.
+    // Store some data temporarily at TVDATA and SEED
+    basicData.labels["sys_clear_stack"] = 70;
+    sysCode += `
+    70 REM Clear GOSUB stack.
+    71 RANDOMIZE PEEK 23641 + 256*PEEK 23642 - 1 
+    72 POKE 23566,PEEK 23627: POKE 23567,PEEK 23628
+    73 POKE 23627,PEEK 23670: POKE 23628,PEEK 23671
+    74 CLEAR
+    75 POKE 23627,PEEK 23566: POKE 23628,PEEK 23567
+    76 LET gsc=0: GO TO i
+    `
+
+    // Load image from RAMdisk directly on to display file.
+    // Image is stored in display file layout.
+    basicData.labels["sys_load_image"] = 80;
+    sysCode += `
+    80 REM Load i$ from RAMDISK
+    81 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
+    82 LOAD! i$ CODE 16384:RETURN
+    `
+    
+    return sysCode;
 }
