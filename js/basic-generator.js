@@ -700,28 +700,23 @@ export function generateLoaderFromMucho(muchoText, screenImages, globalConfig = 
     // Get list of images from Mucho.
     const muchoImageNames = collectImageNamesFromMucho(muchoText);
 
+    // Check that we have as many screens as images in Mucho
+    // to detect errors.
+    if (screenImages.size != muchoImageNames.length){
+        throw new Error('Different number of screens and MuCho images.');
+    }
 
-    // Get list of images from nodes that are in mucho Images.
-    const nodeImageNames = []
-    screenImages.forEach(img => {
-        // !!!! Probably no need to remove extension.
-        //let screenName = img.name.toLowerCase().replace(/\.scr$/i, '');
-        let screenName = normalizeFileName(img.name);
-        // Check in mucho Images.
-        if (muchoImageNames.find(name => name === screenName)) {
-            nodeImageNames.push(screenName);
-        }
-    })
-
-    // Check that all mucho images are in nodeImageNames.
+    // Check that all screens we have coincide with a MuCho image.
+    // Since names don't repeat, this also ensures that we have 
+    // all needed images.
     muchoImageNames.forEach(name => {
-        if (!nodeImageNames.find(nodename => nodename === name)) {
+        if (!screenImages.has(name)) {
             throw new Error(`Missin image ${name}`); 
         }
     })
 
     // Generate a loader
-    const loaderBasic = generateBasicLoader(globalConfig, nodeImageNames);
+    const loaderBasic = generateBasicLoader(globalConfig, screenImages);
 
     return loaderBasic
 }
@@ -772,7 +767,7 @@ export function getDefaultUDGs(globalConfig){
     return [udgA,udgB]
 }
 
-export function generateBasicLoader(globalConfig, imageNames){
+export function generateBasicLoader(globalConfig, screenImages){
 
     let basicCode = "";
     basicCode += `
@@ -810,22 +805,20 @@ export function generateBasicLoader(globalConfig, imageNames){
     // 6144 -> full screen BW
     // 4096 -> 2/3 screen BW
     // 2048 -> 1/3 screen BW (default)
-    if (imageNames.length > 0) {
+    if (screenImages.size > 0) {
         basicCode   += `190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
         let initLine = ``
         // Code for 128k/+2
         initLine += `200 IF PEEK(23312) <> 1 THEN`;
-        imageNames.forEach(name => {
-            const nm = (name || '');
-            initLine += `:LOAD "${nm}" CODE 58456:SAVE! "${nm}" CODE 58456,2048`; 
-        });
+        for (const name of screenImages.keys()) {
+            initLine += `:LOAD "${name}" CODE 58456:SAVE! "${name}" CODE 58456,2048`; 
+        };
         initLine += `\n`;
         // Code for +2a/+3
         initLine += `210 IF PEEK(23312)=1 THEN`;
-        imageNames.forEach(name => {
-            const nm = (name || '');
-            initLine += `:LOAD "${nm}" CODE 58456:SAVE "M:${nm}" CODE 58456,2048`; 
-        });
+        for (const name of screenImages.keys()) {
+            initLine += `:LOAD "${name}" CODE 58456:SAVE "M:${name}" CODE 58456,2048`; 
+        };
         initLine += `\n`;
         basicCode += initLine;
     }

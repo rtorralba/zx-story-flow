@@ -15,6 +15,7 @@ import { MuchoEditor } from './mucho-editor.js';
 import { CYDEditor } from './cyd-editor.js';
 import { i18n, t } from './translations.js';
 import { parseMuchoToNodes } from './mucho-parser.js';
+import { normalizeFileName } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize i18n first
@@ -1113,24 +1114,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error("Can only generate BASIC TAP from MuCho")
             }
 
-            // Collect all images from nodes
-            const screenImages = [];
+
+            // Collect Images as instances of Screen and as a Map.
+            const screenImages = new Map();
             projectState.nodes.forEach(node => {
                 if (node.paragraphImages && node.paragraphImages.length > 0) {
                     node.paragraphImages.forEach(pi => {
                         if (pi.imageName && pi.imageData) {
-                            // Check if not already added
-                            if (!screenImages.find(img => img.name === pi.imageName)) {
-                                screenImages.push({
-                                    name: pi.imageName,
-                                    data: pi.imageData,
-                                    scr: Screen.fromBase64(pi.imageData).deinterlace().transpose(), 
-                                });
-                            }
+                            screenImages.set(
+                                normalizeFileName(pi.imageName),
+                                Screen.fromBase64(pi.imageData)
+                            )
                         }
                     });
                 }
             });
+
 
 
             // !!!! (ZX-Moe este código parece que ya no se usa...)
@@ -1158,18 +1157,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Attempt common locations (root and examples/) -- handled per referenced image below
 
-            // Debug: show which images we will include and a BASIC preview
-            try {
-                console.log('TAP export: including images:', screenImages.map(si => si.name));
-                screenImages.forEach(si => {
-                    try {
-                        const base64 = (si.data || '').split(',')[1] || '';
-                        const bin = typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary');
-                        console.log(`Image ${si.name}: bytes=${bin.length}`);
-                    } catch (e) { console.warn('Could not decode image for debug:', si.name, e); }
-                });
-                console.log('BASIC preview:\n' + basicCode.split('\n').slice(0, 20).join('\n'));
-            } catch (e) { console.warn('Debug logging failed', e); }
 
 
             // Need to solve imgs stuff before, as I need the list of images
@@ -1214,9 +1201,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             URL.revokeObjectURL(url);
             console.log("TAP Export successful");
 
+
+
+
             if (screenImages.length > 0) {
                 console.log(`Included ${screenImages.length} SCREEN$ images in TAP`);
             }
+            // Debug: show which images we will include and a BASIC preview
+            try {
+                console.log('TAP export: including images:', screenImages.map(si => si.name));
+                screenImages.forEach(si => {
+                    try {
+                        const base64 = (si.data || '').split(',')[1] || '';
+                        const bin = typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+                        console.log(`Image ${si.name}: bytes=${bin.length}`);
+                    } catch (e) { console.warn('Could not decode image for debug:', si.name, e); }
+                });
+                console.log('BASIC preview:\n' + basicCode.split('\n').slice(0, 20).join('\n'));
+            } catch (e) { console.warn('Debug logging failed', e); }
+
+            
         } catch (e) {
             console.error("TAP Export failed:", e);
             alert("TAP Export failed: " + e.message);
