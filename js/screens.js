@@ -25,7 +25,7 @@ function getInterlacedRowIndex(i) {
 export class Screen {
     /**
      *
-     * scr: {"scr"|"lin"|"char"}
+     * scr: {"scr"|"lin"|"char"} Define byte ordering.
      *     "scr" normal interlaced structure of screen.
      *     "lin" row-linear screen ordering.
      *     "char" Characer-wise ordering. 
