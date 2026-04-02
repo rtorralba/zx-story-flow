@@ -1115,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
 
-            // Collect Images as instances of Screen and as a Map.
+            // Collect Images as a map of instances of Screen.
             const screenImages = new Map();
             projectState.nodes.forEach(node => {
                 if (node.paragraphImages && node.paragraphImages.length > 0) {
@@ -1125,6 +1125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 normalizeFileName(pi.imageName),
                                 Screen.fromBase64(pi.imageData)
                             )
+                            console.log(screenImages.get(normalizeFileName(pi.imageName)).calcBoundingBox()); 
                         }
                     });
                 }
@@ -1132,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 
-            // !!!! (ZX-Moe este código parece que ya no se usa...)
+            // !!!! (ZX-Moe: este código parece que ya no se usa...)
             // !!!!
             // // Try to include SCR files from known locations if not present in nodes
             // const tryAddScr = async (url, name) => {
@@ -1220,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('BASIC preview:\n' + basicCode.split('\n').slice(0, 20).join('\n'));
             } catch (e) { console.warn('Debug logging failed', e); }
 
-            
+
         } catch (e) {
             console.error("TAP Export failed:", e);
             alert("TAP Export failed: " + e.message);

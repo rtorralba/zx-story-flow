@@ -336,13 +336,13 @@ export function generateTapFromImages(screenImages) {
 
     // Images first (CODE blocks)
     screenImages.forEach((scr,name) => {
-        try {
+        //try {
             // const tapImg = img2tap(img.data, normalizeFileName(img.name))
-            const tapImg = img2tap(scr.deinterlace().transpose().bytes, name)
+            const tapImg = img2tap(scr.toCharOrdering().bytes, name)
             blocks.push(...tapImg);
-        } catch (e) {
-            console.error(`Error adding image ${img.name}:`, e);
-        }
+        //} catch (e) {
+        //    console.error(`Error adding image ${img.name}:`, e);
+        //}
     });
 
     return blocks
