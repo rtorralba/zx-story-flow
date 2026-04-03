@@ -800,24 +800,24 @@ export function generateBasicLoader(globalConfig, screenImages){
     }
 
     // Load assets for the game.
-    // Expected image sizes.
-    // 6912 -> full screen with attributes.
-    // 6144 -> full screen BW
-    // 4096 -> 2/3 screen BW
-    // 2048 -> 1/3 screen BW (default)
+    // Code is repeated twice, one for spectrum + and another for +2.
+    // !!!! Initially this was easy enough, but now it leads to code repetition.
+    // !!!! Must revise the implementation.
     if (screenImages.size > 0) {
         basicCode   += `190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
         let initLine = ``
         // Code for 128k/+2
         initLine += `200 IF PEEK(23312) <> 1 THEN`;
-        for (const name of screenImages.keys()) {
-            initLine += `:LOAD "${name}" CODE 58456:SAVE! "${name}" CODE 58456,2048`; 
+        for (const [name,scr] of screenImages) {
+            const bytes = scr.compressMucho();
+            initLine += `:LOAD "${name}" CODE 58456:SAVE! "${name}" CODE 58456,${bytes.length}`; 
         };
         initLine += `\n`;
         // Code for +2a/+3
         initLine += `210 IF PEEK(23312)=1 THEN`;
-        for (const name of screenImages.keys()) {
-            initLine += `:LOAD "${name}" CODE 58456:SAVE "M:${name}" CODE 58456,2048`; 
+        for (const [name,scr] of screenImages) {
+            const bytes = scr.compressMucho(); 
+            initLine += `:LOAD "${name}" CODE 58456:SAVE "M:${name}" CODE 58456,${bytes.length}`; 
         };
         initLine += `\n`;
         basicCode += initLine;
@@ -840,6 +840,7 @@ export function generateBasicLoader(globalConfig, screenImages){
     const udgA = udgs[0]
     const udgB = udgs[1]
 
+    // Set UDGs subroutine.
     basicCode += `
     1000 REM Set UDGs
     1010 DATA BIN ${udgA[0]},BIN ${udgA[1]},BIN ${udgA[2]},BIN ${udgA[3]},BIN ${udgA[4]},BIN ${udgA[5]},BIN ${udgA[6]},BIN ${udgA[7]}
@@ -914,7 +915,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     //25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
     sysCode += `
     20 REM Draw image-dx.
-    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,216:POKE 23607,226
+    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,217:POKE 23607,226:LET i=PEEK 58456
     22 IF n THEN PRINT "ERR. Image after options": STOP
     23 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:GO TO [[sys_print_image_loop]]
     24 LOAD! i$ CODE 58456

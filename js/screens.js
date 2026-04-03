@@ -252,34 +252,33 @@ export class Screen {
     }
 
 
-    /**
-     * Transpose image data into a character layout.
-     * This means, same order as in a character set.
-     * All pixel data of a single character together, 
-     * starting from top left character. row by row,
-     * left to right, top to bottom.
-     * 
-     * Important
-     * ---------
-     * This function must be called into a previously
-     * linearlized image.
-     */
-    transpose_() {
-        const bytes = this.bytes.slice()
-        let i = 0;
-        let j = 0;
-        for (let r=0; r<this.height; r++) {
-            for (let c=0; c<this.width; c++) {
-                // Loop inside character.
-                for (let b=0; b<8; b++) {
-                    // Calculate byte location in image.
-                    j = r*this.width*8 + c + b*this.width;
-                    bytes[i] = this.bytes[j];
-                    i++;
-                }
-            }
-        }
-        return new Screen(bytes);
-    }
 
+    /**
+     * Crops the image removing unsied pixel data.
+     * 
+     * v1: Only discards bottom part of image.
+     *     Header: number fo rows (1 byte)
+     */
+    compressMucho() {
+
+        // Require "char" byte order.
+        if (this.type !== "char") {
+            return this.toCharOrdering().compressMucho()
+        }
+
+        // This function requires full width screen data.
+        if (this.width != 32 || this.height != 24) {
+            throw new Error(`Require full-sized screen image.`)
+        }
+       
+        // Calculate required size.
+        const bbox = this.calcBoundingBox();
+        const height = bbox.bottom + 1;
+        const size = height*32*8;
+
+        const bytes = new Uint8Array(size + 1);
+        bytes.set([height],0);
+        bytes.set(this.bytes.slice(0,size),1);
+        return bytes;
+    }
 }

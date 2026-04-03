@@ -226,7 +226,7 @@ export function img2tap(imageBytes, filename = "screen") {
         && imageBytes.length !== 6144
         && imageBytes.length !== 4096
         && imageBytes.length !== 2048) {
-        console.warn(`Image ${img.name} is not in {6912,6144,4096,2048} bytes (got ${imageBytes.length}), skipping`);
+        console.warn(`Image ${filename} is not in {6912,6144,4096,2048} bytes (got ${imageBytes.length}), skipping`);
         return;
     }
 
@@ -338,7 +338,8 @@ export function generateTapFromImages(screenImages) {
     screenImages.forEach((scr,name) => {
         //try {
             // const tapImg = img2tap(img.data, normalizeFileName(img.name))
-            const tapImg = img2tap(scr.toCharOrdering().bytes, name)
+            //const tapImg = img2tap(scr.toCharOrdering().bytes, name)
+            const tapImg = bin2tap(scr.compressMucho(), name,58455)
             blocks.push(...tapImg);
         //} catch (e) {
         //    console.error(`Error adding image ${img.name}:`, e);
