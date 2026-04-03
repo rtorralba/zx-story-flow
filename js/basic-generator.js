@@ -796,7 +796,7 @@ export function generateBasicLoader(globalConfig, screenImages){
 
     // Loading screen.
     if (globalConfig.loadingScreen) {
-        basicCode += `180 LOAD "SCREEN" SCREEN$\n`
+        basicCode += `180 LOAD "screen" SCREEN$\n`
     }
 
     // Load assets for the game.

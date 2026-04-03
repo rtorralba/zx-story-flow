@@ -1174,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const tapLoader = bas2tap(loaderCode, exportName)
             const tapScreen = globalConfig.loadingScreen
-                ? img2tap(Screen.fromBase64(globalConfig.loadingScreen.imageData).bytes, "SCREEN")
+                ? img2tap(Screen.fromBase64(globalConfig.loadingScreen.imageData).bytes, "screen")
                 : []
             const tapFont = globalConfig.font
                 ? font2tap(globalConfig.font.fontData, "font")
