@@ -869,6 +869,21 @@ export function generateBasicLoader(globalConfig, screenImages){
  */
 function addBASICSystemCode(basicData, globalConfig) {
 
+    // Memory map.
+    // 58456 - Image - Header + 15 rows + attr (header + 4320 bytes)
+    // 64582 - DEFADD region.
+    //         +4 addr1 a$
+    //         +6 size1
+    //         +13 addr2 b$
+    //         +15 size2
+    // 
+    // 64600 - Charset.
+    // 65368 - UDG
+
+    // Variables used by system.
+    // n : number of optoins.
+    // i : selected option, during selection.
+
     let sysCode = "";
     
     // Initialization code.
@@ -905,6 +920,27 @@ function addBASICSystemCode(basicData, globalConfig) {
     `;
    
    
+    // // Load BW image from RAMdisk and print to screen.
+    // // Image of variable size, print in line with text.
+    // // Can reuse i and n variables, as images are shown
+    // // always before options start to be added.
+    // //
+    // // Parameters:
+    // // i$ : Contain the image filename.
+    // // i :
+    // basicData.labels["sys_print_image"] = 20;
+    // basicData.labels["sys_print_image_loop"] = 25;
+    // //25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
+    // sysCode += `
+    // 20 REM Draw image-dx.
+    // 21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,217:POKE 23607,226:LET i=PEEK 58456
+    // 22 IF n THEN PRINT "ERR. Image after options": STOP
+    // 23 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:GO TO [[sys_print_image_loop]]
+    // 24 LOAD! i$ CODE 58456
+    // 25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i THEN GO TO [[sys_print_image_loop]]
+    // 26 POKE 23606,PEEK 23670:POKE 23607,PEEK 23671:RETURN
+    // `
+
     // Load BW image from RAMdisk and print to screen.
     // Image of variable size, print in line with text.
     // Can reuse i and n variables, as images are shown
@@ -918,28 +954,27 @@ function addBASICSystemCode(basicData, globalConfig) {
     //25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
     sysCode += `
     20 REM Draw image-dx.
-    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,217:POKE 23607,226:LET i=PEEK 58456
+    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,220:POKE 23607,226:LET i=PEEK 58456
     22 IF n THEN PRINT "ERR. Image after options": STOP
     23 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:GO TO [[sys_print_image_loop]]
     24 LOAD! i$ CODE 58456
     25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i THEN GO TO [[sys_print_image_loop]]
     26 POKE 23606,PEEK 23670:POKE 23607,PEEK 23671:RETURN
     `
-
     
     // Routine to clean all.
     // Notice it continues to sys_cls_interface.
-    basicData.labels["sys_cls_all"] = 30;
+    basicData.labels["sys_cls_all"] = 40;
     sysCode += `
-    30 REM New screen. CLS + option bar (no image)
-    31 RANDOMIZE:POKE 23624,tattr:POKE 23659,2:CLS:RETURN
+    40 REM New screen. CLS + option bar (no image)
+    41 RANDOMIZE:POKE 23624,tattr:POKE 23659,2:CLS:RETURN
     `;
     
     // Routine to clean the interface (options) section.
-    basicData.labels["sys_cls_interface"] = 40;
+    basicData.labels["sys_cls_interface"] = 45;
     sysCode += `
-    40 REM Option bar subroutine (also called after image load)
-    41 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
+    45 REM Option bar subroutine (also called after image load)
+    46 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
     `
 
     // =========================================================
@@ -952,6 +987,9 @@ function addBASICSystemCode(basicData, globalConfig) {
     // - n : number of options in the interface.
     // - i : aux variable. used for controllin goption selection
     //       during user interaction.
+    // - p() : option line table.
+    // - pa : pointer to attribute region.
+    // - pi : pointer to image.
     // =========================================================
     const globalBorder = colorToZX(globalConfig?.border || 'black');
     basicData.labels["sys_start_game"] = 50;
@@ -959,7 +997,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     50 REM = init global =
     51 POKE 23693,7:OUT 254,${globalBorder}:CLEAR
     52 REM p() table of line pointers.
-    53 DIM p(10):LET n=0:LET i=0:LET tattr=7:LET dattr=7:LET iattr=7:LET gsc=0
+    53 LET i=0:DIM p(10):LET n=0:LET tattr=7:LET dattr=7:LET iattr=7:LET gsc=0
     54 REM Inicializa variables del juego.
     `;
 

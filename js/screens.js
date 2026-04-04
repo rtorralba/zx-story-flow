@@ -253,6 +253,13 @@ export class Screen {
 
 
 
+    // header description.
+    // byte - use.
+    // 0 - size in rows.
+    // 1 - size in columns.
+    // 2 - column position.
+    // 3 - image mode. (0 -> BW, 1 -> color)
+
     /**
      * Crops the image removing unsied pixel data.
      * 
@@ -263,6 +270,7 @@ export class Screen {
     compressMucho() {
 
         const MAXROWS = 15;
+        const HEADER_SIZE = 4;
 
         // Require "char" byte order.
         if (this.type !== "char") {
@@ -284,9 +292,9 @@ export class Screen {
         const size = height * this.width * 8;
 
 
-        const bytes = new Uint8Array(size + 1);
+        const bytes = new Uint8Array(size + HEADER_SIZE);
         bytes.set([height],0);
-        bytes.set(this.bytes.slice(start,end),1);
+        bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
         return bytes;
     }
 }
