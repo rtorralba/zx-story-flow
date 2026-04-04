@@ -786,7 +786,7 @@ export function generateBasicLoader(globalConfig, screenImages){
     basicCode += `
     100 REM ** 128k model. Load game. **
     110 BORDER 0:PAPER 0:INK 0:CLS
-    120 CLEAR 58455
+    120 CLEAR 58455: REM Reserva memoria. Para cargar 1 full screen + UDG.
     130 REM Disable load prompt.
     140 POKE 23739,111
     150 REM Config GDU
@@ -800,9 +800,7 @@ export function generateBasicLoader(globalConfig, screenImages){
     }
 
     // Load assets for the game.
-    // Code is repeated twice, one for spectrum + and another for +2.
     if (screenImages.size > 0) {
-        basicCode += `190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
         let dataitems = [];
         for (const [name,scr] of screenImages) {
             const bytes = scr.compressMucho();
