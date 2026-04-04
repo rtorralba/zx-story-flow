@@ -801,39 +801,31 @@ export function generateBasicLoader(globalConfig, screenImages){
 
     // Load assets for the game.
     // Code is repeated twice, one for spectrum + and another for +2.
-    // !!!! Initially this was easy enough, but now it leads to code repetition.
-    // !!!! Must revise the implementation.
     if (screenImages.size > 0) {
-        basicCode   += `190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
-        let initLine = ``
-        // Code for 128k/+2
-        initLine += `200 IF PEEK(23312) <> 1 THEN`;
+        basicCode += `190 REM Reserva memoria requerida por loader. Para cargar 1 full scr.\n`;
+        let dataitems = [];
         for (const [name,scr] of screenImages) {
             const bytes = scr.compressMucho();
-            initLine += `:LOAD "${name}" CODE 58456:SAVE! "${name}" CODE 58456,${bytes.length}`; 
+            dataitems.push(`"${name}"`,bytes.length)
         };
-        initLine += `\n`;
-        // Code for +2a/+3
-        initLine += `210 IF PEEK(23312)=1 THEN`;
-        for (const [name,scr] of screenImages) {
-            const bytes = scr.compressMucho(); 
-            initLine += `:LOAD "${name}" CODE 58456:SAVE "M:${name}" CODE 58456,${bytes.length}`; 
-        };
-        initLine += `\n`;
-        basicCode += initLine;
+        dataitems.push(`""`,-1);
+        basicCode += "200 DATA " + dataitems.join(",") + "\n";
+        basicCode += "210 RESTORE 200\n";
+        basicCode += "220 READ f$,size\n";
+        basicCode += '230 IF f$<>"" THEN GO SUB 2000: GO TO 220\n';
     }
 
     // Load and activate new font.
     // At the moment assume that file contains a whole font.
     if (globalConfig.font) {
         // Assume only one font. So use generic name.
-        basicCode += `220 LOAD "font" CODE 64600,768: POKE 23606,88: POKE 23607,251\n`;
+        basicCode += `240 LOAD "font" CODE 64600,768: POKE 23606,88: POKE 23607,251\n`;
         //const fname = globalConfig.font.fontName.toLowerCase().slice(0,10);
         //basicCode += `220 LOAD "${fname}" CODE 64600,768`;
     }
 
     // Load game code. 
-    basicCode += `300 LOAD "adventure"\n`;
+    basicCode += `400 LOAD "adventure"\n`;
 
     // Soubroutine to define UDGs.
     const udgs = getDefaultUDGs(globalConfig)
@@ -845,12 +837,25 @@ export function generateBasicLoader(globalConfig, screenImages){
     1000 REM Set UDGs
     1010 DATA BIN ${udgA[0]},BIN ${udgA[1]},BIN ${udgA[2]},BIN ${udgA[3]},BIN ${udgA[4]},BIN ${udgA[5]},BIN ${udgA[6]},BIN ${udgA[7]}
     1020 DATA BIN ${udgB[0]},BIN ${udgB[1]},BIN ${udgB[2]},BIN ${udgB[3]},BIN ${udgB[4]},BIN ${udgB[5]},BIN ${udgB[6]},BIN ${udgB[7]}
-    1030 FOR X=USR("A") TO USR("A")+15
-    1040 READ N
-    1050 POKE X,N
-    1060 NEXT X
-    1070 RETURN`;
+    1030 RESTORE 1000
+    1040 FOR X=USR("A") TO USR("A")+15
+    1050 READ N
+    1060 POKE X,N
+    1070 NEXT X
+    1080 RETURN
+    `;
     
+    // Load resource.
+    // PARAMETERS
+    // ----------
+    // f$ : file name
+    // size : size of data in bytes.
+    basicCode += `
+    2000 REM Load images.
+    2010 IF PEEK(23312) <> 1 THEN LOAD f$ CODE 58456:SAVE! f$ CODE 58456,size:GO TO 2030
+    2020 LOAD f$ CODE 58456:SAVE "M:"+f$ CODE 58456,size
+    2030 RETURN
+    `;
 
     return basicCode
 
