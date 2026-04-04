@@ -256,10 +256,13 @@ export class Screen {
     /**
      * Crops the image removing unsied pixel data.
      * 
-     * v1: Only discards bottom part of image.
+     * v3: Discards top and bottom part of image.
+     *     Limit to 15 rows.
      *     Header: number fo rows (1 byte)
      */
     compressMucho() {
+
+        const MAXROWS = 15;
 
         // Require "char" byte order.
         if (this.type !== "char") {
@@ -273,10 +276,13 @@ export class Screen {
        
         // Calculate required size.
         const bbox = this.calcBoundingBox();
-        const height = bbox.bottom - bbox.top + 1;
+        let height = bbox.bottom - bbox.top + 1;
+        height = height > MAXROWS? MAXROWS : height;
+        
         const start = bbox.top * this.width * 8;
-        const end = (bbox.bottom + 1) * this.width * 8;
+        const end = (bbox.top + height) * this.width * 8;
         const size = height * this.width * 8;
+
 
         const bytes = new Uint8Array(size + 1);
         bytes.set([height],0);
