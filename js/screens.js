@@ -273,12 +273,14 @@ export class Screen {
        
         // Calculate required size.
         const bbox = this.calcBoundingBox();
-        const height = bbox.bottom + 1;
-        const size = height*32*8;
+        const height = bbox.bottom - bbox.top + 1;
+        const start = bbox.top * this.width * 8;
+        const end = (bbox.bottom + 1) * this.width * 8;
+        const size = height * this.width * 8;
 
         const bytes = new Uint8Array(size + 1);
         bytes.set([height],0);
-        bytes.set(this.bytes.slice(0,size),1);
+        bytes.set(this.bytes.slice(start,end),1);
         return bytes;
     }
 }
