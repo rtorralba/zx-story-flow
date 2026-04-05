@@ -931,18 +931,22 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_choose_option_loop"] = 14;
     sysCode += `
     10 REM choose an option
+       % Inside subroutine and options -> error.
     11 IF gsc AND n THEN 
           PRINT "THIS SCR IS NOT SUBROUTINE!"
        :  STOP
+       % If subroutine, just return one leve.
     12 IF gsc THEN
           LET gsc=gsc-1:RETURN
     13 LET i=1
+       % No options and no sub -> end node.
      : IF NOT n THEN 
           GO SUB [[sys_cls_interface]]
        :  PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO"
        :  PAUSE 1
        :  PAUSE 0
        :  GO TO [[sys_start_game]]
+       % Put cursor and and wait a key.
     14 PRINT #1;AT i,1;"{B}";
      : PAUSE 1
      : PAUSE 0
@@ -988,25 +992,45 @@ function addBASICSystemCode(basicData, globalConfig) {
     // i$ : Contain the image filename.
     // i :
     basicData.labels["sys_print_image"] = 20;
-    basicData.labels["sys_print_image_loop"] = 25;
+    basicData.labels["sys_print_image_bw"] = 25;
+    basicData.labels["sys_print_image_loop"] = 26;
     sysCode += `
-    20 REM Draw image-dx.
-    21 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}
-     : POKE {{CHARS_L}},220
-     : POKE {{CHARS_H}},226
-     : LET i=PEEK 58457
-    22 IF n THEN 
+     
+    % Safety check.
+    20 IF n THEN 
           PRINT "ERR. Image after options"
        :  STOP
-    23 IF 1 = PEEK 23312 THEN 
-           LOAD "M:"+i$ CODE 58456
-       :   GO TO [[sys_print_image_loop]]
-    24 LOAD! i$ CODE 58456
-    25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO"
+
+    % Load image depending on 128k version.
+    21 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456
+    22 IF 1 <> PEEK 23312 THEN LOAD! i$ CODE 58456
+
+    % Skip forward if BW image.
+    23 IF NOT PEEK 58456 THEN GO TO [[sys_print_image_bw]]
+  
+    % Put atributes.
+    %=====================================
+    % 24 BEEP 1,1
+
+    %From here put the pixel data.
+    %======================================
+       % Save current charset.
+    25 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}
+       % Point charset to image.
+     : POKE {{CHARS_L}},220
+     : POKE {{CHARS_H}},226
+       % get of rows of image.
+     : LET i=PEEK 58457
+    
+    
+    % Actually put the image on screen.
+    26 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO"
      : POKE {{CHARS_H}},1+PEEK {{CHARS_H}}
      : LET i=i-1
      : IF i THEN GO TO [[sys_print_image_loop]]
-    26 POKE {{CHARS_L}},PEEK {{SEED_L}}
+    
+    % Restore charset and return.
+    27 POKE {{CHARS_L}},PEEK {{SEED_L}}
      : POKE {{CHARS_H}},PEEK {{SEED_H}}
      : RETURN
     `
