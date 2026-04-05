@@ -258,7 +258,50 @@ export class Screen {
     // 0 - size in rows.
     // 1 - size in columns.
     // 2 - column position.
-    // 3 - image mode. (0 -> BW, 1 -> color)
+    // 3 - image type. (0 -> BW, 1 -> color) 
+    // !!!! Move type to byte 0 in header.
+
+    /**
+     * Crops the image removing unsied pixel data.
+     * 
+     * v3: Discards top and bottom part of image.
+     *     Limit to 15 rows.
+     *     Header: number fo rows (1 byte)
+     */
+    compressMuchoBW() {
+
+        const MAXROWS = 15;
+        const HEADER_SIZE = 4;
+
+        // Require "char" byte order.
+        if (this.type !== "char") {
+            return this.toCharOrdering().compressMucho()
+        }
+
+        // This function requires full width screen data.
+        if (this.width != 32 || this.height != 24) {
+            throw new Error(`Require full-sized screen image.`)
+        }
+       
+        // Calculate required size.
+        const bbox = this.calcBoundingBox();
+        let height = bbox.bottom - bbox.top + 1;
+        height = height > MAXROWS ? MAXROWS : height;
+        
+        const start = bbox.top * this.width * 8;
+        const end = start + height * this.width * 8;
+        const size = height * this.width * 8;
+
+
+        const bytes = new Uint8Array(size + HEADER_SIZE);
+        bytes.set([height, this.width, 0, 0],0);
+        bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+        return bytes;
+    }
+
+
+
+
 
     /**
      * Crops the image removing unsied pixel data.
@@ -285,16 +328,26 @@ export class Screen {
         // Calculate required size.
         const bbox = this.calcBoundingBox();
         let height = bbox.bottom - bbox.top + 1;
-        height = height > MAXROWS? MAXROWS : height;
+        height = height > MAXROWS ? MAXROWS : height;
         
         const start = bbox.top * this.width * 8;
-        const end = (bbox.top + height) * this.width * 8;
-        const size = height * this.width * 8;
+        const end = start + height * this.width * 8;
+        const pixsize = this.width * height * 8;
+        const attraddr = this.width * this.height * 8;
+        const attrstart = attraddr + bbox.top * this.width;
+        const attrend = attrstart + height * this.width;
+        const attrsize = this.width * height;
+        const size = pixsize + attrsize;
 
 
         const bytes = new Uint8Array(size + HEADER_SIZE);
-        bytes.set([height],0);
+        bytes.set([height, this.width, 0, 1],0);
         bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+        bytes.set(this.bytes.slice(attrstart,attrend),HEADER_SIZE+pixsize);
         return bytes;
     }
+
+
+
+
 }

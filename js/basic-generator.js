@@ -1,5 +1,6 @@
 import { normalizeFileName } from './utils.js';
 import { generateMucho } from './mucho-generator.js';
+import { resolveSysvars } from './system-variables.js';
 
 // Helper: Convert color name to ZX Spectrum color code (0-7)
 function colorToZX(colorName) {
@@ -610,6 +611,9 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
     });
     basicData.code = result;
 
+    // Resolve system variables.
+    basicData.code = resolveSysvars(basicData.code) 
+
 
     console.log(basicData.code);
     return basicData.code
@@ -822,6 +826,17 @@ export function generateBasicLoader(globalConfig, screenImages){
         //basicCode += `220 LOAD "${fname}" CODE 64600,768`;
     }
 
+
+    // Set-up DEFADD.
+    basicCode += `
+    300 REM Set-up DEFADD structure.
+    310 DATA CODE"a",CODE"$",14,0,0,0,0,0,CODE",",CODE"b",CODE"$",14,0,0,0,0,0,CODE")"
+    320 RESTORE 300
+    330 FOR x=64582 TO 64582+18
+    340 READ n: POKE x,n
+    350 NEXT x
+    `
+
     // Load game code. 
     basicCode += `400 LOAD "adventure"\n`;
 
@@ -855,7 +870,7 @@ export function generateBasicLoader(globalConfig, screenImages){
     2030 RETURN
     `;
 
-    return basicCode
+    return resolveSysvars(basicCode)
 
 }
 
@@ -912,7 +927,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     11 IF gsc AND n THEN PRINT "THIS SCR IS NOT SUBROUTINE!":STOP
     12 IF gsc THEN LET gsc=gsc-1:RETURN
     13 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
-    14 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK 23560:PRINT #1;AT i,1;" ";
+    14 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK {{LAST_K}}:PRINT #1;AT i,1;" ";
     15 IF k=10 THEN LET i=i+1-(n AND i=n)
     16 IF k=11 THEN LET i=i-1+(n AND i=1)
     17 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
@@ -954,12 +969,12 @@ function addBASICSystemCode(basicData, globalConfig) {
     //25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
     sysCode += `
     20 REM Draw image-dx.
-    21 RANDOMIZE PEEK 23606 + 256*PEEK 23607:POKE 23606,220:POKE 23607,226:LET i=PEEK 58456
+    21 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}:POKE {{CHARS_L}},220:POKE {{CHARS_H}},226:LET i=PEEK 58456
     22 IF n THEN PRINT "ERR. Image after options": STOP
     23 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:GO TO [[sys_print_image_loop]]
     24 LOAD! i$ CODE 58456
-    25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i THEN GO TO [[sys_print_image_loop]]
-    26 POKE 23606,PEEK 23670:POKE 23607,PEEK 23671:RETURN
+    25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE {{CHARS_H}},1+PEEK {{CHARS_H}}:LET i=i-1:IF i THEN GO TO [[sys_print_image_loop]]
+    26 POKE {{CHARS_L}},PEEK {{SEED_L}}:POKE {{CHARS_H}},PEEK {{SEED_H}}:RETURN
     `
     
     // Routine to clean all.
@@ -988,8 +1003,8 @@ function addBASICSystemCode(basicData, globalConfig) {
     // - i : aux variable. used for controllin goption selection
     //       during user interaction.
     // - p() : option line table.
-    // - pa : pointer to attribute region.
-    // - pi : pointer to image.
+    // - p1 : pointer 1
+    // - p2 : pointer 2
     // =========================================================
     const globalBorder = colorToZX(globalConfig?.border || 'black');
     basicData.labels["sys_start_game"] = 50;
