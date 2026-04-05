@@ -889,7 +889,7 @@ export function generateBasicLoader(globalConfig, screenImages){
 function addBASICSystemCode(basicData, globalConfig) {
 
     // Memory map.
-    // 58456 - Image - Header + 15 rows + attr (header + 4320 bytes)
+    // 58456 - Image - Header (4 BYTE) + 15 rows + attr (header + 4320 bytes)
     // 64582 - DEFADD region.
     //         +4 addr1 a$
     //         +6 size1
@@ -1010,7 +1010,32 @@ function addBASICSystemCode(basicData, globalConfig) {
   
     % Put atributes.
     %=====================================
-    % 24 BEEP 1,1
+    % Calculate current coordinates of cursor.
+    24 LET c = 33-PEEK {{S_POSN_L}}
+     : LET r = 24-PEEK {{S_POSN_H}}
+       % p1 points to attr on screen.
+     : LET p1 = 22528 + r*32
+     : RANDOMIZE p1
+     : POKE 64586,PEEK {{SEED_L}}
+     : POKE 64587,PEEK {{SEED_H}}
+       % p2 points to attr on image.
+     : LET p2 = 58456 + 4 + (PEEK 58457)*(PEEK 58458)*8
+     : RANDOMIZE p2
+     : POKE 64595,PEEK {{SEED_L}}
+     : POKE 64596,PEEK {{SEED_H}}
+       % Size of buffer to copy.
+     : RANDOMIZE (PEEK 58457)*(PEEK 58458)
+     : POKE 64588,PEEK {{SEED_L}}
+     : POKE 64589,PEEK {{SEED_H}}
+     : POKE 64597,PEEK {{SEED_L}}
+     : POKE 64598,PEEK {{SEED_H}}
+       % Actually copy the buffer.
+     : POKE {{DEFADD_L}},70
+     : POKE {{DEFADD_H}},252
+     : LET a$=b$
+     : POKE {{DEFADD_L}},0
+     : POKE {{DEFADD_H}},0
+
 
     %From here put the pixel data.
     %======================================
@@ -1021,6 +1046,7 @@ function addBASICSystemCode(basicData, globalConfig) {
      : POKE {{CHARS_H}},226
        % get of rows of image.
      : LET i=PEEK 58457
+     : POKE {{MASK_P}},255
     
     
     % Actually put the image on screen.
@@ -1032,6 +1058,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     % Restore charset and return.
     27 POKE {{CHARS_L}},PEEK {{SEED_L}}
      : POKE {{CHARS_H}},PEEK {{SEED_H}}
+     : POKE {{MASK_P}},NOT PI
      : RETURN
     `
     /**
