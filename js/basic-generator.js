@@ -916,7 +916,10 @@ function addBASICSystemCode(basicData, globalConfig) {
     // `;
     sysCode += `
     1 REM = one-time init =
-    2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";:PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]
+    2 PRINT #1;AT 1,11;FLASH 1;"PRESS STOP";
+    : PAUSE 1
+    : PAUSE 0
+    : GO TO [[sys_start_game]]
     `;
    
     // Code to launch interactive selecction of option
@@ -928,17 +931,18 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_choose_option_loop"] = 14;
     sysCode += `
     10 REM choose an option
-    11 IF gsc AND n 
-       THEN PRINT "THIS SCR IS NOT SUBROUTINE!"
-     :    STOP
-    12 IF gsc THEN LET gsc=gsc-1:RETURN
+    11 IF gsc AND n THEN 
+          PRINT "THIS SCR IS NOT SUBROUTINE!"
+       :  STOP
+    12 IF gsc THEN
+          LET gsc=gsc-1:RETURN
     13 LET i=1
-     : IF NOT n 
-       THEN GO SUB [[sys_cls_interface]]
-       : PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO"
-       : PAUSE 1
-       : PAUSE 0
-       : GO TO [[sys_start_game]]
+     : IF NOT n THEN 
+          GO SUB [[sys_cls_interface]]
+       :  PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO"
+       :  PAUSE 1
+       :  PAUSE 0
+       :  GO TO [[sys_start_game]]
     14 PRINT #1;AT i,1;"{B}";
      : PAUSE 1
      : PAUSE 0
@@ -946,10 +950,10 @@ function addBASICSystemCode(basicData, globalConfig) {
      : PRINT #1;AT i,1;" ";
     15 IF k=10 THEN LET i=i+1-(n AND i=n)
     16 IF k=11 THEN LET i=i-1+(n AND i=1)
-    17 IF k=13 
-       THEN GO SUB [[sys_cls_all]]
-       : LET n = NOT PI
-       : GO TO p(i)
+    17 IF k=13 THEN 
+          GO SUB [[sys_cls_all]]
+       :  LET n = NOT PI
+       :  GO TO p(i)
     18 GO TO [[sys_choose_option_loop]]
     `;
    
@@ -987,12 +991,24 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_print_image_loop"] = 25;
     sysCode += `
     20 REM Draw image-dx.
-    21 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}:POKE {{CHARS_L}},220:POKE {{CHARS_H}},226:LET i=PEEK 58457
-    22 IF n THEN PRINT "ERR. Image after options": STOP
-    23 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:GO TO [[sys_print_image_loop]]
+    21 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}
+     : POKE {{CHARS_L}},220
+     : POKE {{CHARS_H}},226
+     : LET i=PEEK 58457
+    22 IF n THEN 
+          PRINT "ERR. Image after options"
+       :  STOP
+    23 IF 1 = PEEK 23312 THEN 
+           LOAD "M:"+i$ CODE 58456
+       :   GO TO [[sys_print_image_loop]]
     24 LOAD! i$ CODE 58456
-    25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE {{CHARS_H}},1+PEEK {{CHARS_H}}:LET i=i-1:IF i THEN GO TO [[sys_print_image_loop]]
-    26 POKE {{CHARS_L}},PEEK {{SEED_L}}:POKE {{CHARS_H}},PEEK {{SEED_H}}:RETURN
+    25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO"
+     : POKE {{CHARS_H}},1+PEEK {{CHARS_H}}
+     : LET i=i-1
+     : IF i THEN GO TO [[sys_print_image_loop]]
+    26 POKE {{CHARS_L}},PEEK {{SEED_L}}
+     : POKE {{CHARS_H}},PEEK {{SEED_H}}
+     : RETURN
     `
     /**
     % Get current coordinate on screen.
@@ -1009,14 +1025,23 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_cls_all"] = 40;
     sysCode += `
     40 REM New screen. CLS + option bar (no image)
-    41 RANDOMIZE:POKE 23624,tattr:POKE 23659,2:CLS:RETURN
+    41 RANDOMIZE
+     : POKE {{BORDCR}},tattr
+     : POKE {{DF_SZ}},2
+     : CLS
+     : RETURN
     `;
     
     // Routine to clean the interface (options) section.
     basicData.labels["sys_cls_interface"] = 45;
     sysCode += `
     45 REM Option bar subroutine (also called after image load)
-    46 POKE 23624,dattr:POKE 23659,1:PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}":POKE 23624,iattr:LET n=0:RETURN
+    46 POKE {{BORDCR}},dattr
+     : POKE {{DF_SZ}},1
+     : PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}"
+     : POKE {{BORDCR}},iattr
+     : LET n=0
+     : RETURN
     `
 
     // =========================================================
@@ -1037,9 +1062,17 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_start_game"] = 50;
     sysCode += `
     50 REM = init global =
-    51 POKE 23693,7:OUT 254,${globalBorder}:CLEAR
+    51 POKE {{ATTR_P}},7
+     : OUT 254,${globalBorder}
+     : CLEAR
     52 REM p() table of line pointers.
-    53 LET i=0:DIM p(10):LET n=0:LET tattr=7:LET dattr=7:LET iattr=7:LET gsc=0
+    53 LET i=0
+     : DIM p(10)
+     : LET n=0
+     : LET tattr=7
+     : LET dattr=7
+     : LET iattr=7
+     : LET gsc=0
     54 REM Inicializa variables del juego.
     `;
 
@@ -1070,12 +1103,21 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_clear_stack"] = 70;
     sysCode += `
     70 REM Clear GOSUB stack.
-    71 RANDOMIZE PEEK 23641 + 256*PEEK 23642 - 1 
-    72 POKE 23566,PEEK 23627: POKE 23567,PEEK 23628
-    73 POKE 23627,PEEK 23670: POKE 23628,PEEK 23671
-    74 CLEAR
-    75 POKE 23627,PEEK 23566: POKE 23628,PEEK 23567
-    76 LET gsc=0: GO TO i
+       % Gett address of last byte of variables (follows ELINE)
+    71 RANDOMIZE PEEK {{E_LINE_L}} + 256*PEEK {{E_LINE_H}} - 1
+       % Store VARS
+     : POKE {{TVDATA_L}},PEEK {{VARS_L}}
+     : POKE {{TVDATA_H}},PEEK {{VARS_H}}
+       % Point VARS to end (empty)
+     : POKE {{VARS_L}},PEEK {{SEED_L}}
+     : POKE {{VARS_H}},PEEK {{SEED_H}}
+     : CLEAR
+       % Restore VARS
+     : POKE {{VARS_L}},PEEK {{TVDATA_L}}
+     : POKE {{VARS_H}},PEEK {{TVDATA_H}}
+       % Continue execution.
+     : LET gsc=0
+     : GO TO i
     `
 
     // Load image from RAMdisk directly on to display file.
@@ -1083,8 +1125,11 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_load_image"] = 80;
     sysCode += `
     80 REM Load i$ from RAMDISK
-    81 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 16384:RETURN
-    82 LOAD! i$ CODE 16384:RETURN
+    81 IF 1 = PEEK 23312 THEN 
+          LOAD "M:"+i$ CODE 16384
+       :  RETURN
+    82 LOAD! i$ CODE 16384
+     : RETURN
     `
     
     return sysCode;

@@ -48,6 +48,8 @@ const sysvars = new Map([
     ['NXTLIN', 23637], // Address of next line in program
     ['DATADD', 23638], // Address of terminator of last DATA item
     ['E_LINE', 23641], // Address of command being type in
+    ['E_LINE_L', 23641], // Address of command being type in
+    ['E_LINE_H', 23642], // Address of command being type in
     ['K_CUR', 23643], // Address of cursor
     ['CH_ADD', 23645], // Address of the next character to be interpreted.
     ['X_PTR', 23647], // Address of the character after the '?' marker
