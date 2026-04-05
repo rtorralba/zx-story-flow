@@ -180,10 +180,16 @@ function removeUnnecesarySpaces(line) {
     var outline = head.replace(/(\s+)(?=(?:[^"]*"[^"]*")*[^"]*$)/g,' ')
 
     // Remove unnecessary spaces around ":", ",", ";", "'"
-    // and other math operators "+", "-", "<", ">", "=", "<=", ">="
+    // and other math operators "+", "-", "<", ">", "="
     outline = outline.replace(
-        /\s*(<=|>=|[:;,'<>=\+\-])\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/g, 
-        (match, group) => {return group})
+        /\s+(<=|>=|<>|[:;,'<>=\+\-])\s+(?=(?:[^"]*"[^"]*")*[^"]*$)/g, 
+        (match, group) => {
+            if (group === "<>" || group === "<=" || group === ">=") {
+                return " " + group + " ";
+            } else {
+                return group;
+            }
+        })
 
 
     return outline + tail;
