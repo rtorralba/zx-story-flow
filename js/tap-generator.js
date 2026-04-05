@@ -1,5 +1,7 @@
 // ZX Story Flow - TAP File Generator
 // Copyright (C) 2026 Raül Torralba Adsuara
+// Contributors: Moises Garin
+//
 // Licensed under the GNU Affero General Public License v3.0 or later
 // See LICENSE file for details
 //

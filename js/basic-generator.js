@@ -1,6 +1,7 @@
 import { normalizeFileName } from './utils.js';
 import { generateMucho } from './mucho-generator.js';
-import { resolveSysvars } from './system-variables.js';
+import { resolveSysvars } from './basic-extras.js';
+import { filterLines } from './basic-extras.js';
 
 // Helper: Convert color name to ZX Spectrum color code (0-7)
 function colorToZX(colorName) {
@@ -613,6 +614,9 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
 
     // Resolve system variables.
     basicData.code = resolveSysvars(basicData.code) 
+    
+
+    basicData.code = filterLines(basicData.code) 
 
 
     console.log(basicData.code);
@@ -924,13 +928,28 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_choose_option_loop"] = 14;
     sysCode += `
     10 REM choose an option
-    11 IF gsc AND n THEN PRINT "THIS SCR IS NOT SUBROUTINE!":STOP
+    11 IF gsc AND n 
+       THEN PRINT "THIS SCR IS NOT SUBROUTINE!"
+     :    STOP
     12 IF gsc THEN LET gsc=gsc-1:RETURN
-    13 LET i=1:IF NOT n THEN GO SUB [[sys_cls_interface]]:PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO":PAUSE 1:PAUSE 0:GO TO [[sys_start_game]]:
-    14 PRINT #1;AT i,1;"{B}";:PAUSE 1:PAUSE 0:LET k=PEEK {{LAST_K}}:PRINT #1;AT i,1;" ";
+    13 LET i=1
+     : IF NOT n 
+       THEN GO SUB [[sys_cls_interface]]
+       : PRINT #1;"     PULSA CUALQUIER TECLA"'"      PARA JUGAR DE NUEVO"
+       : PAUSE 1
+       : PAUSE 0
+       : GO TO [[sys_start_game]]
+    14 PRINT #1;AT i,1;"{B}";
+     : PAUSE 1
+     : PAUSE 0
+     : LET k=PEEK {{LAST_K}}
+     : PRINT #1;AT i,1;" ";
     15 IF k=10 THEN LET i=i+1-(n AND i=n)
     16 IF k=11 THEN LET i=i-1+(n AND i=1)
-    17 IF k=13 THEN GO SUB [[sys_cls_all]]:LET n = NOT PI:GO TO p(i)
+    17 IF k=13 
+       THEN GO SUB [[sys_cls_all]]
+       : LET n = NOT PI
+       : GO TO p(i)
     18 GO TO [[sys_choose_option_loop]]
     `;
    
@@ -966,16 +985,24 @@ function addBASICSystemCode(basicData, globalConfig) {
     // i :
     basicData.labels["sys_print_image"] = 20;
     basicData.labels["sys_print_image_loop"] = 25;
-    //25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE 23607,1+PEEK 23607:LET i=i-1:IF i GO TO [[sys_print_image_loop]]
     sysCode += `
     20 REM Draw image-dx.
-    21 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}:POKE {{CHARS_L}},220:POKE {{CHARS_H}},226:LET i=PEEK 58456
+    21 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}:POKE {{CHARS_L}},220:POKE {{CHARS_H}},226:LET i=PEEK 58457
     22 IF n THEN PRINT "ERR. Image after options": STOP
     23 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456:GO TO [[sys_print_image_loop]]
     24 LOAD! i$ CODE 58456
     25 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO":POKE {{CHARS_H}},1+PEEK {{CHARS_H}}:LET i=i-1:IF i THEN GO TO [[sys_print_image_loop]]
     26 POKE {{CHARS_L}},PEEK {{SEED_L}}:POKE {{CHARS_H}},PEEK {{SEED_H}}:RETURN
     `
+    /**
+    % Get current coordinate on screen.
+    xx LET c = 33-PEEK {{S_POSN_L}}
+     : LET r = 24-PEEK {{S_POSN_h}}
+     : LET 
+    xx LET P1=
+    `
+
+    */
     
     // Routine to clean all.
     // Notice it continues to sys_cls_interface.

@@ -255,11 +255,10 @@ export class Screen {
 
     // header description.
     // byte - use.
-    // 0 - size in rows.
-    // 1 - size in columns.
-    // 2 - column position.
-    // 3 - image type. (0 -> BW, 1 -> color) 
-    // !!!! Move type to byte 0 in header.
+    // 0 - image type. (0 -> BW, 1 -> color) 
+    // 1 - size in rows.
+    // 2 - size in columns.
+    // 3 - column position.
 
     /**
      * Crops the image removing unsied pixel data.
@@ -294,7 +293,7 @@ export class Screen {
 
 
         const bytes = new Uint8Array(size + HEADER_SIZE);
-        bytes.set([height, this.width, 0, 0],0);
+        bytes.set([0, height, this.width, 0],0);
         bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
         return bytes;
     }
@@ -341,7 +340,7 @@ export class Screen {
 
 
         const bytes = new Uint8Array(size + HEADER_SIZE);
-        bytes.set([height, this.width, 0, 1],0);
+        bytes.set([1, height, this.width, 0],0);
         bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
         bytes.set(this.bytes.slice(attrstart,attrend),HEADER_SIZE+pixsize);
         return bytes;

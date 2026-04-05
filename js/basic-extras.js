@@ -3,7 +3,10 @@
  * @author: Moises Garin
  * @date: 5 Aprl 2026
  * 
- * Utility module to handle system variables in basic Code.
+ * Utility with enhancements to BASIC code.
+ * - System variables {{sysvar}}
+ * - Comment lines: sarting with %
+ * - Statements in multiple lines, Investronica style, start with :
  */
 const sysvars = new Map([
     ['KSTATE', 23552], // Used in reading the keyboard
@@ -117,4 +120,115 @@ export function resolveSysvars(code, debug=true) {
         }
     });
     return codeResolved
+}
+
+
+/**
+ * Split the string by occurrece of re.
+ * Always return two strings: head and tail
+ * head is the content of the string up to re.
+ * tail is the content from re onwards, including re.
+ * tail will be an empty line if no match was produced.
+ * 
+ * @param {*} s 
+ * @param {*} re 
+ * @returns [head, tail] 
+ */
+function splitOnce(s, re) {
+    const m = s.match(re);
+    if (!m) return [s, ""];
+
+    const head = s.slice(0,m.index);
+    const tail = s.slice(m.index);
+    return [head,tail];
+}
+
+
+/**
+ * Cleverly trim spaces at the start and end
+ * avoiding modifying anything after a REM.
+ * 
+ * @param {*} line 
+ */
+function trimLineSpaces(line) {
+    
+    // Split in REM. We want to clean the code, but don't touch
+    // the comments.
+    const [head,tail] = splitOnce(line, /\sREM\b(?=(?:[^"]*"[^"]*")*[^"]*$)/i);
+
+    return head.trim() + tail;
+
+}
+
+
+/**
+ * 
+ * Return the line with unnecessary spaces removed.
+ * Does not touch text after a REM statement.
+ * 
+ * @param {*} line 
+ */
+function removeUnnecesarySpaces(line) {
+   
+    // Split in REM. We want to clean the code, but don't touch
+    // the comments.
+    const [head,tail] = splitOnce(line, /\sREM\b(?=(?:[^"]*"[^"]*")*[^"]*$)/i);
+
+    // Remove any double spaces outside strings.
+    var outline = head.replace(/(\s+)(?=(?:[^"]*"[^"]*")*[^"]*$)/g,' ')
+
+    // Remove unnecessary spaces around ":", ",", ";", "'"
+    // and other math operators "+", "-", "<", ">", "=", "<=", ">="
+    outline = outline.replace(
+        /\s*(<=|>=|[:;,'<>=\+\-])\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/g, 
+        (match, group) => {return group})
+
+
+    return outline + tail;
+}
+
+/**
+ * Filter BASIC code performing the following actions on lines:
+ * - Remove empty lines.
+ * - Remove unnecessary spaces at start or end.
+ * - Remove comment lines that start with %
+ * - Cleverly join lines split in multiple lines.
+ * - Remove unnecessary spaces.
+ * 
+ * @param {*} code 
+ */
+export function filterLines(code) {
+
+    // Split into lines avoiding new line control codes inside strings.
+    var lines = code.split(/\n(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+
+    // Trim unnecessary spaces.
+    lines = lines.map(l => trimLineSpaces(l));
+
+    // Remove empty lines.
+    lines = lines.filter(l => l.length > 0);
+    
+    // Remove comment lines.
+    lines = lines.filter(l => l[0]!=="%");
+    
+    // Join split lines.
+    var outlines = []
+    lines.forEach( l => {
+        const reline = /^(\d+)\s+(.*)$/s;
+        if (reline.test(l)) {
+            // normal line.
+            outlines.push(l)
+        } else {
+            // Does not fit a normal line. Assume that is a split line.
+            // Insert an space to make sure we don't mess up variables or statements.
+            outlines[outlines.length - 1] = outlines.at(-1) + " " + l;
+        }
+    });
+
+
+    outlines = outlines.map(l => removeUnnecesarySpaces(l));
+
+    var outcode = outlines.join("\n");
+    return outcode;
+
 }
