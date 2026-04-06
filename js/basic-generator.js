@@ -1005,13 +1005,11 @@ function addBASICSystemCode(basicData, globalConfig) {
     21 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456
     22 IF 1 <> PEEK 23312 THEN LOAD! i$ CODE 58456
 
-    % Skip forward if BW image.
-    23 IF NOT PEEK 58456 THEN GO TO [[sys_print_image_bw]]
-  
-    % Put atributes.
+    % Put atributes if color image (type 1)
     %=====================================
-    % Calculate current coordinates of cursor.
-    24 LET c = 33-PEEK {{S_POSN_L}}
+    23 IF PEEK 58456 THEN
+       % Calculate current coordinates of cursor.
+       LET c = 33-PEEK {{S_POSN_L}}
      : LET r = 24-PEEK {{S_POSN_H}}
        % p1 points to attr on screen.
      : LET p1 = 22528 + r*32
@@ -1037,14 +1035,14 @@ function addBASICSystemCode(basicData, globalConfig) {
      : POKE {{DEFADD_H}},0
 
 
-    %From here put the pixel data.
+    % Put the pixel data.
     %======================================
        % Save current charset.
     25 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}
        % Point charset to image.
      : POKE {{CHARS_L}},220
      : POKE {{CHARS_H}},226
-       % get of rows of image.
+       % get number of rows of image.
      : LET i=PEEK 58457
      : POKE {{MASK_P}},255
     
