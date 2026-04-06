@@ -330,7 +330,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
     // This tends to accidentally concatenate lines, without CR,
     // This flag makes sure "'" is inserted when needed if
     // another text line is inserted. 
-    let force_cr = false;
+    //let force_cr = false;
     let last_pline = {}; 
 
 
@@ -380,7 +380,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
                     // Need to start a new PRINT statement.
                     basicData.start_new_statement();
                     basicData.editLine += "PRINT ";
-                    if (force_cr) basicData.editLine += "'";
+                    //if (force_cr) basicData.editLine += "'";
                     basicData.editLine += pline.text?`"${pline.text}";`:`;`;
                     //basicData.editLine += pline.text?`PRINT "${pline.text}";`:`PRINT ;`;
                 }
@@ -1037,12 +1037,14 @@ function addBASICSystemCode(basicData, globalConfig) {
      : LET a$=b$
      : POKE {{DEFADD_L}},0
      : POKE {{DEFADD_H}},0
+     % Don't want pixel data to overwrite attr
+     : POKE {{MASK_P}},255
 
      
     % Type 2 image. Single attribute.
     %=====================================
     23 IF 2 = PEEK 58456 THEN
-       BEEP 1,1
+     : POKE {{ATTR_P}},PEEK(58456 + 4 + (PEEK 58457)*(PEEK 58458)*8)
 
 
     % Put the pixel data.
@@ -1054,8 +1056,6 @@ function addBASICSystemCode(basicData, globalConfig) {
      : POKE {{CHARS_H}},226
        % get number of rows of image.
      : LET i=PEEK 58457
-     : POKE {{MASK_P}},255
-    
     
     % Actually put the image on screen.
     26 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO"
@@ -1067,6 +1067,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     27 POKE {{CHARS_L}},PEEK {{SEED_L}}
      : POKE {{CHARS_H}},PEEK {{SEED_H}}
      : POKE {{MASK_P}},NOT PI
+     : POKE {{ATTR_P}},tattr
      : RANDOMIZE
      : RETURN
     `

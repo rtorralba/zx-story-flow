@@ -252,13 +252,39 @@ export class Screen {
     }
 
 
+    /**
+     * Return true if ony one attribute is used
+     * within the box.
+     * 
+     * @param {*} bbox 
+     */
+    testSingleColor(bbox) {
+        const attrs = this.getAttrBytes();
+        const ref = attrs[bbox.top*this.width + bbox.left];
+        for (let r=bbox.top; r<=bbox.bottom; r++) {
+            for (let c=bbox.left; c<=bbox.right; c++) {
+                const i = r*this.width + c;
+                if (attrs[i] !== ref) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
     // header description.
     // byte - use.
-    // 0 - image type. (0 -> BW, 1 -> color) 
+    // 0 - image type. (0 -> BW, 1 -> color, 2 -> Compressed color) 
     // 1 - size in rows.
     // 2 - size in columns.
     // 3 - column position.
+    //
+    // Image types:
+    //     0 -> BW image. Will be drawn using ink and paper of text.
+    //     1 -> Color. Image comes with full attribute information.
+    //     2 -> Compressed color. Particular image where uses the
+    //          the same ink and paper everywhere. So, it stores
+    //          color information as a single attribute byte.
 
     /**
      * Crops the image removing unsied pixel data.
@@ -295,6 +321,9 @@ export class Screen {
         const bytes = new Uint8Array(size + HEADER_SIZE);
         bytes.set([0, height, this.width, 0],0);
         bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+
+
+
         return bytes;
     }
 
@@ -328,22 +357,45 @@ export class Screen {
         const bbox = this.calcBoundingBox();
         let height = bbox.bottom - bbox.top + 1;
         height = height > MAXROWS ? MAXROWS : height;
-        
+        const width = this.width; // By now assume full width.
+       
+    
         const start = bbox.top * this.width * 8;
         const end = start + height * this.width * 8;
         const pixsize = this.width * height * 8;
+
         const attraddr = this.width * this.height * 8;
         const attrstart = attraddr + bbox.top * this.width;
         const attrend = attrstart + height * this.width;
         const attrsize = this.width * height;
-        const size = pixsize + attrsize;
 
+  
+        // // Now check if the image uses a single color. In that
+        // // That case, only need to store a single attribute.
+        // let oneattr = true;
+        // for (let i=attrstart; i<attrend; i++) {
+        //     if(this.bytes[i] !== this.bytes[attrstart]) {
+        //         oneattr = false;
+        //         break;
+        //     }
+        // }
 
-        const bytes = new Uint8Array(size + HEADER_SIZE);
-        bytes.set([1, height, this.width, 0],0);
-        bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
-        bytes.set(this.bytes.slice(attrstart,attrend),HEADER_SIZE+pixsize);
-        return bytes;
+        if (this.testSingleColor(bbox)) {
+            // Case of Figure with a single color attribute.
+            const bytes = new Uint8Array(pixsize + 1 + HEADER_SIZE);
+            bytes.set([2, height, width, 0],0);
+            bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+            bytes.set([this.bytes[attraddr + bbox.top*this.width + bbox.left]],HEADER_SIZE+pixsize);
+            return bytes
+        } else {
+            // Case of Figure with full color attribute.
+            const bytes = new Uint8Array(pixsize + attrsize + HEADER_SIZE);
+            bytes.set([1, height, width, 0],0);
+            bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+            bytes.set(this.bytes.slice(attrstart,attrend),HEADER_SIZE+pixsize);
+            return bytes;
+        }
+  
     }
 
 
