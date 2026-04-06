@@ -840,7 +840,7 @@ export function generateBasicLoader(globalConfig, screenImages){
     300 REM Set-up DEFADD structure.
     310 DATA CODE"a",CODE"$",14,0,0,0,0,0,CODE",",CODE"b",CODE"$",14,0,0,0,0,0,CODE")"
     320 RESTORE 300
-    330 FOR x=64582 TO 64582+18
+    330 FOR x=64582 TO 64582+17
     340 READ n: POKE x,n
     350 NEXT x
     `
