@@ -356,8 +356,12 @@ function transpileMuchoBlock(basicData, muchoCode) {
                 //basicData.editLine += ":"+transpileStatements(match[2],basicData);
             }
         } else if (pline.type==="O") {
-            // Next text should start in a new line.
-            force_cr = true;
+            if (last_pline.type==="T" || last_pline.type==="P"){
+                // Next text should start in a new line.
+                if (basicData.editLine.at(-1)===';') basicData.editLine = basicData.editLine.slice(0,-1);
+                basicData.editLine += "'";
+                //force_cr = true;
+            }
             // Start an optional text block.
             basicData.start_new_line();
             // Add code to the line.
@@ -1007,7 +1011,7 @@ function addBASICSystemCode(basicData, globalConfig) {
 
     % Put atributes if color image (type 1)
     %=====================================
-    23 IF PEEK 58456 THEN
+    23 IF 1 = PEEK 58456 THEN
        % Calculate current coordinates of cursor.
        LET c = 33-PEEK {{S_POSN_L}}
      : LET r = 24-PEEK {{S_POSN_H}}
@@ -1034,6 +1038,12 @@ function addBASICSystemCode(basicData, globalConfig) {
      : POKE {{DEFADD_L}},0
      : POKE {{DEFADD_H}},0
 
+     
+    % Type 2 image. Single attribute.
+    %=====================================
+    23 IF 2 = PEEK 58456 THEN
+       BEEP 1,1
+
 
     % Put the pixel data.
     %======================================
@@ -1057,17 +1067,9 @@ function addBASICSystemCode(basicData, globalConfig) {
     27 POKE {{CHARS_L}},PEEK {{SEED_L}}
      : POKE {{CHARS_H}},PEEK {{SEED_H}}
      : POKE {{MASK_P}},NOT PI
+     : RANDOMIZE
      : RETURN
     `
-    /**
-    % Get current coordinate on screen.
-    xx LET c = 33-PEEK {{S_POSN_L}}
-     : LET r = 24-PEEK {{S_POSN_h}}
-     : LET 
-    xx LET P1=
-    `
-
-    */
     
     // Routine to clean all.
     // Notice it continues to sys_cls_interface.
@@ -1079,7 +1081,7 @@ function addBASICSystemCode(basicData, globalConfig) {
      : POKE {{DF_SZ}},2
      : CLS
      : RETURN
-    `;
+    `
     
     // Routine to clean the interface (options) section.
     basicData.labels["sys_cls_interface"] = 45;
