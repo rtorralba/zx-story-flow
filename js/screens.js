@@ -165,9 +165,26 @@ export class Screen {
         if (this.type !== "char") {
             throw new Error("Image need to be in char ordering.")
         }
+        
         const width = bbox.right - bbox.left + 1;
         const height = bbox.bottom - bbox.top + 1;
+        const size = width * height * 8;
+
+        const bytes = new Uint8Array(size);
+        
+        for (let r = 0; r < height; r++) {
+            for (let c = 0; c < width; c++) {
+                const i = (r * width + c ) * 8;
+                const j = ((r + bbox.top) * this.width + c + bbox.left) * 8;
+                for (let b = 0; b < 8; b++) {
+                    bytes[i+b] = this.bytes[j+b];
+                }
+            }
+        }
+        return bytes
     }
+    
+    
 
     /**
      * Return the effective height of the image in characters.
@@ -331,10 +348,71 @@ export class Screen {
 
 
 
+    // /**
+    //  * Crops the image removing unsied pixel data.
+    //  * 
+    //  * v3: Discards top and bottom part of image.
+    //  *     Limit to 15 rows.
+    //  *     Header: number fo rows (1 byte)
+    //  */
+    // compressMucho2() {
+
+    //     const MAXROWS = 15;
+    //     const HEADER_SIZE = 4;
+
+    //     // Require "char" byte order.
+    //     if (this.type !== "char") {
+    //         return this.toCharOrdering().compressMucho()
+    //     }
+
+    //     // This function requires full width screen data.
+    //     if (this.width != 32 || this.height != 24) {
+    //         throw new Error(`Require full-sized screen image.`)
+    //     }
+       
+    //     // Calculate required size.
+    //     const bbox = this.calcBoundingBox();
+    //     let height = bbox.bottom - bbox.top + 1;
+    //     height = height > MAXROWS ? MAXROWS : height;
+    //     const width = this.width; // By now assume full width.
+       
+    
+    //     const start = bbox.top * this.width * 8;
+    //     const end = start + height * this.width * 8;
+    //     const pixsize = this.width * height * 8;
+
+    //     const attraddr = this.width * this.height * 8;
+    //     const attrstart = attraddr + bbox.top * this.width;
+    //     const attrend = attrstart + height * this.width;
+    //     const attrsize = this.width * height;
+
+
+    //     if (this.testSingleColor(bbox)) {
+    //         // Case of Figure with a single color attribute.
+    //         const bytes = new Uint8Array(pixsize + 1 + HEADER_SIZE);
+    //         bytes.set([2, height, width, 0],0);
+    //         bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+    //         bytes.set([this.bytes[attraddr + bbox.top*this.width + bbox.left]],HEADER_SIZE+pixsize);
+    //         return bytes
+    //     } else {
+    //         // Case of Figure with full color attribute.
+    //         const bytes = new Uint8Array(pixsize + attrsize + HEADER_SIZE);
+    //         bytes.set([1, height, width, 0],0);
+    //         bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+    //         bytes.set(this.bytes.slice(attrstart,attrend),HEADER_SIZE+pixsize);
+    //         return bytes;
+    //     }
+  
+    // }
+
+
     /**
      * Crops the image removing unsied pixel data.
      * 
-     * v3: Discards top and bottom part of image.
+     * Discards top and bottom part of image without pixel data.
+     * Discard left and right part of the image without pixel data.
+     * For attributes, only discard top and bottom part, for speed reasons.
+     * 
      *     Limit to 15 rows.
      *     Header: number fo rows (1 byte)
      */
@@ -353,52 +431,41 @@ export class Screen {
             throw new Error(`Require full-sized screen image.`)
         }
        
-        // Calculate required size.
+        // Calculate required size. limiting to MAXROWS
         const bbox = this.calcBoundingBox();
         let height = bbox.bottom - bbox.top + 1;
         height = height > MAXROWS ? MAXROWS : height;
-        const width = this.width; // By now assume full width.
+        const width = bbox.right - bbox.left + 1;
+        bbox.bottom = bbox.top + height - 1;
        
     
-        const start = bbox.top * this.width * 8;
+        const start = (bbox.top * this.width + bbox.left) * 8;
         const end = start + height * this.width * 8;
-        const pixsize = this.width * height * 8;
+        const pixsize = width * height * 8;
 
         const attraddr = this.width * this.height * 8;
         const attrstart = attraddr + bbox.top * this.width;
         const attrend = attrstart + height * this.width;
         const attrsize = this.width * height;
 
-  
-        // // Now check if the image uses a single color. In that
-        // // That case, only need to store a single attribute.
-        // let oneattr = true;
-        // for (let i=attrstart; i<attrend; i++) {
-        //     if(this.bytes[i] !== this.bytes[attrstart]) {
-        //         oneattr = false;
-        //         break;
-        //     }
-        // }
 
         if (this.testSingleColor(bbox)) {
             // Case of Figure with a single color attribute.
             const bytes = new Uint8Array(pixsize + 1 + HEADER_SIZE);
-            bytes.set([2, height, width, 0],0);
-            bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+            bytes.set([2, height, width, bbox.left],0);
+            bytes.set(this.cropChar(bbox),HEADER_SIZE);
             bytes.set([this.bytes[attraddr + bbox.top*this.width + bbox.left]],HEADER_SIZE+pixsize);
             return bytes
         } else {
             // Case of Figure with full color attribute.
             const bytes = new Uint8Array(pixsize + attrsize + HEADER_SIZE);
-            bytes.set([1, height, width, 0],0);
-            bytes.set(this.bytes.slice(start,end),HEADER_SIZE);
+            bytes.set([1, height, width, bbox.left],0);
+            bytes.set(this.cropChar(bbox),HEADER_SIZE);
             bytes.set(this.bytes.slice(attrstart,attrend),HEADER_SIZE+pixsize);
             return bytes;
         }
   
     }
-
-
 
 
 }

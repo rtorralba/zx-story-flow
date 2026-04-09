@@ -894,6 +894,7 @@ function addBASICSystemCode(basicData, globalConfig) {
 
     // Memory map.
     // 58456 - Image - Header (4 BYTE) + 15 rows + attr (header + 4320 bytes)
+    // 64580-81 Temporary storage.
     // 64582 - DEFADD region.
     //         +4 addr1 a$
     //         +6 size1
@@ -1026,7 +1027,8 @@ function addBASICSystemCode(basicData, globalConfig) {
      : POKE 64595,PEEK {{SEED_L}}
      : POKE 64596,PEEK {{SEED_H}}
        % Size of buffer to copy.
-     : RANDOMIZE (PEEK 58457)*(PEEK 58458)
+     : RANDOMIZE (PEEK 58457)*32
+     %: RANDOMIZE (PEEK 58457)*(PEEK 58458)
      : POKE 64588,PEEK {{SEED_L}}
      : POKE 64589,PEEK {{SEED_H}}
      : POKE 64597,PEEK {{SEED_L}}
@@ -1050,22 +1052,24 @@ function addBASICSystemCode(basicData, globalConfig) {
     % Put the pixel data.
     %======================================
        % Save current charset.
-    25 RANDOMIZE PEEK {{CHARS_L}} + 256*PEEK {{CHARS_H}}
-       % Point charset to image.
-     : POKE {{CHARS_L}},220
-     : POKE {{CHARS_H}},226
-       % get number of rows of image.
-     : LET i=PEEK 58457
+    25 POKE 64580,PEEK {{CHARS_L}}
+     : POKE 64581,PEEK {{CHARS_H}}
+     : LET c=PEEK 58459
+     : LET i$="0123456789:;<=>?@ABCDEFGHIJKLMNO"(TO PEEK 58458)
+     : LET p1=8*PEEK 58458
     
     % Actually put the image on screen.
-    26 PRINT "0123456789:;<=>?@ABCDEFGHIJKLMNO"
-     : POKE {{CHARS_H}},1+PEEK {{CHARS_H}}
-     : LET i=i-1
-     : IF i THEN GO TO [[sys_print_image_loop]]
-    
-    % Restore charset and return.
-    27 POKE {{CHARS_L}},PEEK {{SEED_L}}
+    26 FOR i=58076 TO 58075 + p1*PEEK 58457 STEP p1 
+     : RANDOMIZE i
+     : POKE {{CHARS_L}},PEEK {{SEED_L}}
      : POKE {{CHARS_H}},PEEK {{SEED_H}}
+     : PRINT AT r,c;i$
+     : LET r=r+1
+     : NEXT i
+     
+    % Restore charset and return.
+    27 POKE {{CHARS_L}},PEEK 64580
+     : POKE {{CHARS_H}},PEEK 64581
      : POKE {{MASK_P}},NOT PI
      : POKE {{ATTR_P}},tattr
      : RANDOMIZE
@@ -1119,12 +1123,15 @@ function addBASICSystemCode(basicData, globalConfig) {
      : CLEAR
     52 REM p() table of line pointers.
     53 LET i=0
-     : DIM p(10)
-     : LET n=0
-     : LET tattr=7
-     : LET dattr=7
-     : LET iattr=7
-     : LET gsc=0
+     : LET i$=""
+     : LET r=i
+     : LET c=i
+     : LET n=i
+     : DIM p(VAL"10")
+     : LET tattr=VAL"7"
+     : LET dattr=VAL"7"
+     : LET iattr=VAL"7"
+     : LET gsc=i
     54 REM Inicializa variables del juego.
     `;
 
