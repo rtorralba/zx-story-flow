@@ -1010,37 +1010,38 @@ function addBASICSystemCode(basicData, globalConfig) {
     21 IF 1 = PEEK 23312 THEN LOAD "M:"+i$ CODE 58456
     22 IF 1 <> PEEK 23312 THEN LOAD! i$ CODE 58456
 
+    % Calculate current cursor coordinates.
+    23 LET c = 33-PEEK {{S_POSN_L}}
+     : LET r = 24-PEEK {{S_POSN_H}}
+  
     % Put atributes if color image (type 1)
     %=====================================
-    23 IF 1 = PEEK 58456 THEN
-       % Calculate current coordinates of cursor.
-       LET c = 33-PEEK {{S_POSN_L}}
-     : LET r = 24-PEEK {{S_POSN_H}}
-       % p1 points to attr on screen.
-     : LET p1 = 22528 + r*32
-     : RANDOMIZE p1
-     : POKE 64586,PEEK {{SEED_L}}
-     : POKE 64587,PEEK {{SEED_H}}
-       % p2 points to attr on image.
-     : LET p2 = 58456 + 4 + (PEEK 58457)*(PEEK 58458)*8
-     : RANDOMIZE p2
-     : POKE 64595,PEEK {{SEED_L}}
-     : POKE 64596,PEEK {{SEED_H}}
-       % Size of buffer to copy.
-     : RANDOMIZE (PEEK 58457)*32
-     %: RANDOMIZE (PEEK 58457)*(PEEK 58458)
-     : POKE 64588,PEEK {{SEED_L}}
-     : POKE 64589,PEEK {{SEED_H}}
-     : POKE 64597,PEEK {{SEED_L}}
-     : POKE 64598,PEEK {{SEED_H}}
-       % Actually copy the buffer.
-     : POKE {{DEFADD_L}},70
-     : POKE {{DEFADD_H}},252
-     : LET a$=b$
-     : POKE {{DEFADD_L}},0
-     : POKE {{DEFADD_H}},0
-     % Don't want pixel data to overwrite attr
-     : POKE {{MASK_P}},255
+     : IF 1 = PEEK 58456 THEN
+         % p1 points to attr on screen.
+       : LET p1 = 22528 + r*32
+       : RANDOMIZE p1
+       : POKE 64586,PEEK {{SEED_L}}
+       : POKE 64587,PEEK {{SEED_H}}
+         % p2 points to attr on image.
+       : LET p2 = 58456 + 4 + (PEEK 58457)*(PEEK 58458)*8
+       : RANDOMIZE p2
+       : POKE 64595,PEEK {{SEED_L}}
+       : POKE 64596,PEEK {{SEED_H}}
+         % Size of buffer to copy.
+       : RANDOMIZE (PEEK 58457)*32
+       %: RANDOMIZE (PEEK 58457)*(PEEK 58458)
+       : POKE 64588,PEEK {{SEED_L}}
+       : POKE 64589,PEEK {{SEED_H}}
+       : POKE 64597,PEEK {{SEED_L}}
+       : POKE 64598,PEEK {{SEED_H}}
+         % Actually copy the buffer.
+       : POKE {{DEFADD_L}},70
+       : POKE {{DEFADD_H}},252
+       : LET a$=b$
+       : POKE {{DEFADD_L}},0
+       : POKE {{DEFADD_H}},0
+         % Don't want pixel data to overwrite attr
+       : POKE {{MASK_P}},255
 
      
     % Type 2 image. Single attribute.
@@ -1051,7 +1052,7 @@ function addBASICSystemCode(basicData, globalConfig) {
 
     % Put the pixel data.
     %======================================
-       % Save current charset.
+    % Save current charset.
     25 POKE 64580,PEEK {{CHARS_L}}
      : POKE 64581,PEEK {{CHARS_H}}
      : LET c=PEEK 58459
