@@ -417,7 +417,7 @@ function transpileMuchoBlock(basicData, muchoCode) {
             const imgName = normalizeFileName(imgFile);
            
             
-            if (last_pline.type==="T" || last_pline.type==="P"){
+            if ((last_pline.type==="T" || last_pline.type==="P") && imgFile[0]!=="$"){
                 // Already an ongoing print. Discard ending ; and start new line.
                 if (basicData.editLine.at(-1)===';') basicData.editLine = basicData.editLine.slice(0,-1);
                 basicData.editLine += `'`;
@@ -998,7 +998,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     // i :
     basicData.labels["sys_print_image"] = 20;
     basicData.labels["sys_print_image_bw"] = 26;
-    basicData.labels["sys_print_image_loop"] = 26;
+    //basicData.labels["sys_print_image_loop"] = 27;
     sysCode += `
      
     % Safety check.
@@ -1013,6 +1013,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     % Calculate current cursor coordinates.
     23 LET c = 33-PEEK {{S_POSN_L}}
      : LET r = 24-PEEK {{S_POSN_H}}
+     : IF i$(1) = "$" THEN GO TO [[sys_print_image_bw]]
   
     % Put atributes if color image (type 1)
     %=====================================
@@ -1042,24 +1043,25 @@ function addBASICSystemCode(basicData, globalConfig) {
          % Don't want pixel data to overwrite attr
        : POKE {{MASK_P}},255
 
+    % Position of image.
+    25 LET c=PEEK 58459
      
     % Type 2 image. Single attribute.
     %=====================================
-    25 IF 2 = PEEK 58456 THEN
+    26 IF 2 = PEEK 58456 THEN
      : POKE {{ATTR_P}},PEEK(58456 + 4 + (PEEK 58457)*(PEEK 58458)*8)
-
 
     % Put the pixel data.
     %======================================
     % Save current charset.
-    26 POKE 64580,PEEK {{CHARS_L}}
+    27 POKE 64580,PEEK {{CHARS_L}}
      : POKE 64581,PEEK {{CHARS_H}}
-     : LET c=PEEK 58459
+    % : LET c=PEEK 58459
      : LET i$="0123456789:;<=>?@ABCDEFGHIJKLMNO"(TO PEEK 58458)
      : LET p1=8*PEEK 58458
     
     % Actually put the image on screen.
-    27 FOR i=58076 TO 58075 + p1*PEEK 58457 STEP p1 
+    28 FOR i=58076 TO 58075 + p1*PEEK 58457 STEP p1 
      : RANDOMIZE i
      : POKE {{CHARS_L}},PEEK {{SEED_L}}
      : POKE {{CHARS_H}},PEEK {{SEED_H}}
@@ -1068,7 +1070,7 @@ function addBASICSystemCode(basicData, globalConfig) {
      : NEXT i
      
     % Restore charset and return.
-    28 POKE {{CHARS_L}},PEEK 64580
+    29 POKE {{CHARS_L}},PEEK 64580
      : POKE {{CHARS_H}},PEEK 64581
      : POKE {{MASK_P}},NOT PI
      : POKE {{ATTR_P}},tattr
