@@ -997,7 +997,7 @@ function addBASICSystemCode(basicData, globalConfig) {
     // i$ : Contain the image filename.
     // i :
     basicData.labels["sys_print_image"] = 20;
-    basicData.labels["sys_print_image_bw"] = 25;
+    basicData.labels["sys_print_image_bw"] = 26;
     basicData.labels["sys_print_image_loop"] = 26;
     sysCode += `
      
@@ -1016,7 +1016,7 @@ function addBASICSystemCode(basicData, globalConfig) {
   
     % Put atributes if color image (type 1)
     %=====================================
-     : IF 1 = PEEK 58456 THEN
+    24 IF 1 = PEEK 58456 THEN
          % p1 points to attr on screen.
        : LET p1 = 22528 + r*32
        : RANDOMIZE p1
@@ -1029,7 +1029,6 @@ function addBASICSystemCode(basicData, globalConfig) {
        : POKE 64596,PEEK {{SEED_H}}
          % Size of buffer to copy.
        : RANDOMIZE (PEEK 58457)*32
-       %: RANDOMIZE (PEEK 58457)*(PEEK 58458)
        : POKE 64588,PEEK {{SEED_L}}
        : POKE 64589,PEEK {{SEED_H}}
        : POKE 64597,PEEK {{SEED_L}}
@@ -1046,21 +1045,21 @@ function addBASICSystemCode(basicData, globalConfig) {
      
     % Type 2 image. Single attribute.
     %=====================================
-    23 IF 2 = PEEK 58456 THEN
+    25 IF 2 = PEEK 58456 THEN
      : POKE {{ATTR_P}},PEEK(58456 + 4 + (PEEK 58457)*(PEEK 58458)*8)
 
 
     % Put the pixel data.
     %======================================
     % Save current charset.
-    25 POKE 64580,PEEK {{CHARS_L}}
+    26 POKE 64580,PEEK {{CHARS_L}}
      : POKE 64581,PEEK {{CHARS_H}}
      : LET c=PEEK 58459
      : LET i$="0123456789:;<=>?@ABCDEFGHIJKLMNO"(TO PEEK 58458)
      : LET p1=8*PEEK 58458
     
     % Actually put the image on screen.
-    26 FOR i=58076 TO 58075 + p1*PEEK 58457 STEP p1 
+    27 FOR i=58076 TO 58075 + p1*PEEK 58457 STEP p1 
      : RANDOMIZE i
      : POKE {{CHARS_L}},PEEK {{SEED_L}}
      : POKE {{CHARS_H}},PEEK {{SEED_H}}
@@ -1069,7 +1068,7 @@ function addBASICSystemCode(basicData, globalConfig) {
      : NEXT i
      
     % Restore charset and return.
-    27 POKE {{CHARS_L}},PEEK 64580
+    28 POKE {{CHARS_L}},PEEK 64580
      : POKE {{CHARS_H}},PEEK 64581
      : POKE {{MASK_P}},NOT PI
      : POKE {{ATTR_P}},tattr
