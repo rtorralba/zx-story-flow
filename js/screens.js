@@ -25,29 +25,40 @@ function getInterlacedRowIndex(i) {
 export class Screen {
     /**
      *
-     * scr: {"scr"|"lin"|"char"} Define byte ordering.
-     *     "scr" normal interlaced structure of screen.
-     *     "lin" row-linear screen ordering.
-     *     "char" Characer-wise ordering. 
      * @param {Uint8Array} buffer 
+     * @width {int} width of image in characters
+     * @height {int} height of image in hcharacters
+     * @type {string} Define byte ordering in image. 
+     *      type in {"scr"|"lin"|"char"}
+     *      "scr" normal interlaced structure of screen.
+     *      "lin" row-linear screen ordering.
+     *      "char" Characer-wise ordering. 
      */
     constructor(bytes, width=32, height=24, type="scr") {
-        this.width = 32; // in characters.
-        this.height = 24; // in characters.
-        this.size = this.width * this.height * (8 + 1); // size of screen in bytes.
-
-        if (bytes.length !== 6912) {
+       
+        this.width = width; // in characters.
+        this.height = height; // in characters.
+        this.pixsize = this.width * this.height * 8; // total bytes of pixel data.
+        this.attrsize = this.width * this.height * 1; // total bytes of attr data.
+        this.size = this.pixsize + this.attrsize; // total size of screen in bytes.
+        
+        // Check consistence of image data size.
+        if (bytes.length !== this.size) {
             throw new Error(`Bad screen size (${bytes.length} bytes).`)
-        } 
+        } else if ((width !== 32 || height !==24) && type==="scr") {
+            // Screen type (scr) must be always full screen. 
+            // Otherwise it does not make sense.
+            throw new Error(`Bad size for "scr".`)
+        }
         this.bytes = bytes;
-        this.type = type;
+        this.type = type; // byte ordering.
 
         // Strides to loop through the screen data.
         if (type === "scr") {
             this.strideChar = 256; // Stride through 8 bytes of a character.
             this.strideRow = 1; // Stride through characters of a row.
         } else if (type === "lin") {
-            this.strideChar = 32;
+            this.strideChar = this.width;
             this.strideRow = 1;
         } else if (type === "char") {
             this.strideChar = 1;
@@ -73,23 +84,30 @@ export class Screen {
 
 
     /**
-     * Return bytes corresponding to attributes.
+     * Return copy of bytes corresponding to attributes.
      */
     getAttrBytes() {
-        const attrsize = this.width * this.height;
-        return this.bytes.slice(-attrsize);
+        return this.bytes.slice(-this.attrsize);
     }
 
 
     /**
-     * Return bytes corresponding to pixel data.
+     * Return copy of bytes corresponding to pixel data.
      * @returns 
      */
     getPixelBytes() {
-        const pixsize = this.width * this.height * 8;
-        return this.bytes.slice(0, pixsize);
+        return this.bytes.slice(0, this.pixsize);
     }
 
+    /**
+     * Return attr byte for said character.
+     * 
+     * @param {*} row, in characters 
+     * @param {*} col, in characters
+     */
+    getAttr(row,col) {
+        return this.bytes[this.pixsize + row*this.width + col];
+    }
 
     /**
      * Given character row and column, return
@@ -123,6 +141,54 @@ export class Screen {
         return c != 0;
     }
 
+    /**
+     * Return TRUE if all bytes of the character are
+     * equal to the value provided.
+     * 
+     * This is just an utility function.
+     *  
+     * @param {int} row 
+     * @param {int} col 
+     * @param {ubyte} val 
+     */
+    testCharBytes(row,col,val){
+        const addr = this.getCharAddr(row,col);
+        for (let i=0; i<8; i++) {
+            if (this.bytes[addr + i*this.strideChar] !== val) return false
+        }
+        return true;
+    }
+
+
+    /**
+     * For a given character position (row,column), 
+     * return an attribute mask that keeps only
+     * meaningful attr bits for that particular character.
+     * 
+     * Active bits correspond to relevant attribute data.
+     * 
+     * For instance, if a character has no pixel active,
+     * INK bits are not relevant, as they are not visible. 
+     */
+    getCharAttrMask(row,col) {
+        const attr = this.getAttr(row,col);
+        const ink = attr & 0b111;
+        const paper = (attr & 0b111000) >> 3;
+        let mask = 0;
+        
+        // Check if ink bits are relevant.
+        mask |= this.testCharBytes(row,col,0) ? 0 : 0b111;
+        // Check if paper bits are relevant.
+        mask |= this.testCharBytes(row,col,255) ? 0 : 0b111000;
+        // Check if bright bit is relevant.
+        mask |= ink || paper ? 0b01000000 : 0;
+        // check if flash bit is relevant.
+        mask |= ink != paper ? 0b10000000 : 0;
+        
+        return mask
+    }
+
+    
     /**
      * Calculate the bounding box, in characters, of the
      * image considering set pixels.
@@ -269,25 +335,56 @@ export class Screen {
     }
 
 
+    // !!!! This function is superseded by testSingleAttr
+    // !!!! and needs to be fully removed if no bug found. 
+    // /**
+    //  * Return true if ony one attribute is used
+    //  * within the box.
+    //  * 
+    //  * @param {*} bbox 
+    //  */
+    // testSingleColor(bbox) {
+    //     const ref = this.getAttr(bbox.top, bbox.left);
+    //     for (let r=bbox.top; r<=bbox.bottom; r++) {
+    //         for (let c=bbox.left; c<=bbox.right; c++) {
+    //             if (this.getAttr(r,c) !== ref) {
+    //                 return false;
+    //             }
+    //         }
+    //     }
+    //     return true;
+    // }
+
+
+
     /**
-     * Return true if ony one attribute is used
-     * within the box.
+     * Test if the image can be represented by a
+     * single attribute and return it. Otherwise return -1.
      * 
-     * @param {*} bbox 
+     * This is an improved version of the routine testSingleColor that 
+     * takes into account the pixel data for the text.
+     * This version takes into account if the attributes
+     * are actually "visible" to determine whether they
+     * are the same or not.
      */
-    testSingleColor(bbox) {
-        const attrs = this.getAttrBytes();
-        const ref = attrs[bbox.top*this.width + bbox.left];
+    testSingleAttr(bbox){
+        let refattr = 0;
+        let refmask = 0;
+
         for (let r=bbox.top; r<=bbox.bottom; r++) {
             for (let c=bbox.left; c<=bbox.right; c++) {
-                const i = r*this.width + c;
-                if (attrs[i] !== ref) {
-                    return false;
+                let attr = this.getAttr(r,c);
+                let mask = this.getCharAttrMask(r,c);
+                if ((attr & mask & refmask) !== (refattr & mask & refmask)) {
+                    return -1;
                 }
+                refmask |= mask;
+                refattr |= attr & mask;
             }
         }
-        return true;
+        return refattr;
     }
+
 
     // header description.
     // byte - use.
@@ -443,18 +540,18 @@ export class Screen {
         const end = start + height * this.width * 8;
         const pixsize = width * height * 8;
 
-        const attraddr = this.width * this.height * 8;
-        const attrstart = attraddr + bbox.top * this.width;
+        const attrstart = this.pixsize + bbox.top * this.width;
         const attrend = attrstart + height * this.width;
         const attrsize = this.width * height;
 
 
-        if (this.testSingleColor(bbox)) {
+        const singleAttr = this.testSingleAttr(bbox);
+        if (singleAttr !== -1) {
             // Case of Figure with a single color attribute.
             const bytes = new Uint8Array(pixsize + 1 + HEADER_SIZE);
             bytes.set([2, height, width, bbox.left],0);
             bytes.set(this.cropChar(bbox),HEADER_SIZE);
-            bytes.set([this.bytes[attraddr + bbox.top*this.width + bbox.left]],HEADER_SIZE+pixsize);
+            bytes.set([singleAttr],HEADER_SIZE+pixsize);
             return bytes
         } else {
             // Case of Figure with full color attribute.
