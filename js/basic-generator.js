@@ -65,6 +65,16 @@ function parseLine(line) {
         pline.type = 'T'
         pline.text = line.replace(/"/g, `""`);
     }
+
+    // Preprocess $P lines.
+    if (pline.type === 'P') {
+        pline.type = 'T';
+        pline.text = pline.text.trim();
+        if (pline.text !== '') {
+            throw new Error(`$P command must be empty: ${tline}`)
+        }
+    }
+    
     return pline
 }
 
