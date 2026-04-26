@@ -94,13 +94,16 @@ function splitIntoScreenBlocks(muchoLines) {
         currentBlock.push(line)
     });
 
-    // !!!! Discard last black space of each block, as this is
-    // !!!! due to mucho Generator adding spaces that now has
-    // !!!! a different meaning in BASIC
+    // Discard blanck spaces at end of each block.
+    // This can be just a space introduced by mucho Geneator,
+    // or black spaces left by the user that has no real use.
     blocks.forEach(block => {
-        if (block.at(-1).type==='T' && block.at(-1).text==="") {
-            block.pop()
+        while (block.length &&  block.at(-1).type==='T' && block.at(-1).text==="") {
+            block.pop();
         }
+        //if (block.at(-1).type==='T' && block.at(-1).text==="") {
+        //    block.pop()
+        //}
     })
 
     return blocks;
@@ -580,7 +583,7 @@ function transpileMuchoToBasic(muchoCode, globalConfig = null) {
 
    
     // Process muchoCode by lines.
-    const lines = muchoCode.trim().split(/\r?\n/);
+    const lines = muchoCode.split(/\r?\n/);
     
     // pre-parse all lines.
     const plines = lines.flatMap(line => {
