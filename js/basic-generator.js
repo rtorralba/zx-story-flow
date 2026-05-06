@@ -1107,7 +1107,10 @@ function addBASICSystemCode(basicData, globalConfig) {
     basicData.labels["sys_cls_interface"] = 45;
     sysCode += `
     45 REM Option bar subroutine (also called after image load)
-    46 POKE {{BORDCR}},dattr
+    % Reposition cursor to use whole screen.
+    46 LET r = 23-PEEK {{S_POSN_H}}
+     : PRINT AT r,0;
+    47 POKE {{BORDCR}},dattr
      : POKE {{DF_SZ}},1
      : PRINT #1;AT 0,0;"{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}{A}"
      : POKE {{BORDCR}},iattr
